@@ -1,2 +1,2 @@
-# Spark-Awards
+# Spark-Awards-Competition
 Spark Design Awards Competition
