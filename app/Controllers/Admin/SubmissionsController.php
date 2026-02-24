@@ -1,0 +1,883 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers\Admin;
+
+use App\Controllers\BaseController;
+use App\Models\Entries\EntryAnswersModel;
+use App\Models\Admin\CompetitionModel;
+use App\Models\Judging\EntryPhotoModel;
+use App\Services\SubmissionsService;
+use App\Services\Admin\SubmissionsAdminService;
+use Config\Services;
+
+class SubmissionsController extends BaseController
+{
+    private SubmissionsAdminService $adminSubs;
+
+    public function __construct()
+    {
+        $this->adminSubs = new SubmissionsAdminService();
+    }
+
+    public function index()
+    {
+        $years = $this->adminSubs->getCompetitionYears();
+        $defaultYear = (int)($years[0]['comp_year'] ?? date('Y'));
+        $filters = $this->getFilters($defaultYear);
+        $rows = $this->adminSubs->list($filters);
+
+        return view('admin/submissions/index', [
+            'rows' => $rows,
+            'filters' => $filters,
+            'years' => $years,
+            'types' => $this->adminSubs->getCompetitionTypesByYear((int)$filters['compYear']),
+            'canDelete' => $this->canDelete(),
+        ]);
+    }
+
+    public function create()
+    {
+        $years = $this->adminSubs->getCompetitionYears();
+        $defaultYear = (int)($years[0]['comp_year'] ?? date('Y'));
+        $filters = $this->getFilters($defaultYear);
+
+        return view('admin/submissions/create', [
+            'filters' => $filters,
+            'years' => $years,
+            'types' => $this->adminSubs->getCompetitionTypesByYear((int)$filters['compYear']),
+            'canDelete' => $this->canDelete(),
+        ]);
+    }
+
+    public function userSearch()
+    {
+        $q = trim((string)$this->request->getGet('q'));
+        $rows = service('profiles')->searchUsersForSubmission($q, 50);
+
+        $data = [];
+        foreach ($rows as $row) {
+            $label = trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' - ' . (string)($row['email_address'] ?? ''));
+            $data[] = [
+                'id' => (string)($row['user_id'] ?? ''),
+                'label' => $label,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'data' => $data,
+        ]);
+    }
+
+    public function store()
+    {
+        $rules = [
+            'user_id' => 'required|max_length[36]',
+            'comp_id' => 'required|integer',
+            'design_name' => 'required|max_length[100]',
+        ];
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', 'Invalid submission data.');
+        }
+
+        $entryId = $this->adminSubs->create($this->request->getPost());
+        return redirect()->to('/admin/submissions/edit/' . rawurlencode($entryId))->with('success', 'Submission created.');
+    }
+
+    public function edit(string $entryId)
+    {
+        $row = $this->adminSubs->find($entryId);
+        if (!$row) {
+            return redirect()->to('/admin/submissions')->with('error', 'Submission not found.');
+        }
+
+        $answers = (new EntryAnswersModel())
+            ->asArray()
+            ->where('entry_id', $entryId)
+            ->findAll();
+        $answersMap = [];
+        foreach ($answers as $answer) {
+            $answersMap[(int)$answer['entry_question_id']] = (string)$answer['entry_answer'];
+        }
+
+        $photos = (new EntryPhotoModel())
+            ->asArray()
+            ->where('entry_id', $entryId)
+            ->orderBy('entry_photo_order', 'ASC')
+            ->findAll();
+        $photos = $this->ensureCertificateThumbnailForEdit($row, $photos);
+
+        $designTypes = (new SubmissionsService())->getDesignTypes((int)($row['comp_type_id'] ?? 0));
+
+        $addOnLines = [];
+        $paymentSvc = service('payments');
+        foreach ($paymentSvc->getAddonItems() as $addon) {
+            $entryAddon = $paymentSvc->addonItemUser($entryId, (int)$addon['retail_item_id']);
+            $qty = (int)($entryAddon['quantity'] ?? 0);
+            if ($qty <= 0) {
+                continue;
+            }
+            $price = (float)$addon['item_price'];
+            $addOnLines[] = [
+                'name' => (string)$addon['item_name'],
+                'qty' => $qty,
+                'total' => round($qty * $price, 2),
+            ];
+        }
+
+        return view('admin/submissions/edit', [
+            'row' => $row,
+            'questions' => $this->adminSubs->questions(),
+            'answersMap' => $answersMap,
+            'photos' => $photos,
+            'designTypes' => $designTypes,
+            'addonLines' => $addOnLines,
+            'winnerLevels' => $this->adminSubs->getWinnerLevels(),
+            'types' => service('competitions')->getAllCompetitions(),
+            'canDelete' => $this->canDelete(),
+            'payments' => service('payments')->getAllPaymentDetails($entryId),
+        ]);
+    }
+
+    public function copy(string $entryId)
+    {
+        $row = $this->adminSubs->find($entryId);
+        if (!$row) {
+            return redirect()->to('/admin/submissions')->with('error', 'Submission not found.');
+        }
+
+        $year = (int)($this->request->getGet('compYear') ?? ($row['comp_year'] ?? date('Y')));
+        $competitions = $this->adminSubs->getCompetitionTypesByYear($year);
+
+        return view('admin/submissions/copy', [
+            'row' => $row,
+            'year' => $year,
+            'years' => $this->adminSubs->getCompetitionYears(),
+            'competitions' => $competitions,
+            'canDelete' => $this->canDelete(),
+        ]);
+    }
+
+    public function copyPost(string $entryId)
+    {
+        $row = $this->adminSubs->find($entryId);
+        if (!$row) {
+            return redirect()->to('/admin/submissions')->with('error', 'Submission not found.');
+        }
+
+        $rules = [
+            'comp_id' => 'required|integer',
+        ];
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', 'Please select a valid destination competition.');
+        }
+
+        $newCompId = (int)$this->request->getPost('comp_id');
+        $newEntryId = $this->adminSubs->copyToCompetition($entryId, $newCompId);
+        if (!$newEntryId) {
+            return redirect()->back()->withInput()->with('error', 'Submission copy failed.');
+        }
+
+        return redirect()->to('/admin/submissions/edit/' . rawurlencode($newEntryId))->with('success', 'Submission copied successfully.');
+    }
+
+    public function update(string $entryId)
+    {
+        $rules = [
+            'design_name' => 'required|max_length[100]',
+            'company_name' => 'permit_empty|max_length[100]',
+            'entry_status' => 'required|in_list[Draft,Entrant,Finalist,Winner]',
+            'winner_level' => 'permit_empty|integer',
+            'designer_first_name' => 'required|max_length[100]',
+            'designer_last_name' => 'required|max_length[100]',
+            'designer_phone' => 'required|max_length[25]',
+            'designer_email_address' => 'required|valid_email|max_length[100]',
+            'short_description' => 'required|max_length[600]',
+            'full_description' => 'required|max_length[2400]',
+        ];
+        for ($i = 1; $i <= 10; $i++) {
+            $rules['low_photo_' . $i] = 'if_exist|max_size[low_photo_' . $i . ',1024]|ext_in[low_photo_' . $i . ',jpg,jpeg]|mime_in[low_photo_' . $i . ',image/jpeg]';
+        }
+        $rules['certificate_pdf'] = 'if_exist|max_size[certificate_pdf,5120]|ext_in[certificate_pdf,pdf]|mime_in[certificate_pdf,application/pdf]';
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Submission validation failed. Please review the highlighted fields.')
+                ->with('errors', $this->validator ? $this->validator->getErrors() : []);
+        }
+
+        $requiredPhotoErrors = $this->validateRequiredLowPhotos($entryId);
+        if ($requiredPhotoErrors !== []) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Submission validation failed. Please review the highlighted fields.')
+                ->with('errors', $requiredPhotoErrors);
+        }
+
+        $ok = false;
+        $errorMessage = 'Submission update failed.';
+
+        try {
+            $post = (array)$this->request->getPost();
+            // These legacy fields were intentionally removed from admin edit flow.
+            unset(
+                $post['launch_year'],
+                $post['return_design'],
+                $post['postal_carrier'],
+                $post['return_number'],
+                $post['designer_title']
+            );
+            $ok = $this->adminSubs->update($entryId, $post);
+            if ($ok) {
+                $entry = $this->adminSubs->find($entryId);
+                if ($entry) {
+                    $photoErrors = $this->processImages($entryId, (int)$entry['comp_id'], 'Low', 1, 10);
+                    if ($photoErrors !== null) {
+                        return redirect()->back()->withInput()->with('error', implode(' ', $photoErrors));
+                    }
+                    $certErrors = $this->processCertificate($entryId, (int)$entry['comp_id']);
+                    if ($certErrors !== null) {
+                        return redirect()->back()->withInput()->with('error', implode(' ', $certErrors));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Admin submission update failed for {entryId}: {message}', [
+                'entryId' => $entryId,
+                'message' => $e->getMessage(),
+            ]);
+            $ok = false;
+            $errorMessage = 'Submission update failed: ' . $e->getMessage();
+        }
+
+        if (!$ok) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', $errorMessage);
+        }
+
+        return redirect()->to('/admin/submissions/edit/' . rawurlencode($entryId))->with('success', 'Submission updated.');
+    }
+
+    public function delete(string $entryId)
+    {
+        if (!$this->canDelete()) {
+            return redirect()->to('/admin/submissions')->with('error', 'Editors are not allowed to delete records.');
+        }
+
+        if (!$this->adminSubs->delete($entryId)) {
+            return redirect()->to('/admin/submissions')->with('error', 'Submission could not be deleted.');
+        }
+
+        return redirect()->to('/admin/submissions')->with('success', 'Submission deleted.');
+    }
+
+    public function bulk()
+    {
+        $action = (string)$this->request->getPost('action');
+        $ids = $this->request->getPost('entry_ids') ?? [];
+        if ($action === '') {
+            return redirect()->back()->with('error', 'Please choose a bulk update option.');
+        }
+        if (!is_array($ids) || $ids === []) {
+            return redirect()->back()->with('error', 'No entries selected.');
+        }
+
+        if ($action === 'delete' && !$this->canDelete()) {
+            return redirect()->back()->with('error', 'Editors are not allowed to delete records.');
+        }
+
+        if ($action === 'delete') {
+            $count = 0;
+            foreach ($ids as $id) {
+                if ($this->adminSubs->delete((string)$id)) {
+                    $count++;
+                }
+            }
+            return redirect()->back()->with('success', 'Deleted ' . $count . ' submission(s).');
+        }
+
+        $count = $this->adminSubs->bulkAction($action, $ids);
+        return redirect()->back()->with('success', 'Updated ' . $count . ' submission(s).');
+    }
+
+    public function export()
+    {
+        $rows = $this->adminSubs->export($this->getFilters());
+        $csv = $this->toCsv($rows);
+        $filename = 'submissions-export-' . date('Ymd_His') . '.csv';
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setHeader('X-Content-Type-Options', 'nosniff')
+            ->setBody("\xEF\xBB\xBF" . $csv);
+    }
+
+    public function judgingCards()
+    {
+        $filters = [
+            'compYear' => (int)($this->request->getGet('compYear') ?? date('Y')),
+            'compType' => (string)($this->request->getGet('compType') ?? 'ALL'),
+            'compPhase' => (int)($this->request->getGet('compPhase') ?? 1),
+            'excludeNonFinalists' => (string)($this->request->getGet('excludeNonFinalists') ?? 'No'),
+        ];
+
+        return view('admin/submissions/judging_cards', [
+            'rows' => $this->adminSubs->judgingCards($filters),
+            'filters' => $filters,
+            'years' => $this->adminSubs->getCompetitionYears(),
+            'types' => $this->adminSubs->getCompetitionTypesByYear((int)$filters['compYear']),
+        ]);
+    }
+
+    public function receipt(int $paymentId, string $entryId)
+    {
+        $row = service('payments')->getPaymentReceipt($paymentId, $entryId);
+        if (!$row) {
+            return redirect()->to('/admin/submissions/edit/' . rawurlencode($entryId))->with('error', 'Receipt not found.');
+        }
+
+        $row['payment_receipt'] = $this->resolveLegacyReceiptTemplate((string)($row['payment_receipt'] ?? ''), $row, $entryId);
+
+        return view('admin/submissions/receipt', [
+            'entryId' => $entryId,
+            'payment' => $row,
+        ]);
+    }
+
+    public function receiptContent(int $paymentId, string $entryId)
+    {
+        $row = service('payments')->getPaymentReceipt($paymentId, $entryId);
+        if (!$row) {
+            return $this->response
+                ->setStatusCode(404)
+                ->setBody('<div class="alert alert-danger mb-0">Receipt not found.</div>');
+        }
+
+        $row['payment_receipt'] = $this->resolveLegacyReceiptTemplate((string)($row['payment_receipt'] ?? ''), $row, $entryId);
+
+        return $this->response->setBody(
+            view('admin/submissions/_receipt_content', ['payment' => $row])
+        );
+    }
+
+    public function deletePhoto(int $entryPhotoId)
+    {
+        if (!$this->canDelete()) {
+            return redirect()->back()->with('error', 'Editors are not allowed to delete records.');
+        }
+
+        $ok = (new SubmissionsService())->deletePhoto((string)$entryPhotoId);
+        return redirect()->back()->with($ok ? 'success' : 'error', $ok ? 'Photo deleted.' : 'Photo could not be deleted.');
+    }
+
+    public function deleteCertificate(int $entryPhotoId)
+    {
+        if (!$this->canDelete()) {
+            return redirect()->back()->with('error', 'Editors are not allowed to delete records.');
+        }
+
+        $photoModel = new EntryPhotoModel();
+        $photo = $photoModel->asArray()->find($entryPhotoId);
+        if (!$photo) {
+            return redirect()->back()->with('error', 'Certificate not found.');
+        }
+
+        $certificatePublicPath = trim((string)($photo['entry_certificate'] ?? ''));
+        if ($certificatePublicPath !== '' && $this->isManagedUploadPublicPath($certificatePublicPath)) {
+            $certificateAbsolutePath = $this->publicUrlToAbsolutePath($certificatePublicPath);
+            if (is_file($certificateAbsolutePath)) {
+                @unlink($certificateAbsolutePath);
+            }
+        }
+
+        $isPdfRow = (string)($photo['entry_photo_res'] ?? '') === 'PDF';
+        $updateData = ['entry_certificate' => ''];
+        if ($isPdfRow) {
+            $thumbnailPublicPath = trim((string)($photo['entry_photo'] ?? ''));
+            if ($thumbnailPublicPath !== '' && $this->isManagedUploadPublicPath($thumbnailPublicPath)) {
+                $thumbnailAbsolutePath = $this->publicUrlToAbsolutePath($thumbnailPublicPath);
+                if (is_file($thumbnailAbsolutePath)) {
+                    @unlink($thumbnailAbsolutePath);
+                }
+            }
+            $updateData['entry_photo'] = '';
+        }
+
+        $ok = $photoModel->skipValidation(true)->update($entryPhotoId, $updateData);
+        return redirect()->back()->with($ok ? 'success' : 'error', $ok ? 'Certificate PDF removed.' : 'Certificate could not be removed.');
+    }
+
+    private function canDelete(): bool
+    {
+        return (string)session('role') !== 'editor';
+    }
+
+    private function resolveLegacyReceiptTemplate(string $rawReceipt, array $payment, string $entryId): string
+    {
+        if ($rawReceipt === '' || strpos($rawReceipt, '#') === false) {
+            return $rawReceipt;
+        }
+
+        $ctx = db_connect()->table('comp_entries e')
+            ->select('e.design_name, u.first_name, u.last_name, u.address1, u.city, u.state, u.zipcode, u.country, u.email_address')
+            ->join('comp_users u', 'u.user_id = e.user_id')
+            ->where('e.entry_id', $entryId)
+            ->get()
+            ->getRowArray() ?? [];
+
+        $tokenMap = [
+            '#x_description#' => (string)($ctx['design_name'] ?? 'Spark Awards Entry Payment'),
+            '#paymentDetails.payment_id#' => (string)($payment['payment_id'] ?? ''),
+            '#x_first_name#' => (string)($ctx['first_name'] ?? ''),
+            '#x_last_name#' => (string)($ctx['last_name'] ?? ''),
+            '#x_address#' => (string)($ctx['address1'] ?? ''),
+            '#x_city#' => (string)($ctx['city'] ?? ''),
+            '#x_state#' => (string)($ctx['state'] ?? ''),
+            '#x_zip#' => (string)($ctx['zipcode'] ?? ''),
+            '#x_country#' => (string)($ctx['country'] ?? ''),
+            '#userDetails.email_address#' => (string)($ctx['email_address'] ?? ''),
+            '#x_amount#' => (string)($payment['payment_total'] ?? ''),
+        ];
+
+        $resolved = strtr($rawReceipt, $tokenMap);
+
+        // Replace any unknown legacy token remnants with empty text.
+        $resolved = preg_replace('/#[A-Za-z0-9_.]+#/', '', $resolved) ?? $resolved;
+
+        return trim($resolved);
+    }
+
+    private function getFilters(?int $defaultYear = null): array
+    {
+        $effectiveYear = $defaultYear ?? (int)date('Y');
+        $compYear = (int)($this->request->getGet('compYear') ?? $effectiveYear);
+        if ($compYear <= 0) {
+            $compYear = $effectiveYear;
+        }
+
+        return [
+            'filterBy' => (string)($this->request->getGet('filterBy') ?? ''),
+            'compYear' => $compYear,
+            'compType' => (string)($this->request->getGet('compType') ?? 'ALL'),
+            'excludeNonFinalists' => (string)($this->request->getGet('excludeNonFinalists') ?? 'No'),
+            'shortlistEntries' => (string)($this->request->getGet('shortlistEntries') ?? 'No'),
+        ];
+    }
+
+    private function toCsv(array $rows): string
+    {
+        if ($rows === []) {
+            return "No data\n";
+        }
+
+        $headers = array_keys($rows[0]);
+        $fh = fopen('php://temp', 'r+');
+        fputcsv($fh, $headers);
+        foreach ($rows as $row) {
+            $line = [];
+            foreach ($headers as $h) {
+                $val = $row[$h] ?? '';
+                $line[] = is_scalar($val) ? (string)$val : json_encode($val, JSON_UNESCAPED_UNICODE);
+            }
+            fputcsv($fh, $line);
+        }
+        rewind($fh);
+        $csv = (string)stream_get_contents($fh);
+        fclose($fh);
+
+        return $csv;
+    }
+
+    private function processImages(string $entryId, int $compId, string $resLabel, int $from, int $to): ?array
+    {
+        $imageService = Services::image();
+
+        $comp = (new CompetitionModel())
+            ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
+            ->where('comp_id', $compId)
+            ->first();
+        if (!$comp) {
+            return ['Invalid competition for image upload.'];
+        }
+
+        $year     = (int) ($comp->comp_year ?? date('Y'));
+        $typeName = strtolower(trim((string) ($comp->comp_type_name ?? 'unknown')));
+        $typeDir  = str_replace(['/', '\\'], '-', $typeName);
+        $baseDir  = rtrim(FCPATH, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR . 'uploads'
+            . DIRECTORY_SEPARATOR . $year
+            . DIRECTORY_SEPARATOR . $typeDir;
+
+        if (!is_dir($baseDir)) {
+            @mkdir($baseDir, 0775, true);
+            @file_put_contents($baseDir . DIRECTORY_SEPARATOR . 'index.html', '');
+            @file_put_contents($baseDir . DIRECTORY_SEPARATOR . '.htaccess', "Options -Indexes\n<FilesMatch \"\\.(php|phtml|phar|cgi|pl|asp|aspx)$\">\nRequire all denied\n</FilesMatch>\n");
+        }
+
+        $photoModel = new EntryPhotoModel();
+        $entryRow = $this->adminSubs->find($entryId);
+        $photoId  = (string)($entryRow['photo_id'] ?? '');
+
+        $errors = [];
+        for ($i = $from; $i <= $to; $i++) {
+            $file = $this->request->getFile('low_photo_' . $i);
+            $caption = (string)($this->request->getPost('low_caption_' . $i) ?? '');
+            $existing = $photoModel->asArray()
+                ->where('entry_id', $entryId)
+                ->where('entry_photo_res', $resLabel)
+                ->where('entry_photo_order', $i)
+                ->first();
+
+            if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
+                if ($existing) {
+                    $photoModel->update((int)$existing['entry_photo_id'], ['entry_photo_caption' => $caption]);
+                }
+                continue;
+            }
+
+            if (!$file->isValid()) {
+                $errors[] = 'Photo ' . $i . ' failed upload.';
+                continue;
+            }
+
+            $clientExt = strtolower((string)$file->getClientExtension());
+            if (!in_array($clientExt, ['jpg', 'jpeg'], true)) {
+                $errors[] = 'Photo ' . $i . ' must be a valid JPG image.';
+                continue;
+            }
+
+            $imgInfo = @getimagesize($file->getTempName());
+            if (!is_array($imgInfo) || ($imgInfo['mime'] ?? '') !== 'image/jpeg') {
+                $errors[] = 'Photo ' . $i . ' must be a valid JPG image.';
+                continue;
+            }
+
+            try {
+                $safeName = 'CompPhotoLow_' . $i . '_' . $photoId . '.jpg';
+                $target   = rtrim($baseDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $safeName;
+                $imageService->withFile($file->getTempName())->resize(2000, 2000, true, 'auto')->save($target, 85);
+                $publicUrl = '/uploads/' . $year . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $typeDir) . '/' . $safeName;
+
+                $payload = [
+                    'entry_id' => $entryId,
+                    'entry_photo' => $publicUrl,
+                    'entry_photo_caption' => $caption,
+                    'entry_photo_res' => $resLabel,
+                    'entry_photo_order' => $i,
+                ];
+                if ($existing) {
+                    $photoModel->update((int)$existing['entry_photo_id'], $payload);
+                } else {
+                    $photoModel->insert($payload, false);
+                }
+            } catch (\Throwable $e) {
+                $errors[] = 'Photo ' . $i . ' could not be processed.';
+            }
+        }
+
+        return $errors === [] ? null : $errors;
+    }
+
+    private function processCertificate(string $entryId, int $compId): ?array
+    {
+        $pdf = $this->request->getFile('certificate_pdf');
+        $clientThumbnailData = trim((string)($this->request->getPost('certificate_thumb_data') ?? ''));
+        if (!$pdf || $pdf->getError() === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if (!$pdf->isValid()) {
+            return ['Certificate upload failed. Please try again.'];
+        }
+
+        $comp = (new CompetitionModel())
+            ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
+            ->where('comp_id', $compId)
+            ->first();
+        if (!$comp) {
+            return ['Invalid competition for certificate upload.'];
+        }
+
+        $year     = (int) ($comp->comp_year ?? date('Y'));
+        $typeName = strtolower(trim((string) ($comp->comp_type_name ?? 'unknown')));
+        $typeDir  = str_replace(['/', '\\'], '-', $typeName);
+        $baseDir  = rtrim(FCPATH, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR . 'uploads'
+            . DIRECTORY_SEPARATOR . $year
+            . DIRECTORY_SEPARATOR . $typeDir;
+        if (!is_dir($baseDir)) {
+            @mkdir($baseDir, 0775, true);
+            @file_put_contents($baseDir . DIRECTORY_SEPARATOR . 'index.html', '');
+            @file_put_contents($baseDir . DIRECTORY_SEPARATOR . '.htaccess', "Options -Indexes\n<FilesMatch \"\\.(php|phtml|phar|cgi|pl|asp|aspx)$\">\nRequire all denied\n</FilesMatch>\n");
+        }
+
+        $entryRow = $this->adminSubs->find($entryId);
+        $photoId  = (string)($entryRow['photo_id'] ?? '');
+        if ($photoId === '') {
+            $photoId = preg_replace('/[^A-Za-z0-9_-]/', '', $entryId) ?: 'entry';
+        }
+        $photoModel = new EntryPhotoModel();
+        $cert = $photoModel->asArray()->where('entry_id', $entryId)->where('entry_photo_res', 'PDF')->first();
+        $payload = [];
+        $errors = [];
+
+        if (strtolower((string)$pdf->getExtension()) !== 'pdf') {
+            $errors[] = 'Certificate file must be a PDF.';
+        } else {
+            try {
+                $name = 'CertificatePDF_' . $photoId . '.pdf';
+                $target = rtrim($baseDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $name;
+                $pdf->move($baseDir, $name, true);
+                if (!is_file($target)) {
+                    throw new \RuntimeException('Moved PDF file not found at target path.');
+                }
+
+                $payload['entry_certificate'] = '/uploads/' . $year . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $typeDir) . '/' . $name;
+                $payload['entry_photo'] = $this->certificateFallbackThumbnailPath();
+
+                $thumbPublicPath = '/uploads/' . $year . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $typeDir) . '/CertificateThumb_' . $photoId . '.jpg';
+                $thumbAbsolutePath = $this->publicUrlToAbsolutePath($thumbPublicPath);
+                $savedClientThumbnail = false;
+                if ($clientThumbnailData !== '') {
+                    $savedClientThumbnail = $this->saveClientGeneratedCertificateThumbnail($clientThumbnailData, $thumbAbsolutePath);
+                }
+                if ($savedClientThumbnail || $this->generatePdfThumbnail($target, $thumbAbsolutePath)) {
+                    $payload['entry_photo'] = $thumbPublicPath;
+                }
+            } catch (\Throwable $e) {
+                $errors[] = 'Certificate PDF could not be saved.';
+            }
+        }
+
+        if ($payload !== []) {
+            $base = [
+                'entry_id' => $entryId,
+                'entry_photo_res' => 'PDF',
+                'entry_photo_order' => 11,
+                'entry_photo_caption' => '',
+                'entry_photo' => $cert['entry_photo'] ?? '',
+                'entry_certificate' => $cert['entry_certificate'] ?? '',
+            ];
+            $final = array_merge($base, $payload);
+            $persisted = false;
+            if ($cert) {
+                $persisted = (bool)$photoModel->skipValidation(true)->update((int)$cert['entry_photo_id'], $final);
+            } else {
+                $persisted = $photoModel->skipValidation(true)->insert($final, false) !== false;
+            }
+
+            if (!$persisted) {
+                if (!empty($payload['entry_certificate'])) {
+                    $certificateAbsolutePath = $this->publicUrlToAbsolutePath((string)$payload['entry_certificate']);
+                    if (is_file($certificateAbsolutePath)) {
+                        @unlink($certificateAbsolutePath);
+                    }
+                }
+                if (!empty($payload['entry_photo']) && $this->isManagedUploadPublicPath((string)$payload['entry_photo'])) {
+                    $thumbnailAbsolutePath = $this->publicUrlToAbsolutePath((string)$payload['entry_photo']);
+                    if (is_file($thumbnailAbsolutePath)) {
+                        @unlink($thumbnailAbsolutePath);
+                    }
+                }
+                $errors[] = 'Certificate PDF could not be linked to this submission.';
+            }
+        }
+
+        return $errors === [] ? null : $errors;
+    }
+
+    private function ensureCertificateThumbnailForEdit(array $entry, array $photos): array
+    {
+        if ($photos === []) {
+            return $photos;
+        }
+
+        $photoModel = new EntryPhotoModel();
+        foreach ($photos as $idx => $photo) {
+            if ((string)($photo['entry_photo_res'] ?? '') !== 'PDF') {
+                continue;
+            }
+
+            $pdfPublicPath = trim((string)($photo['entry_certificate'] ?? ''));
+            if ($pdfPublicPath === '') {
+                continue;
+            }
+
+            $thumbnailPublicPath = trim((string)($photo['entry_photo'] ?? ''));
+            $thumbnailMissing = $thumbnailPublicPath === '';
+            if (!$thumbnailMissing) {
+                $thumbnailAbsolutePath = $this->publicUrlToAbsolutePath($thumbnailPublicPath);
+                $thumbnailMissing = !is_file($thumbnailAbsolutePath);
+            }
+            if (!$thumbnailMissing) {
+                continue;
+            }
+
+            $pdfAbsolutePath = $this->publicUrlToAbsolutePath($pdfPublicPath);
+            if (!is_file($pdfAbsolutePath)) {
+                continue;
+            }
+
+            $pdfDir = trim(str_replace('\\', '/', dirname($pdfPublicPath)), '/.');
+            if ($pdfDir === '') {
+                continue;
+            }
+
+            $thumbSeed = trim((string)($entry['photo_id'] ?? ''));
+            if ($thumbSeed === '') {
+                $thumbSeed = trim((string)($photo['entry_photo_id'] ?? ''));
+            }
+            if ($thumbSeed === '') {
+                $thumbSeed = 'entry';
+            }
+            $thumbSeed = preg_replace('/[^A-Za-z0-9_-]/', '', $thumbSeed) ?: 'entry';
+            $generatedThumbPublicPath = '/' . $pdfDir . '/CertificateThumb_' . $thumbSeed . '.jpg';
+            $generatedThumbAbsolutePath = $this->publicUrlToAbsolutePath($generatedThumbPublicPath);
+            if (!$this->generatePdfThumbnail($pdfAbsolutePath, $generatedThumbAbsolutePath)) {
+                $fallbackThumbPath = $this->certificateFallbackThumbnailPath();
+                if ($thumbnailPublicPath !== $fallbackThumbPath) {
+                    $photoModel->update((int)($photo['entry_photo_id'] ?? 0), [
+                        'entry_photo' => $fallbackThumbPath,
+                    ]);
+                    $photos[$idx]['entry_photo'] = $fallbackThumbPath;
+                }
+                continue;
+            }
+
+            $photoModel->update((int)($photo['entry_photo_id'] ?? 0), [
+                'entry_photo' => $generatedThumbPublicPath,
+            ]);
+            $photos[$idx]['entry_photo'] = $generatedThumbPublicPath;
+        }
+
+        return $photos;
+    }
+
+    private function generatePdfThumbnail(string $pdfAbsolutePath, string $thumbnailAbsolutePath): bool
+    {
+        if (!class_exists(\Imagick::class)) {
+            return false;
+        }
+        if (!is_file($pdfAbsolutePath)) {
+            return false;
+        }
+
+        $thumbDir = dirname($thumbnailAbsolutePath);
+        if (!is_dir($thumbDir) && !@mkdir($thumbDir, 0775, true) && !is_dir($thumbDir)) {
+            return false;
+        }
+
+        try {
+            $imagick = new \Imagick();
+            $imagick->setResolution(150, 150);
+            $imagick->readImage($pdfAbsolutePath . '[0]');
+            $imagick->setImageBackgroundColor('white');
+            $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+            $imagick->setImageFormat('jpeg');
+            $imagick->thumbnailImage(560, 0, true, true);
+            $ok = $imagick->writeImage($thumbnailAbsolutePath);
+            $imagick->clear();
+            $imagick->destroy();
+
+            return $ok && is_file($thumbnailAbsolutePath);
+        } catch (\Throwable $e) {
+            log_message('error', 'Certificate thumbnail generation failed: {message}', [
+                'message' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    private function publicUrlToAbsolutePath(string $publicPath): string
+    {
+        $path = (string)(parse_url($publicPath, PHP_URL_PATH) ?? '');
+        $normalized = ltrim(str_replace('\\', '/', $path), '/');
+        return rtrim(FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalized);
+    }
+
+    private function isManagedUploadPublicPath(string $publicPath): bool
+    {
+        $path = (string)(parse_url($publicPath, PHP_URL_PATH) ?? '');
+        $normalized = '/' . ltrim(str_replace('\\', '/', $path), '/');
+        return str_starts_with($normalized, '/uploads/');
+    }
+
+    private function certificateFallbackThumbnailPath(): string
+    {
+        return '/vendor/fontawesome-free/svgs/regular/file-pdf.svg';
+    }
+
+    private function saveClientGeneratedCertificateThumbnail(string $dataUrl, string $thumbnailAbsolutePath): bool
+    {
+        if (!preg_match('/^data:image\/jpeg;base64,/i', $dataUrl)) {
+            return false;
+        }
+
+        $commaPos = strpos($dataUrl, ',');
+        if ($commaPos === false) {
+            return false;
+        }
+
+        $rawBase64 = substr($dataUrl, $commaPos + 1);
+        if ($rawBase64 === false || $rawBase64 === '') {
+            return false;
+        }
+
+        $binary = base64_decode(str_replace(' ', '+', $rawBase64), true);
+        if ($binary === false || $binary === '') {
+            return false;
+        }
+
+        // Guard against unexpectedly large inline payloads.
+        if (strlen($binary) > (5 * 1024 * 1024)) {
+            return false;
+        }
+
+        $thumbDir = dirname($thumbnailAbsolutePath);
+        if (!is_dir($thumbDir) && !@mkdir($thumbDir, 0775, true) && !is_dir($thumbDir)) {
+            return false;
+        }
+
+        if (@file_put_contents($thumbnailAbsolutePath, $binary) === false) {
+            return false;
+        }
+
+        $imgInfo = @getimagesize($thumbnailAbsolutePath);
+        if (!is_array($imgInfo) || ($imgInfo['mime'] ?? '') !== 'image/jpeg') {
+            @unlink($thumbnailAbsolutePath);
+            return false;
+        }
+
+        return is_file($thumbnailAbsolutePath) && filesize($thumbnailAbsolutePath) > 0;
+    }
+
+    private function validateRequiredLowPhotos(string $entryId): array
+    {
+        $existing = (new EntryPhotoModel())
+            ->asArray()
+            ->select('entry_photo_order')
+            ->where('entry_id', $entryId)
+            ->where('entry_photo_res', 'Low')
+            ->whereIn('entry_photo_order', [1, 2, 3])
+            ->findAll();
+
+        $existingByOrder = [];
+        foreach ($existing as $row) {
+            $existingByOrder[(int)($row['entry_photo_order'] ?? 0)] = true;
+        }
+
+        $errors = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $file = $this->request->getFile('low_photo_' . $i);
+            $hasUpload = $file && $file->getError() !== UPLOAD_ERR_NO_FILE;
+            if (!$hasUpload && !isset($existingByOrder[$i])) {
+                $errors['low_photo_' . $i] = lang('Entrant.photo_slot_required', [$i]);
+            }
+        }
+
+        return $errors;
+    }
+}

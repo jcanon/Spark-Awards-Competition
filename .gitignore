@@ -11,8 +11,20 @@ user_guide_src/cilexer/build/*
 user_guide_src/cilexer/dist/*
 user_guide_src/cilexer/pycilexer.egg-info/*
 
+/_coldfusion_backup/*
+
+/public/uploads/*
+
 #codeigniter 3
 application/logs/*
 !application/logs/index.html
 !application/logs/.htaccess
 /vendor/
+.idea
+/writable/cache
+/writable/debugbar
+/writable/diagnostics
+/writable/logs
+/writable/session
+/writable/system-tools
+/writable/uploads
