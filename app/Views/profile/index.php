@@ -23,9 +23,7 @@ $isProfileComplete = method_exists($user, 'isProfileCompleted')
             </div>
         <?php endif; ?>
 
-        <?php if (!empty(session()->getFlashdata('success'))): ?>
-            <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
-        <?php endif; ?>
+        <?= view('partials/flash', ['showError' => false]) ?>
 
         <?php $newRecoveryCodes = session()->getFlashdata('recovery_codes'); ?>
         <?php if (!empty($newRecoveryCodes) && is_array($newRecoveryCodes)): ?>
@@ -40,15 +38,7 @@ $isProfileComplete = method_exists($user, 'isProfileCompleted')
             </div>
         <?php endif; ?>
 
-        <?php if (!empty(session()->get('errors'))): ?>
-            <div class="alert alert-danger">
-                <ul class="mb-0">
-                    <?php foreach (session()->get('errors') as $err): ?>
-                        <li><?= is_array($err) ? esc(implode(', ', $err)) : esc($err) ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
+        <?= view('partials/form-errors') ?>
 
         <?php if (!empty($canManageRecoveryCodes)): ?>
             <div class="card mb-4">
@@ -350,20 +340,8 @@ $isProfileComplete = method_exists($user, 'isProfileCompleted')
         </form>
     </div>
 
-    <script>
-        window.sparkProfileI18n = {
-            optionalKeepCurrent: <?= json_encode('Optional: leave blank to keep your current password.') ?>,
-            currentPasswordRequired: <?= json_encode('Current password is required to change your password.') ?>,
-            passwordWeak: <?= json_encode('Please enter a password that meets all requirements.') ?>,
-            passwordStrong: <?= json_encode('Strong password.') ?>,
-            passwordNeedsWork: <?= json_encode('Password does not meet all requirements yet.') ?>,
-            enterNewPasswordFirst: <?= json_encode('Enter a new password first.') ?>,
-            confirmPrompt: <?= json_encode('Confirm your new password.') ?>,
-            confirmMatch: <?= json_encode('Passwords match.') ?>,
-            confirmNoMatch: <?= json_encode('Passwords do not match.') ?>
-        };
-    </script>
     <script src="/js/utils/password-policy.js"></script>
     <script src="/js/pages/profile-index.js"></script>
 
 <?= $this->endSection() ?>
+

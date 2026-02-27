@@ -153,11 +153,30 @@ class PaymentsController extends BaseController
         }
 
         $phase = $this->normalizePhase($phase);
-        $payment = (new EntryPaymentModel())
+        $model = new EntryPaymentModel();
+        $payment = $model
             ->asArray()
             ->where('entry_id', $entryId)
             ->where('payment_phase', $phase)
             ->first();
+
+        if ($payment && ((string)($payment['payment_receipt'] ?? '') === '')) {
+            $this->finalizePendingPaymentFromReturn($entryId, $phase, $payment);
+            $payment = $model
+                ->asArray()
+                ->where('entry_id', $entryId)
+                ->where('payment_phase', $phase)
+                ->first();
+        }
+
+        if ($payment && $this->isPlainReceiptReference((string)($payment['payment_receipt'] ?? ''))) {
+            $this->enrichStoredReceiptReference($payment);
+            $payment = $model
+                ->asArray()
+                ->where('entry_id', $entryId)
+                ->where('payment_phase', $phase)
+                ->first();
+        }
 
         if ($payment) {
             $payment['payment_receipt'] = $this->resolveLegacyReceiptTemplate((string)($payment['payment_receipt'] ?? ''), $payment, $entryId);
@@ -358,5 +377,206 @@ class PaymentsController extends BaseController
             ->where('e.entry_id', $entryId)
             ->get()
             ->getRowArray() ?? [];
+    }
+
+    private function finalizePendingPaymentFromReturn(string $entryId, int $phase, array $payment): void
+    {
+        $gateway = new AuthorizeNetGateway();
+        $transId = trim((string)($this->request->getGet('transId') ?? $this->request->getGet('x_trans_id') ?? ''));
+        $details = null;
+
+        if ($transId !== '' && preg_match('/^\d{4,32}$/', $transId) === 1) {
+            $details = $gateway->getTransactionDetails($transId);
+            if (!$details) {
+                log_message('warning', 'Unable to finalize pending payment from return URL: failed loading transaction details for transId {transId}. Error: {error}', [
+                    'transId' => $transId,
+                    'error' => (string)$gateway->lastError(),
+                ]);
+                $invoiceLookup = $gateway->findTransactionByInvoice((string)($payment['payment_id'] ?? ''));
+                if ($invoiceLookup) {
+                    $details = $invoiceLookup;
+                    $transId = (string)$invoiceLookup['transaction_id'];
+                }
+            }
+        } else {
+            $invoiceLookup = $gateway->findTransactionByInvoice((string)($payment['payment_id'] ?? ''));
+            if ($invoiceLookup) {
+                $details = $invoiceLookup;
+                $transId = (string)$invoiceLookup['transaction_id'];
+            }
+        }
+        if (!$details || $transId === '') {
+            return;
+        }
+
+        $invoice = trim((string)($details['invoice'] ?? ''));
+        if ($invoice === '' || (int)$invoice !== (int)($payment['payment_id'] ?? 0)) {
+            log_message('warning', 'Authorize.Net return invoice mismatch for entry {entryId} phase {phase}. Expected payment_id {expected}, got invoice {invoice}', [
+                'entryId' => $entryId,
+                'phase' => (string)$phase,
+                'expected' => (string)($payment['payment_id'] ?? ''),
+                'invoice' => $invoice,
+            ]);
+            return;
+        }
+
+        if (!$this->isAuthorizeNetPaidStatus((string)($details['status'] ?? ''), (string)($details['response_code'] ?? ''))) {
+            return;
+        }
+
+        $receiptReference = $this->formatAuthorizeNetReceiptReference($details, $transId, $entryId, $payment);
+        try {
+            service('payments')->userSuccessPaid($entryId, (string)$phase, $receiptReference);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to finalize payment from return URL for entry {entryId} phase {phase}: {message}', [
+                'entryId' => $entryId,
+                'phase' => (string)$phase,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function isAuthorizeNetPaidStatus(string $status, string $responseCode): bool
+    {
+        $okStatuses = [
+            'settledsuccessfully',
+            'capturedpendingsettlement',
+            'authorizedpendingcapture',
+        ];
+
+        return in_array(strtolower($status), $okStatuses, true) || $responseCode === '1';
+    }
+
+    private function enrichStoredReceiptReference(array $payment): void
+    {
+        $paymentId = (int)($payment['payment_id'] ?? 0);
+        if ($paymentId <= 0) {
+            return;
+        }
+
+        $rawReceipt = trim((string)($payment['payment_receipt'] ?? ''));
+        $gateway = new AuthorizeNetGateway();
+        $details = null;
+        $transId = '';
+
+        if (preg_match('/^\d{4,32}$/', $rawReceipt) === 1) {
+            $transId = $rawReceipt;
+            $details = $gateway->getTransactionDetails($transId);
+        }
+
+        if (!$details) {
+            $details = $gateway->findTransactionByInvoice((string)$paymentId);
+            if ($details) {
+                $transId = (string)($details['transaction_id'] ?? $transId);
+            }
+        }
+
+        if (!$details || $transId === '') {
+            return;
+        }
+
+        $formatted = $this->formatAuthorizeNetReceiptReference($details, $transId, (string)($payment['entry_id'] ?? ''), $payment);
+        if (trim($formatted) === '') {
+            return;
+        }
+
+        (new EntryPaymentModel())->update($paymentId, ['payment_receipt' => $formatted]);
+    }
+
+    private function isPlainReceiptReference(string $receipt): bool
+    {
+        $receipt = trim($receipt);
+        if ($receipt === '') {
+            return false;
+        }
+
+        return strpos($receipt, '<') === false && strpos($receipt, "\n") === false;
+    }
+
+    private function formatAuthorizeNetReceiptReference(array $details, string $fallbackTransId, string $entryId, array $payment): string
+    {
+        $txId = trim((string)($details['transaction_id'] ?? ''));
+        if ($txId === '') {
+            $txId = trim($fallbackTransId);
+        }
+        if ($txId === '') {
+            return '';
+        }
+
+        $ctx = db_connect()->table('comp_entries e')
+            ->select('e.design_name, u.first_name, u.last_name, u.city, u.state, u.zipcode, u.country, u.email_address')
+            ->join('comp_users u', 'u.user_id = e.user_id')
+            ->where('e.entry_id', $entryId)
+            ->get()
+            ->getRowArray() ?? [];
+
+        $designName = trim((string)($ctx['design_name'] ?? 'Spark Awards Entry Payment'));
+        $invoice = trim((string)($details['invoice'] ?? (string)($payment['payment_id'] ?? '')));
+        $fullName = trim((string)($ctx['first_name'] ?? '') . ' ' . (string)($ctx['last_name'] ?? ''));
+        $cityState = trim((string)($ctx['city'] ?? '') . ((string)($ctx['state'] ?? '') !== '' ? ', ' . (string)$ctx['state'] : ''));
+        $country = trim((string)($ctx['country'] ?? ''));
+        $zip = trim((string)($ctx['zipcode'] ?? ''));
+        $email = trim((string)($ctx['email_address'] ?? ''));
+        $total = number_format((float)($payment['payment_total'] ?? 0), 2);
+        $settingsEmail = trim((string)service('settings')->get('email', 'sparknewsnow@sparkawards.com'));
+        if ($settingsEmail === '') {
+            $settingsEmail = 'sparknewsnow@sparkawards.com';
+        }
+
+        $status = trim((string)($details['status'] ?? ''));
+        $txType = trim((string)($details['transaction_type'] ?? ''));
+        $authCode = trim((string)($details['auth_code'] ?? ''));
+        $accountType = trim((string)($details['account_type'] ?? ''));
+        $accountNumber = trim((string)($details['account_number'] ?? ''));
+
+        $line = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+        $parts = [];
+        $parts[] = $line('Thank you for your transaction with the Spark Design Awards. Your entry is greatly appreciated.');
+        $parts[] = '';
+        $parts[] = $line('Order Information');
+        $parts[] = $line('Description: ' . $designName);
+        if ($invoice !== '') {
+            $parts[] = $line('Invoice Number: ' . $invoice);
+        }
+        $parts[] = $line('Transaction ID: ' . $txId);
+        if ($status !== '') {
+            $parts[] = $line('Status: ' . ucwords(str_replace(['_', '-'], ' ', $status)));
+        }
+        if ($txType !== '') {
+            $parts[] = $line('Transaction Type: ' . $txType);
+        }
+        if ($authCode !== '') {
+            $parts[] = $line('Auth Code: ' . $authCode);
+        }
+        if ($accountType !== '' || $accountNumber !== '') {
+            $parts[] = $line('Payment Method: ' . trim($accountType . ' ' . $accountNumber));
+        }
+        $parts[] = '';
+        $parts[] = $line('Billing Information');
+        if ($fullName !== '') {
+            $parts[] = $line($fullName);
+        }
+        if ($country !== '') {
+            $parts[] = $line($country);
+        }
+        if ($cityState !== '') {
+            $parts[] = $line($cityState);
+        }
+        if ($zip !== '') {
+            $parts[] = $line($zip);
+        }
+        if ($email !== '') {
+            $parts[] = $line($email);
+        }
+        $parts[] = '';
+        $parts[] = $line('Total: ' . $total);
+        $parts[] = '';
+        $parts[] = $line('ENCENTA LLC, DBA Spark Design Awards');
+        $parts[] = $line('PO Box 833');
+        $parts[] = $line('Croton On Hudson, NY 10520');
+        $parts[] = $line('USA');
+        $parts[] = $line($settingsEmail);
+
+        return implode('<br>', $parts);
     }
 }

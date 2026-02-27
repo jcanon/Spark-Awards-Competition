@@ -1,15 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
-<style>
-    #usersTable thead th {
-        white-space: nowrap;
-    }
-
-    #usersTable .btn {
-        white-space: nowrap;
-    }
-</style>
+<link href="/css/pages/admin-users-index.css" rel="stylesheet">
 
 <div class="container-fluid">
     <?php
@@ -36,8 +28,7 @@
         </div>
     </div>
 
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="card mb-4">
         <div class="card-body">
@@ -69,7 +60,20 @@
 
     <div class="card">
         <div class="card-body table-responsive">
-            <table id="usersTable" class="table table-bordered table-hover">
+            <table
+                id="usersTable"
+                class="table table-bordered table-hover"
+                data-can-delete="<?= $canDelete ? '1' : '0' ?>"
+                data-ajax-url="<?= esc(site_url('admin/users/data') . '?' . http_build_query([
+                    'userType' => $opts['userType'],
+                    'profileCompleted' => $opts['profileCompleted'] ?? 'Yes',
+                ])) ?>"
+                data-edit-base="<?= esc(site_url('admin/users/edit/')) ?>"
+                data-impersonate-base="<?= esc(site_url('admin/users/impersonate/')) ?>"
+                data-delete-base="<?= esc(site_url('admin/users/delete/')) ?>"
+                data-csrf-name="<?= esc(csrf_token()) ?>"
+                data-csrf-hash="<?= esc(csrf_hash()) ?>"
+            >
                 <thead><tr><th>Name</th><th>Company</th><th>Entrant Type</th><th>User Type</th><th>Email Address</th><th>Actions</th></tr></thead>
                 <tbody></tbody>
             </table>
@@ -77,168 +81,7 @@
     </div>
 </div>
 
-<script>
-    (function () {
-        var canDelete = <?= $canDelete ? 'true' : 'false' ?>;
-        var dataUrl = <?= json_encode(site_url('admin/users/data') . '?' . http_build_query([
-            'userType' => $opts['userType'],
-            'profileCompleted' => $opts['profileCompleted'] ?? 'Yes',
-        ])) ?>;
-        var editBase = <?= json_encode(site_url('admin/users/edit/')) ?>;
-        var impersonateBase = <?= json_encode(site_url('admin/users/impersonate/')) ?>;
-        var deleteBase = <?= json_encode(site_url('admin/users/delete/')) ?>;
-        var csrfName = <?= json_encode(csrf_token()) ?>;
-        var csrfHash = <?= json_encode(csrf_hash()) ?>;
-        var defaultOrder = [[0, 'asc']];
-
-        var esc = function (value) {
-            return String(value || '').replace(/[&<>"']/g, function (ch) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                }[ch];
-            });
-        };
-
-        var initTable = function () {
-            var tableEl = document.getElementById('usersTable');
-            if (!tableEl || typeof $ === 'undefined' || !$.fn.DataTable) {
-                return false;
-            }
-            if ($.fn.DataTable.isDataTable(tableEl)) {
-                return true;
-            }
-
-            $('#usersTable').DataTable({
-                processing: true,
-                serverSide: true,
-                searchDelay: 350,
-                pageLength: 100,
-                lengthMenu: [[25, 50, 100, 500, 1000], [25, 50, 100, 500, 1000]],
-                order: defaultOrder,
-                responsive: false,
-                ajax: {
-                    url: dataUrl,
-                    type: 'GET',
-                    error: function () {
-                        var wrapper = document.getElementById('usersTable_wrapper');
-                        if (!wrapper) {
-                            return;
-                        }
-                        var existing = document.getElementById('usersLoadError');
-                        if (existing) {
-                            return;
-                        }
-                        var div = document.createElement('div');
-                        div.id = 'usersLoadError';
-                        div.className = 'alert alert-danger mt-3 mb-0';
-                        div.textContent = 'Unable to load users right now. Please refresh the page.';
-                        wrapper.parentNode.insertBefore(div, wrapper.nextSibling);
-                    }
-                },
-                columns: [
-                    {
-                        data: null,
-                        render: function (row) {
-                            var id = encodeURIComponent(String(row.user_id || ''));
-                            var label = esc((row.last_name || '') + ', ' + (row.first_name || ''));
-                            return '<a href="' + editBase + id + '">' + label + '</a>';
-                        }
-                    },
-                    { data: 'company_name', render: function (v) { return esc(v); } },
-                    {
-                        data: 'user_type_name',
-                        render: function (v) { return esc(v); }
-                    },
-                    {
-                        data: null,
-                        render: function (row) {
-                            if (String(row.is_admin || 'No') === 'Yes') {
-                                return 'Admin';
-                            }
-                            if (String(row.is_editor || 'No') === 'Yes') {
-                                return 'Editor';
-                            }
-                            if (String(row.is_judge || 'No') === 'Yes') {
-                                return 'Judge';
-                            }
-                            return 'User';
-                        }
-                    },
-                    {
-                        data: 'email_address',
-                        render: function (v) {
-                            var email = String(v || '');
-                            if (email === '') {
-                                return '';
-                            }
-                            return '<a href="mailto:' + encodeURIComponent(email) + '">' + esc(email) + '</a>';
-                        }
-                    },
-                    {
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        className: 'text-nowrap',
-                        render: function (row) {
-                            var id = encodeURIComponent(String(row.user_id || ''));
-                            var html = '<a class="btn btn-sm btn-primary mr-1" href="' + editBase + id + '">Edit</a>';
-                            var isAdmin = String(row.is_admin || 'No') === 'Yes';
-                            var isEditor = String(row.is_editor || 'No') === 'Yes';
-                            var isActive = String(row.account_active || 'No') === 'Yes';
-                            var canImpersonate = !isAdmin && !isEditor && isActive;
-                            if (canImpersonate) {
-                                html += '<form action="' + impersonateBase + id + '" method="post" class="d-inline user-impersonate-form mr-1">';
-                                html += '<input type="hidden" name="' + esc(csrfName) + '" value="' + esc(csrfHash) + '">';
-                                html += '<button class="btn btn-sm btn-info" type="submit">Impersonate</button></form>';
-                            }
-                            if (canDelete) {
-                                html += '<form action="' + deleteBase + id + '" method="post" class="d-inline user-delete-form">';
-                                html += '<input type="hidden" name="' + esc(csrfName) + '" value="' + esc(csrfHash) + '">';
-                                html += '<button class="btn btn-sm btn-danger" type="submit">Delete</button></form>';
-                            }
-                            return html;
-                        }
-                    }
-                ]
-            });
-
-            return true;
-        };
-
-        window.addEventListener('load', function () {
-            if (initTable()) {
-                return;
-            }
-            var retries = 0;
-            var timer = setInterval(function () {
-                retries++;
-                if (initTable() || retries >= 20) {
-                    clearInterval(timer);
-                }
-            }, 100);
-        });
-
-        document.addEventListener('submit', function (event) {
-            var form = event.target;
-            if (!form || !form.classList || !form.classList.contains('user-delete-form')) {
-                if (!form || !form.classList || !form.classList.contains('user-impersonate-form')) {
-                    return;
-                }
-                if (!window.confirm('Impersonate this user now? You will switch into their account.')) {
-                    event.preventDefault();
-                }
-                return;
-            }
-            if (!window.confirm('Delete this user? This action is irreversible.')) {
-                event.preventDefault();
-            }
-        });
-
-    })();
-</script>
+<script src="/js/pages/admin-users-index.js"></script>
 
 <?= $this->endSection() ?>
+

@@ -15,8 +15,7 @@
         </div>
     </div>
 
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
     <?php
         $oldOrRow = static function (string $key, string $default = '') use ($row): string {
             $old = old($key);
@@ -316,3 +315,4 @@
 <script src="/js/pages/admin-users-edit.js"></script>
 
 <?= $this->endSection() ?>
+

@@ -8,51 +8,37 @@
         <a class="btn btn-sm btn-secondary" href="<?= site_url('admin/system-tools/countries') ?>">Back to Countries</a>
     </div>
 
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <form method="post" action="<?= $isEdit ? site_url('admin/system-tools/countries/update/' . rawurlencode((string)$row->ccode)) : site_url('admin/system-tools/countries/store') ?>" class="needs-validation" novalidate>
         <?= csrf_field() ?>
-        <div class="card mb-4">
-            <div class="card-body">
+        <?= view('partials/ui/card-start') ?>
                 <div class="row">
-                    <div class="col-md-3 form-group">
-                        <label>Country Code <span class="text-danger">*</span></label>
-                        <input class="form-control" type="text" name="ccode" maxlength="2" minlength="2" required value="<?= esc(strtoupper((string)(old('ccode') ?? ($row?->ccode ?? '')))) ?>">
-                    </div>
-                    <div class="col-md-9 form-group">
-                        <label>Country Name <span class="text-danger">*</span></label>
-                        <input class="form-control" type="text" name="country" maxlength="200" required value="<?= esc((string)(old('country') ?? ($row?->country ?? ''))) ?>">
-                    </div>
+                    <?= view('partials/forms/input', [
+                        'colClass' => 'col-md-3 form-group',
+                        'label' => 'Country Code',
+                        'name' => 'ccode',
+                        'value' => strtoupper((string)(old('ccode') ?? ($row?->ccode ?? ''))),
+                        'required' => true,
+                        'attrs' => ['data-filter' => 'alpha2', 'maxlength' => 2, 'minlength' => 2],
+                    ]) ?>
+                    <?= view('partials/forms/input', [
+                        'colClass' => 'col-md-9 form-group',
+                        'label' => 'Country Name',
+                        'name' => 'country',
+                        'value' => (string)(old('country') ?? ($row?->country ?? '')),
+                        'required' => true,
+                        'attrs' => ['maxlength' => 200],
+                    ]) ?>
                 </div>
-            </div>
-        </div>
+        <?= view('partials/ui/card-end') ?>
 
-        <button class="btn btn-primary" type="submit"><?= $isEdit ? 'Save Changes' : 'Save Country' ?></button>
-        <a class="btn btn-secondary" href="<?= site_url('admin/system-tools/countries') ?>">Back to Countries</a>
+        <?= view('partials/forms/actions', [
+            'submitLabel' => $isEdit ? 'Save Changes' : 'Save Country',
+            'backLabel' => 'Back to Countries',
+            'backUrl' => site_url('admin/system-tools/countries'),
+        ]) ?>
     </form>
 </div>
-
-<script>
-    (function () {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        var code = document.querySelector('input[name="ccode"]');
-        if (code) {
-            code.addEventListener('input', function () {
-                this.value = this.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2);
-            });
-        }
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-</script>
 
 <?= $this->endSection() ?>

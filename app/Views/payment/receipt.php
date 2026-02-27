@@ -19,7 +19,7 @@
             <div class="card-body">
                 <h5 class="text-warning">Payment Pending</h5>
                 <p>Your payment may still be processing. Refresh this page after a moment.</p>
-                <a class="btn btn-primary" href="<?= site_url('payments/entry/' . rawurlencode($entryId) . '/phase/' . (int)$phase . '/receipt') ?>">Refresh Receipt</a>
+                <a class="btn btn-primary" href="<?= esc(current_url(true)->__toString()) ?>">Refresh Receipt</a>
             </div>
         </div>
     <?php endif; ?>

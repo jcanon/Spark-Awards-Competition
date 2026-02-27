@@ -6,7 +6,6 @@ $phase1_total = is_countable($phase1) ? count($phase1) : 0;
 $phase2_total = is_countable($phase2) ? count($phase2) : 0;
 $phase3_total = is_countable($phase3) ? count($phase3) : 0;
 $past_total = is_countable($past) ? count($past) : 0;
-$statusPill = static fn ($entry): array => entry_status_pill($entry);
 $isEntryEditLocked = static function ($entry): bool {
     $status = trim((string)($entry->entry_status ?? ''));
     $now = date('Y-m-d H:i:s');
@@ -39,12 +38,7 @@ $isEntryEditLocked = static function ($entry): bool {
 
         <hr class="mb-4">
 
-        <?php if ($msg = session()->getFlashdata('success')): ?>
-            <div class="alert alert-success"><?= esc($msg) ?></div>
-        <?php endif; ?>
-        <?php if ($err = session()->getFlashdata('error')): ?>
-            <div class="alert alert-danger"><?= esc($err) ?></div>
-        <?php endif; ?>
+        <?= view('partials/flash') ?>
 
         <!-- Phase 1 Submissions -->
         <div class="card mb-4">
@@ -81,13 +75,11 @@ $isEntryEditLocked = static function ($entry): bool {
                                     <td><?= esc($e->entry_status ?? '') ?></td>
                                     <td>
                                         <?php if ($isPaid): ?>
-                                            <a
-                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link"
-                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>"
-                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-content') ?>"
-                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-pdf') ?>"
-                                                title="View Receipt"
-                                            >Paid - View Receipt</a>
+                                            <?= view('partials/payments/receipt-link', [
+                                                'entryId' => $entryId,
+                                                'phase' => 1,
+                                                'label' => 'Paid - View Receipt',
+                                            ]) ?>
                                         <?php else: ?>
                                             <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1') ?>" title="Submit Payment">Unpaid - Submit Payment</a>
                                         <?php endif; ?>
@@ -150,13 +142,11 @@ $isEntryEditLocked = static function ($entry): bool {
                                     <td><?= esc($e->entry_status ?? '') ?></td>
                                     <td>
                                         <?php if ($isPaid): ?>
-                                            <a
-                                                class="btn btn-sm btn-primary shadow-sm"
-                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>"
-                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-content') ?>"
-                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-pdf') ?>"
-                                                title="View Receipt"
-                                            >Paid - View Receipt</a>
+                                            <?= view('partials/payments/receipt-link', [
+                                                'entryId' => $entryId,
+                                                'phase' => 2,
+                                                'label' => 'Paid - View Receipt',
+                                            ]) ?>
                                         <?php else: ?>
                                             <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2') ?>" title="Submit Payment">Unpaid - Submit Payment</a>
                                         <?php endif; ?>
@@ -223,25 +213,22 @@ $isEntryEditLocked = static function ($entry): bool {
                                     </td>
                                     <td>
                                         <?php if ($isPhase1Paid): ?>
-                                            <a
-                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link mb-1"
-                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>"
-                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-content') ?>"
-                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-pdf') ?>"
-                                                title="View Receipt"
-                                            >Phase 1 - Paid Receipt</a>
+                                            <?= view('partials/payments/receipt-link', [
+                                                'entryId' => $entryId,
+                                                'phase' => 1,
+                                                'label' => 'Phase 1 - Paid Receipt',
+                                                'class' => 'btn btn-sm btn-primary shadow-sm js-receipt-modal-link mb-1',
+                                            ]) ?>
                                         <?php else: ?>
                                             <div class="small text-muted mb-1">Phase 1 - Unpaid</div>
                                         <?php endif; ?>
 
                                         <?php if ($isPhase2Paid): ?>
-                                            <a
-                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link"
-                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>"
-                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-content') ?>"
-                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-pdf') ?>"
-                                                title="View Receipt"
-                                            >Phase 2 - Paid Receipt</a>
+                                            <?= view('partials/payments/receipt-link', [
+                                                'entryId' => $entryId,
+                                                'phase' => 2,
+                                                'label' => 'Phase 2 - Paid Receipt',
+                                            ]) ?>
                                         <?php else: ?>
                                             <a class="btn btn-sm btn-danger shadow-sm"  href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2') ?>" title="Submit Payment">Phase 2 - Unpaid, Submit Payment</a>
                                         <?php endif; ?>
@@ -312,25 +299,22 @@ $isEntryEditLocked = static function ($entry): bool {
                                     </td>
                                     <td>
                                         <?php if ($isPhase1Paid): ?>
-                                            <a
-                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link mb-1"
-                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>"
-                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-content') ?>"
-                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-pdf') ?>"
-                                                title="View Receipt"
-                                            >Phase 1 - Paid Receipt</a>
+                                            <?= view('partials/payments/receipt-link', [
+                                                'entryId' => $entryId,
+                                                'phase' => 1,
+                                                'label' => 'Phase 1 - Paid Receipt',
+                                                'class' => 'btn btn-sm btn-primary shadow-sm js-receipt-modal-link mb-1',
+                                            ]) ?>
                                         <?php else: ?>
                                             <div class="small text-muted mb-1">Phase 1 - Unpaid</div>
                                         <?php endif; ?>
 
                                         <?php if ($isPhase2Paid): ?>
-                                            <a
-                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link"
-                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>"
-                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-content') ?>"
-                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-pdf') ?>"
-                                                title="View Receipt"
-                                            >Phase 2 - Paid Receipt</a>
+                                            <?= view('partials/payments/receipt-link', [
+                                                'entryId' => $entryId,
+                                                'phase' => 2,
+                                                'label' => 'Phase 2 - Paid Receipt',
+                                            ]) ?>
                                         <?php else: ?>
                                             <div class="small text-muted">Phase 2 - Unpaid</div>
                                         <?php endif; ?>

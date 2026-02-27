@@ -15,6 +15,34 @@ use CodeIgniter\Config\BaseConfig;
  */
 class ContentSecurityPolicy extends BaseConfig
 {
+    /**
+     * Shared third-party hosts used by this app.
+     *
+     * @var list<string>
+     */
+    private array $authorizeNetHosts = [
+        'https://accept.authorize.net',
+        'https://test.authorize.net',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    private array $googleHosts = [
+        'https://www.google.com',
+        'https://www.gstatic.com',
+        'https://www.recaptcha.net',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    private array $mediaEmbedHosts = [
+        'https://www.youtube.com',
+        'https://www.youtube-nocookie.com',
+        'https://player.vimeo.com',
+    ];
+
     // -------------------------------------------------------------------------
     // Broadbrush CSP management
     // -------------------------------------------------------------------------
@@ -54,27 +82,21 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var list<string>|string
      */
-    public $scriptSrc = [
-        'self',
-        'https://www.google.com',
-        'https://www.gstatic.com',
-        'https://www.recaptcha.net',
-        "'unsafe-inline'",
-    ];
+    public $scriptSrc = [];
 
     /**
      * Lists allowed stylesheets' URLs.
      *
      * @var list<string>|string
      */
-    public $styleSrc = ['self', 'https://fonts.googleapis.com', "'unsafe-inline'"];
+    public $styleSrc = [];
 
     /**
      * Defines the origins from which images can be loaded.
      *
      * @var list<string>|string
      */
-    public $imageSrc = ['self', 'data:', 'https:'];
+    public $imageSrc = [];
 
     /**
      * Restricts the URLs that can appear in a page's `<base>` element.
@@ -90,7 +112,7 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var list<string>|string
      */
-    public $childSrc = 'self';
+    public $childSrc = [];
 
     /**
      * Limits the origins that you can connect to (via XHR,
@@ -98,21 +120,21 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var list<string>|string
      */
-    public $connectSrc = ['self', 'https://www.google.com', 'https://www.gstatic.com', 'https://www.recaptcha.net'];
+    public $connectSrc = [];
 
     /**
      * Specifies the origins that can serve web fonts.
      *
      * @var list<string>|string
      */
-    public $fontSrc = ['self', 'https://fonts.gstatic.com', 'data:'];
+    public $fontSrc = [];
 
     /**
      * Lists valid endpoints for submission from `<form>` tags.
      *
      * @var list<string>|string
      */
-    public $formAction = 'self';
+    public $formAction = [];
 
     /**
      * Specifies the sources that can embed the current page.
@@ -130,14 +152,7 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var list<string>|string|null
      */
-    public $frameSrc = [
-        'self',
-        'https://www.google.com',
-        'https://www.recaptcha.net',
-        'https://www.youtube.com',
-        'https://www.youtube-nocookie.com',
-        'https://player.vimeo.com',
-    ];
+    public $frameSrc = [];
 
     /**
      * Restricts the origins allowed to deliver video and audio.
@@ -186,4 +201,27 @@ class ContentSecurityPolicy extends BaseConfig
      * Replace nonce tag automatically
      */
     public bool $autoNonce = true;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->scriptSrc = array_merge(
+            ['self', "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+            $this->googleHosts
+        );
+
+        $this->styleSrc = ['self', 'https://fonts.googleapis.com', "'unsafe-inline'"];
+        $this->imageSrc = ['self', 'data:', 'https:'];
+
+        // Covers iframes and workers that can be created by third-party scripts.
+        $this->childSrc = array_merge(['self'], $this->googleHosts, $this->mediaEmbedHosts);
+        $this->connectSrc = array_merge(['self'], $this->googleHosts);
+        $this->fontSrc = ['self', 'https://fonts.gstatic.com', 'data:'];
+
+        // Required for checkout POST to Authorize.Net hosted payment page.
+        $this->formAction = array_merge(['self'], $this->authorizeNetHosts);
+
+        $this->frameSrc = array_merge(['self'], $this->googleHosts, $this->mediaEmbedHosts);
+    }
 }

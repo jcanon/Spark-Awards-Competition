@@ -184,4 +184,270 @@ final class AuthorizeNetGateway
 
         return null;
     }
+
+    /**
+     * Look up transaction details by transaction ID.
+     *
+     * @return array{transaction_id:string,invoice:string,status:string,response_code:string,auth_code:string,account_type:string,account_number:string,transaction_type:string,submitted_at:string,amount:string}|null
+     */
+    public function getTransactionDetails(string $transactionId): ?array
+    {
+        $this->lastError = null;
+        $transactionId = trim($transactionId);
+        if ($transactionId === '') {
+            $this->lastError = 'Missing transaction ID.';
+            return null;
+        }
+
+        if ($this->loginId === '' || $this->transKey === '') {
+            $this->lastError = 'Authorize.Net credentials are missing.';
+            return null;
+        }
+
+        try {
+            $req = new AnetAPI\GetTransactionDetailsRequest();
+            $req->setMerchantAuthentication($this->auth());
+            $req->setTransId($transactionId);
+
+            $controller = new AnetController\GetTransactionDetailsController($req);
+            $resp = $controller->executeWithApiResponse($this->envConst());
+
+            if (!$resp) {
+                $this->lastError = 'Authorize.Net transaction details returned an empty response.';
+                return null;
+            }
+
+            $messages = $resp->getMessages();
+            if (!$messages || $messages->getResultCode() !== 'Ok') {
+                $code = $messages ? (string)$messages->getResultCode() : 'unknown';
+                $text = '';
+                if ($messages) {
+                    $messageList = $messages->getMessage();
+                    if (is_array($messageList) && isset($messageList[0])) {
+                        $text = (string)$messageList[0]->getText();
+                    }
+                }
+                $this->lastError = trim('Authorize.Net details request failed: ' . $code . ($text !== '' ? ' - ' . $text : ''));
+                return null;
+            }
+
+            $tx = $resp->getTransaction();
+            if (!$tx) {
+                $this->lastError = 'Authorize.Net transaction details response did not include transaction data.';
+                return null;
+            }
+
+            $order = $tx->getOrder();
+            $invoice = $order ? (string)$order->getInvoiceNumber() : '';
+            $responseCode = '';
+            $respObj = $tx->getResponseCode();
+            if ($respObj !== null) {
+                $responseCode = (string)$respObj;
+            }
+
+            $submittedAt = '';
+            $submitted = $tx->getSubmitTimeLocal();
+            if ($submitted instanceof \DateTimeInterface) {
+                $submittedAt = $submitted->format('Y-m-d H:i:s');
+            }
+
+            return [
+                'transaction_id' => (string)$tx->getTransId(),
+                'invoice' => $invoice,
+                'status' => strtolower((string)$tx->getTransactionStatus()),
+                'response_code' => $responseCode,
+                'auth_code' => (string)$tx->getAuthCode(),
+                'account_type' => (string)$tx->getAccountType(),
+                'account_number' => (string)$tx->getAccountNumber(),
+                'transaction_type' => (string)$tx->getTransactionType(),
+                'submitted_at' => $submittedAt,
+                'amount' => (string)$tx->getSettleAmount(),
+            ];
+        } catch (\Throwable $e) {
+            $this->lastError = 'Authorize.Net details request crashed: ' . $e->getMessage();
+            log_message(
+                'critical',
+                'Authorize.Net transaction details request crashed: {class}: {message} at {file}:{line}',
+                [
+                    'class' => $e::class,
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]
+            );
+            return null;
+        }
+    }
+
+    /**
+     * Find a transaction by invoice number across unsettled and recently settled activity.
+     *
+     * @return array{transaction_id:string,invoice:string,status:string,response_code:string,auth_code:string,account_type:string,account_number:string,transaction_type:string,submitted_at:string,amount:string}|null
+     */
+    public function findTransactionByInvoice(string $invoice): ?array
+    {
+        $this->lastError = null;
+        $invoice = trim($invoice);
+        if ($invoice === '') {
+            $this->lastError = 'Missing invoice.';
+            return null;
+        }
+
+        if ($this->loginId === '' || $this->transKey === '') {
+            $this->lastError = 'Authorize.Net credentials are missing.';
+            return null;
+        }
+
+        $candidate = $this->findInUnsettledTransactionsByInvoice($invoice);
+        if ($candidate !== null) {
+            return $candidate;
+        }
+
+        $candidate = $this->findInRecentSettledTransactionsByInvoice($invoice, 3);
+        if ($candidate !== null) {
+            return $candidate;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{transaction_id:string,invoice:string,status:string,response_code:string,auth_code:string,account_type:string,account_number:string,transaction_type:string,submitted_at:string,amount:string}|null
+     */
+    private function findInUnsettledTransactionsByInvoice(string $invoice): ?array
+    {
+        try {
+            $req = new AnetAPI\GetUnsettledTransactionListRequest();
+            $req->setMerchantAuthentication($this->auth());
+
+            $controller = new AnetController\GetUnsettledTransactionListController($req);
+            $resp = $controller->executeWithApiResponse($this->envConst());
+            if (!$resp) {
+                return null;
+            }
+
+            $messages = $resp->getMessages();
+            if (!$messages || $messages->getResultCode() !== 'Ok') {
+                return null;
+            }
+
+            $transactions = $resp->getTransactions();
+            if (!is_array($transactions)) {
+                return null;
+            }
+
+            foreach ($transactions as $tx) {
+                if (trim((string)$tx->getInvoiceNumber()) !== $invoice) {
+                    continue;
+                }
+
+                return [
+                    'transaction_id' => (string)$tx->getTransId(),
+                    'invoice' => (string)$tx->getInvoiceNumber(),
+                    'status' => strtolower((string)$tx->getTransactionStatus()),
+                    'response_code' => '',
+                    'auth_code' => '',
+                    'account_type' => (string)$tx->getAccountType(),
+                    'account_number' => (string)$tx->getAccountNumber(),
+                    'transaction_type' => '',
+                    'submitted_at' => '',
+                    'amount' => (string)$tx->getSettleAmount(),
+                ];
+            }
+        } catch (\Throwable $e) {
+            log_message(
+                'warning',
+                'Authorize.Net unsettled transaction lookup failed: {class}: {message}',
+                ['class' => $e::class, 'message' => $e->getMessage()]
+            );
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{transaction_id:string,invoice:string,status:string,response_code:string,auth_code:string,account_type:string,account_number:string,transaction_type:string,submitted_at:string,amount:string}|null
+     */
+    private function findInRecentSettledTransactionsByInvoice(string $invoice, int $daysBack): ?array
+    {
+        try {
+            $listReq = new AnetAPI\GetSettledBatchListRequest();
+            $listReq->setMerchantAuthentication($this->auth());
+            $utcNow = new \DateTime('now', new \DateTimeZone('UTC'));
+            $utcStart = clone $utcNow;
+            $utcStart->modify('-' . max(1, $daysBack) . ' days');
+            $listReq->setFirstSettlementDate($utcStart);
+            $listReq->setLastSettlementDate($utcNow);
+
+            $listController = new AnetController\GetSettledBatchListController($listReq);
+            $listResp = $listController->executeWithApiResponse($this->envConst());
+            if (!$listResp) {
+                return null;
+            }
+
+            $messages = $listResp->getMessages();
+            if (!$messages || $messages->getResultCode() !== 'Ok') {
+                return null;
+            }
+
+            $batches = $listResp->getBatchList();
+            if (!is_array($batches)) {
+                return null;
+            }
+
+            foreach ($batches as $batch) {
+                $batchId = (string)$batch->getBatchId();
+                if ($batchId === '') {
+                    continue;
+                }
+
+                $txReq = new AnetAPI\GetTransactionListRequest();
+                $txReq->setMerchantAuthentication($this->auth());
+                $txReq->setBatchId($batchId);
+
+                $txController = new AnetController\GetTransactionListController($txReq);
+                $txResp = $txController->executeWithApiResponse($this->envConst());
+                if (!$txResp) {
+                    continue;
+                }
+
+                $txMessages = $txResp->getMessages();
+                if (!$txMessages || $txMessages->getResultCode() !== 'Ok') {
+                    continue;
+                }
+
+                $transactions = $txResp->getTransactions();
+                if (!is_array($transactions)) {
+                    continue;
+                }
+
+                foreach ($transactions as $tx) {
+                    if (trim((string)$tx->getInvoiceNumber()) !== $invoice) {
+                        continue;
+                    }
+
+                    return [
+                        'transaction_id' => (string)$tx->getTransId(),
+                        'invoice' => (string)$tx->getInvoiceNumber(),
+                        'status' => strtolower((string)$tx->getTransactionStatus()),
+                        'response_code' => '',
+                        'auth_code' => '',
+                        'account_type' => (string)$tx->getAccountType(),
+                        'account_number' => (string)$tx->getAccountNumber(),
+                        'transaction_type' => '',
+                        'submitted_at' => '',
+                        'amount' => (string)$tx->getSettleAmount(),
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            log_message(
+                'warning',
+                'Authorize.Net settled transaction lookup failed: {class}: {message}',
+                ['class' => $e::class, 'message' => $e->getMessage()]
+            );
+        }
+
+        return null;
+    }
 }

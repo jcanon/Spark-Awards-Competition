@@ -21,8 +21,7 @@ $formatBytes = static function (int $bytes): string {
         <a class="btn btn-sm btn-secondary" href="<?= site_url('admin') ?>">Back to Dashboard</a>
     </div>
 
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="card mb-4">
         <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Log Directory Overview</h6></div>
@@ -111,7 +110,7 @@ $formatBytes = static function (int $bytes): string {
                         <div class="text-muted">Select a log file to view recent lines.</div>
                     <?php else: ?>
                         <p class="small text-muted mb-2">Showing the latest 250 lines from <strong><?= esc($selectedFile) ?></strong>.</p>
-                        <pre class="border rounded bg-light p-3 mb-0" style="max-height: 70vh; overflow: auto; white-space: pre-wrap; word-break: break-word;"><?= esc($preview) ?></pre>
+                        <pre class="border rounded bg-light p-3 mb-0 spark-pre-scroll-wrap-70vh"><?= esc($preview) ?></pre>
                     <?php endif; ?>
                 </div>
             </div>
@@ -120,3 +119,4 @@ $formatBytes = static function (int $bytes): string {
 </div>
 
 <?= $this->endSection() ?>
+

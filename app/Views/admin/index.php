@@ -5,28 +5,7 @@
 $money = static fn(float $value): string => '$' . number_format($value, 2);
 $oneDecimal = static fn(float $value): string => number_format($value, 1);
 ?>
-
-<style>
-    .dashboard-meta {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-
-    .dashboard-metric {
-        font-size: 0.92rem;
-        color: #5a5c69;
-    }
-
-    .chart-canvas-xl {
-        position: relative;
-        height: 360px;
-    }
-
-    .chart-canvas-md {
-        position: relative;
-        height: 320px;
-    }
-</style>
+<link href="/css/pages/admin-index.css" rel="stylesheet">
 
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-3">
@@ -45,12 +24,7 @@ $oneDecimal = static fn(float $value): string => number_format($value, 1);
     </div>
     <p class="text-muted small mb-4">Dashboard metrics below are focused on <?= (int)$selectedYear ?>, with <?= (int)$trendYears ?>-year trend charts for context.</p>
 
-    <?php if ($msg = session('success')): ?>
-        <div class="alert alert-success"><?= esc($msg) ?></div>
-    <?php endif; ?>
-    <?php if ($msg = session('error')): ?>
-        <div class="alert alert-danger"><?= esc($msg) ?></div>
-    <?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="row">
         <div class="col-xl-3 col-md-6 mb-4">
@@ -200,176 +174,8 @@ $oneDecimal = static fn(float $value): string => number_format($value, 1);
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        if (typeof Chart === 'undefined') {
-            return;
-        }
-
-        const charts = <?= json_encode($charts, JSON_UNESCAPED_UNICODE) ?>;
-        const hasData = function (values) {
-            return Array.isArray(values) && values.some(function (v) { return Number(v) > 0; });
-        };
-        const showEmpty = function (id) {
-            const el = document.getElementById(id);
-            if (el) {
-                el.classList.remove('d-none');
-            }
-        };
-
-        var entriesCtx = document.getElementById('entriesByCompetitionChart');
-        if (entriesCtx) {
-            if (hasData(charts.entriesByCompetition.values)) {
-                new Chart(entriesCtx, {
-                    type: 'pie',
-                    data: {
-                        labels: charts.entriesByCompetition.labels,
-                        datasets: [{
-                            data: charts.entriesByCompetition.values,
-                            backgroundColor: ['#4e73df', '#1cc88a', '#008080', '#f6c23e', '#e74a3b', '#858796', '#5a5c69', '#2e59d9']
-                        }]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        legend: { position: 'bottom' }
-                    }
-                });
-            } else {
-                showEmpty('entriesByCompetitionEmpty');
-            }
-        }
-
-        var statusCtx = document.getElementById('statusBreakdownChart');
-        if (statusCtx) {
-            if (hasData(charts.statusBreakdown.values)) {
-                new Chart(statusCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: charts.statusBreakdown.labels,
-                        datasets: [{
-                            data: charts.statusBreakdown.values,
-                            backgroundColor: ['#858796', '#008080', '#f6c23e', '#1cc88a']
-                        }]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        legend: { position: 'bottom' }
-                    }
-                });
-            } else {
-                showEmpty('statusBreakdownEmpty');
-            }
-        }
-
-        var revenueCtx = document.getElementById('revenueTrendChart');
-        if (revenueCtx) {
-            if (hasData(charts.revenueByYear.values)) {
-                new Chart(revenueCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: charts.revenueByYear.labels,
-                        datasets: [{
-                            label: 'Revenue',
-                            data: charts.revenueByYear.values,
-                            backgroundColor: '#1cc88a',
-                            borderColor: '#17a673',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        legend: { display: false },
-                        scales: {
-                            yAxes: [{
-                                ticks: {
-                                    beginAtZero: true,
-                                    callback: function (value) {
-                                        return '$' + Number(value).toLocaleString();
-                                    }
-                                }
-                            }]
-                        },
-                        tooltips: {
-                            callbacks: {
-                                label: function (tooltipItem) {
-                                    return 'Revenue: $' + Number(tooltipItem.yLabel).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                                }
-                            }
-                        }
-                    }
-                });
-            } else {
-                showEmpty('revenueTrendEmpty');
-            }
-        }
-
-        var signupCtx = document.getElementById('signupTrendChart');
-        if (signupCtx) {
-            if (hasData(charts.signupsByYear.values)) {
-                new Chart(signupCtx, {
-                    type: 'line',
-                    data: {
-                        labels: charts.signupsByYear.labels,
-                        datasets: [{
-                            label: 'New Users',
-                            data: charts.signupsByYear.values,
-                            borderColor: '#4e73df',
-                            backgroundColor: 'rgba(78,115,223,0.12)',
-                            fill: true,
-                            lineTension: 0.25
-                        }]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        scales: {
-                            yAxes: [{
-                                ticks: {
-                                    beginAtZero: true,
-                                    precision: 0
-                                }
-                            }]
-                        }
-                    }
-                });
-            } else {
-                showEmpty('signupTrendEmpty');
-            }
-        }
-
-        var monthCtx = document.getElementById('entriesByMonthChart');
-        if (monthCtx) {
-            if (hasData(charts.entriesByMonth.values)) {
-                new Chart(monthCtx, {
-                    type: 'line',
-                    data: {
-                        labels: charts.entriesByMonth.labels,
-                        datasets: [{
-                            label: 'Entries',
-                            data: charts.entriesByMonth.values,
-                            borderColor: '#4e73df',
-                            backgroundColor: 'rgba(78,115,223,0.12)',
-                            fill: true,
-                            lineTension: 0.25
-                        }]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        legend: { display: false },
-                        scales: {
-                            yAxes: [{
-                                ticks: {
-                                    beginAtZero: true,
-                                    precision: 0
-                                }
-                            }]
-                        }
-                    }
-                });
-            } else {
-                showEmpty('entriesByMonthEmpty');
-            }
-        }
-    });
-</script>
+<div id="adminDashboardChartsData" class="d-none" data-charts="<?= esc(json_encode($charts, JSON_UNESCAPED_UNICODE), 'attr') ?>"></div>
+<script src="/js/pages/admin-index.js"></script>
 
 <?= $this->endSection() ?>
+

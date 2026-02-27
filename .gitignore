@@ -29,3 +29,7 @@ application/logs/*
 /writable/system-tools
 /writable/uploads
 /public/trash
+
+/build/.phpunit.cache/
+/build/logs/
+

@@ -16,6 +16,8 @@
     <link href="/css/sb-admin-2.css" rel="stylesheet">
     <link href="/css/entry-status-pill.css" rel="stylesheet">
     <link href="/css/certificate-request-pill.css" rel="stylesheet">
+    <link href="/css/components/nav-private.css" rel="stylesheet">
+    <link href="/css/components/view-utilities.css" rel="stylesheet">
 
     <!-- Custom styles for this page -->
     <link href="/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">

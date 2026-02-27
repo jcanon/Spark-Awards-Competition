@@ -7,8 +7,7 @@
         <a class="btn btn-sm btn-secondary" href="<?= site_url('admin/competitions') ?>">Back to Competitions</a>
     </div>
 
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="card mb-4">
         <div class="card-header">
@@ -59,8 +58,8 @@
                 <table class="table table-bordered table-hover">
                     <thead>
                     <tr>
-                        <th style="width:75%;">Design Type</th>
-                        <th style="width:25%;">Actions</th>
+                        <th class="spark-w-75">Design Type</th>
+                        <th class="spark-w-25">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -94,3 +93,4 @@
 </div>
 
 <?= $this->endSection() ?>
+

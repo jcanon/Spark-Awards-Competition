@@ -38,20 +38,15 @@ $datetimeValue = static function (string $field) use ($row): string {
 };
 ?>
 <div class="container-fluid">
-    <style>
-        select[name="comp_type_ids[]"] option:disabled {
-            color: #9aa0a6;
-        }
-    </style>
+    <link href="/css/pages/admin-competitions-form.css" rel="stylesheet">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800"><?= $isEdit ? 'Edit Competition' : 'Add Competition' ?></h1>
         <a class="btn btn-sm btn-secondary" href="<?= site_url('admin/competitions') ?>">Back to Competitions</a>
     </div>
 
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
-    <form method="post" action="<?= $isEdit ? site_url('admin/competitions/update/' . (int)$row->comp_id) : site_url('admin/competitions/store') ?>" class="needs-validation" novalidate>
+    <form method="post" action="<?= $isEdit ? site_url('admin/competitions/update/' . (int)$row->comp_id) : site_url('admin/competitions/store') ?>" class="needs-validation" novalidate data-existing-type-ids-by-year="<?= esc(json_encode($existingTypeIdsByYear, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), 'attr') ?>">
         <?= csrf_field() ?>
 
         <div class="card mb-4">
@@ -154,71 +149,7 @@ $datetimeValue = static function (string $field) use ($row): string {
     </form>
 </div>
 
-<script>
-    (function () {
-        'use strict';
-        var existingTypeIdsByYear = <?= json_encode($existingTypeIdsByYear, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-
-        function syncTypeOptionsForYear(form) {
-            var yearInput = form.querySelector('input[name="comp_year"]');
-            var multiTypeSelect = form.querySelector('select[name="comp_type_ids[]"]');
-            if (!yearInput || !multiTypeSelect) {
-                return;
-            }
-
-            var year = parseInt(yearInput.value, 10);
-            var takenTypeIds = Number.isNaN(year) ? [] : (existingTypeIdsByYear[String(year)] || existingTypeIdsByYear[year] || []);
-            var takenMap = {};
-            Array.prototype.forEach.call(takenTypeIds, function (id) {
-                takenMap[String(parseInt(id, 10))] = true;
-            });
-
-            Array.prototype.forEach.call(multiTypeSelect.options, function (option) {
-                var optionId = String(parseInt(option.value, 10));
-                var isTaken = !!takenMap[optionId];
-                var baseLabel = option.getAttribute('data-base-label') || option.text;
-                option.disabled = isTaken;
-                if (isTaken && option.selected) {
-                    option.selected = false;
-                }
-                option.text = isTaken ? (baseLabel + ' (Already exists for selected year)') : baseLabel;
-            });
-        }
-
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            var yearInput = form.querySelector('input[name="comp_year"]');
-            if (yearInput) {
-                yearInput.addEventListener('change', function () {
-                    syncTypeOptionsForYear(form);
-                });
-                yearInput.addEventListener('input', function () {
-                    syncTypeOptionsForYear(form);
-                });
-            }
-
-            syncTypeOptionsForYear(form);
-
-            form.addEventListener('submit', function (event) {
-                var multiTypeSelect = form.querySelector('select[name="comp_type_ids[]"]');
-                if (multiTypeSelect) {
-                    var hasSelection = Array.prototype.some.call(multiTypeSelect.options, function (option) {
-                        return option.selected;
-                    });
-                    if (!hasSelection) {
-                        multiTypeSelect.setCustomValidity('Please select at least one competition category.');
-                    } else {
-                        multiTypeSelect.setCustomValidity('');
-                    }
-                }
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-</script>
+<script src="/js/pages/admin-competitions-form.js"></script>
 
 <?= $this->endSection() ?>
+

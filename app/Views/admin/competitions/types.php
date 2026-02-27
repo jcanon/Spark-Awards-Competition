@@ -7,8 +7,7 @@
         <a class="btn btn-sm btn-secondary" href="<?= site_url('admin/competitions') ?>">Back to Competitions</a>
     </div>
 
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="card mb-4">
         <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Add Competition Category</h6></div>
@@ -69,3 +68,4 @@
 </div>
 
 <?= $this->endSection() ?>
+

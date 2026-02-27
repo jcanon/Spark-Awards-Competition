@@ -1,12 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
-<?php if ($msg = session('error')): ?>
-    <div class="alert alert-danger"><?= esc($msg) ?></div>
-<?php endif; ?>
-<?php if ($msg = session('success')): ?>
-    <div class="alert alert-success"><?= esc($msg) ?></div>
-<?php endif; ?>
+<?= view('partials/flash') ?>
 
 <div class="row no-gutters">
             <div class="col-12 col-lg-7 mb-4 pr-lg-3">
@@ -78,18 +73,6 @@
             </div>
 </div>
 
-<script>
-    window.sparkAuthLoginI18n = {
-        emailRequired: <?= json_encode('Email address is required.') ?>,
-        emailInvalid: <?= json_encode('Please enter a valid email address.') ?>,
-        passwordWeak: <?= json_encode('Please enter a password that meets all requirements.') ?>,
-        passwordStrong: <?= json_encode('Strong password.') ?>,
-        passwordNeedsWork: <?= json_encode('Password does not meet all requirements yet.') ?>,
-        confirmPrompt: <?= json_encode('Confirm your password.') ?>,
-        confirmMatch: <?= json_encode('Passwords match.') ?>,
-        confirmNoMatch: <?= json_encode('Passwords do not match.') ?>
-    };
-</script>
 <script src="/js/utils/password-policy.js"></script>
 <script src="/js/pages/auth-login.js"></script>
 

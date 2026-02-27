@@ -6,8 +6,7 @@
         <h1 class="h3 mb-0 text-gray-800">Certificate Requests</h1>
     </div>
 
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="card mb-4">
         <div class="card-body">
@@ -69,9 +68,19 @@
                     <?php
                         [$entryStatus, $statusClass, $medalIconClass] = entry_status_pill($row);
                         [$status, $requestPillClass] = certificate_request_status_pill((string)($row['request_status'] ?? ''), true);
+                        $entryId = trim((string)($row['entry_id'] ?? ''));
+                        $designName = (string)($row['design_name'] ?? '');
+                        $contactName = trim((string)($row['contact_person'] ?? ''));
+                        $contactEmail = trim((string)($row['contact_email'] ?? ''));
                     ?>
                     <tr>
-                        <td><?= esc((string)($row['design_name'] ?? '')) ?></td>
+                        <td>
+                            <?php if ($entryId !== ''): ?>
+                                <a href="<?= site_url('admin/submissions/edit/' . rawurlencode($entryId)) ?>"><?= esc($designName) ?></a>
+                            <?php else: ?>
+                                <?= esc($designName) ?>
+                            <?php endif; ?>
+                        </td>
                         <td><?= esc((string)($row['comp_type_name'] ?? '')) ?> <?= (int)($row['comp_year'] ?? 0) ?></td>
                         <td>
                             <span class="status-pill <?= esc($statusClass) ?>">
@@ -82,11 +91,17 @@
                             </span>
                         </td>
                         <td>
-                            <div><?= esc((string)($row['contact_person'] ?? '')) ?></div>
-                            <div class="small text-muted"><?= esc((string)($row['contact_email'] ?? '')) ?></div>
+                            <div>
+                                <?= esc($contactName) ?>
+                            </div>
+                            <div class="small text-muted">
+                                <?php if ($contactEmail !== ''): ?>
+                                    <a href="mailto:<?= esc($contactEmail, 'attr') ?>"><?= esc($contactEmail) ?></a>
+                                <?php endif; ?>
+                            </div>
                         </td>
                         <td><?= esc(format_datetime_ui((string)($row['requested_at'] ?? ''), '-')) ?></td>
-                        <td style="min-width: 220px;">
+                        <td class="spark-min-w-220">
                             <div class="mb-2">
                                 <span class="request-pill <?= esc($requestPillClass) ?>"><?= esc($status) ?></span>
                             </div>
@@ -119,3 +134,4 @@
 </div>
 
 <?= $this->endSection() ?>
+

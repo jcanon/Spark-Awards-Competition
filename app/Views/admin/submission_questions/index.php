@@ -6,12 +6,7 @@
         <h1 class="h3 mb-0 text-gray-800">Submission Questions</h1>
     </div>
 
-    <?php if ($msg = session('success')): ?>
-        <div class="alert alert-success"><?= esc($msg) ?></div>
-    <?php endif; ?>
-    <?php if ($msg = session('error')): ?>
-        <div class="alert alert-danger"><?= esc($msg) ?></div>
-    <?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="card mb-4">
         <div class="card-header">
@@ -47,9 +42,9 @@
             <table class="table table-bordered table-hover">
                 <thead>
                 <tr>
-                    <th style="width: 120px;">Order</th>
+                    <th class="spark-w-120">Order</th>
                     <th>Question</th>
-                    <th style="width: 220px;">Actions</th>
+                    <th class="spark-w-220">Actions</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -88,20 +83,5 @@
     </div>
 </div>
 
-<script>
-    (function () {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-</script>
-
 <?= $this->endSection() ?>
+

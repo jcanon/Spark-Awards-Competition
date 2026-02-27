@@ -29,7 +29,7 @@
                         <td><?= esc((string)$row['design_name']) ?></td>
                         <td><?= esc((string)$row['comp_type_name'] . ' ' . (string)$row['comp_year']) ?></td>
                         <td><?= esc(trim((string)$row['designer_first_name'] . ' ' . (string)$row['designer_last_name'])) ?></td>
-                        <td><?php if (!empty($row['photo'])): ?><img src="<?= esc((string)$row['photo']) ?>" alt="" style="max-width:120px;" class="img-thumbnail"><?php endif; ?></td>
+                        <td><?php if (!empty($row['photo'])): ?><img src="<?= esc((string)$row['photo']) ?>" alt="" class="img-thumbnail spark-max-w-120"><?php endif; ?></td>
                         <td><?= esc((string)$row['short_description']) ?></td>
                     </tr>
                 <?php endforeach; ?>

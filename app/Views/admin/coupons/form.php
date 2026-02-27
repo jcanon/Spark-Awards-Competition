@@ -8,53 +8,89 @@
         <a class="btn btn-sm btn-secondary" href="<?= site_url('admin/coupons') ?>">Back to Coupons</a>
     </div>
 
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <form method="post" action="<?= $isEdit ? site_url('admin/coupons/update/' . (int)$row->coupon_id) : site_url('admin/coupons/store') ?>" class="needs-validation" novalidate>
         <?= csrf_field() ?>
 
-        <div class="card mb-4">
-            <div class="card-body">
+        <?= view('partials/ui/card-start') ?>
                 <div class="row">
-                    <div class="col-md-4 form-group"><label>Coupon Code <span class="text-danger">*</span></label><input class="form-control" type="text" name="coupon_code" maxlength="25" required value="<?= esc((string)($row?->coupon_code ?? '')) ?>"></div>
-                    <div class="col-md-4 form-group"><label>Type <span class="text-danger">*</span></label><select class="form-control" name="coupon_type" required><option value="Dollar" <?= (($row?->coupon_type ?? '') === 'Dollar') ? 'selected' : '' ?>>$ Dollars Off</option><option value="Percentage" <?= (($row?->coupon_type ?? '') === 'Percentage') ? 'selected' : '' ?>>% Percentage Off</option></select></div>
-                    <div class="col-md-4 form-group"><label>Amount <span class="text-danger">*</span></label><input class="form-control" type="number" name="coupon_amount" required min="1" step="1" inputmode="numeric" pattern="[0-9]+" value="<?= esc((string)($row?->coupon_amount ?? '')) ?>"> (whole numbers / no symbols)</div>
-
+                    <?php $couponCode = (string)(old('coupon_code') ?? ($row?->coupon_code ?? '')); ?>
+                    <?= view('partials/forms/input', [
+                        'colClass' => 'col-md-4 form-group',
+                        'label' => 'Coupon Code',
+                        'name' => 'coupon_code',
+                        'value' => $couponCode,
+                        'required' => true,
+                        'attrs' => ['maxlength' => 25],
+                    ]) ?>
+                    <?php $couponType = (string)(old('coupon_type') ?? ($row?->coupon_type ?? 'Dollar')); ?>
+                    <?= view('partials/forms/select', [
+                        'colClass' => 'col-md-4 form-group',
+                        'label' => 'Type',
+                        'name' => 'coupon_type',
+                        'required' => true,
+                        'options' => [
+                            ['value' => 'Dollar', 'label' => '$ Dollars Off', 'selected' => $couponType === 'Dollar'],
+                            ['value' => 'Percentage', 'label' => '% Percentage Off', 'selected' => $couponType === 'Percentage'],
+                        ],
+                    ]) ?>
+                    <?= view('partials/forms/input', [
+                        'colClass' => 'col-md-4 form-group',
+                        'label' => 'Amount',
+                        'name' => 'coupon_amount',
+                        'type' => 'number',
+                        'value' => (string)(old('coupon_amount') ?? ($row?->coupon_amount ?? '')),
+                        'required' => true,
+                        'help' => 'Whole numbers / no symbols.',
+                        'attrs' => ['data-filter' => 'digits', 'min' => 1, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]+'],
+                    ]) ?>
                 </div>
                 <div class="row">
-                    <div class="col-md-4 form-group"><label>Competition</label><select class="form-control" name="coupon_comp"><option value="0">Global Coupon</option><?php foreach ($competitions as $comp): ?><option value="<?= (int)$comp->comp_id ?>" <?= ((int)($row?->coupon_comp ?? 0) === (int)$comp->comp_id) ? 'selected' : '' ?>><?= esc((string)$comp->comp_type_name . ' ' . (string)$comp->comp_year) ?></option><?php endforeach; ?></select></div>
-                    <div class="col-md-4 form-group"><label>Start Date <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" name="coupon_start_date" required value="<?= !empty($row?->coupon_start_date) ? date('Y-m-d\\TH:i', strtotime((string)$row?->coupon_start_date)) : '' ?>"></div>
-                    <div class="col-md-4 form-group"><label>End Date <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" name="coupon_end_date" required value="<?= !empty($row?->coupon_end_date) ? date('Y-m-d\\TH:i', strtotime((string)$row?->coupon_end_date)) : '' ?>"></div>
+                    <?php
+                    $couponComp = (int)(old('coupon_comp') ?? ($row?->coupon_comp ?? 0));
+                    $competitionOptions = [['value' => '0', 'label' => 'Global Coupon', 'selected' => ($couponComp === 0)]];
+                    foreach ($competitions as $comp) {
+                        $competitionOptions[] = [
+                            'value' => (string)(int)$comp->comp_id,
+                            'label' => (string)$comp->comp_type_name . ' ' . (string)$comp->comp_year,
+                            'selected' => ($couponComp === (int)$comp->comp_id),
+                        ];
+                    }
+                    $startDateValue = (string)(old('coupon_start_date') ?? (!empty($row?->coupon_start_date) ? date('Y-m-d\\TH:i', strtotime((string)$row?->coupon_start_date)) : ''));
+                    $endDateValue = (string)(old('coupon_end_date') ?? (!empty($row?->coupon_end_date) ? date('Y-m-d\\TH:i', strtotime((string)$row?->coupon_end_date)) : ''));
+                    ?>
+                    <?= view('partials/forms/select', [
+                        'colClass' => 'col-md-4 form-group',
+                        'label' => 'Competition',
+                        'name' => 'coupon_comp',
+                        'options' => $competitionOptions,
+                    ]) ?>
+                    <?= view('partials/forms/input', [
+                        'colClass' => 'col-md-4 form-group',
+                        'label' => 'Start Date',
+                        'name' => 'coupon_start_date',
+                        'type' => 'datetime-local',
+                        'value' => $startDateValue,
+                        'required' => true,
+                    ]) ?>
+                    <?= view('partials/forms/input', [
+                        'colClass' => 'col-md-4 form-group',
+                        'label' => 'End Date',
+                        'name' => 'coupon_end_date',
+                        'type' => 'datetime-local',
+                        'value' => $endDateValue,
+                        'required' => true,
+                    ]) ?>
                 </div>
-            </div>
-        </div>
+        <?= view('partials/ui/card-end') ?>
 
-        <button class="btn btn-primary" type="submit">Save Coupon</button>
-        <a class="btn btn-secondary" href="<?= site_url('admin/coupons') ?>">Back to Coupons</a>
+        <?= view('partials/forms/actions', [
+            'submitLabel' => 'Save Coupon',
+            'backLabel' => 'Back to Coupons',
+            'backUrl' => site_url('admin/coupons'),
+        ]) ?>
     </form>
 </div>
-
-<script>
-    (function () {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        var amountField = document.querySelector('input[name="coupon_amount"]');
-        if (amountField) {
-            amountField.addEventListener('input', function () {
-                this.value = this.value.replace(/[^0-9]/g, '');
-            });
-        }
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-</script>
 
 <?= $this->endSection() ?>

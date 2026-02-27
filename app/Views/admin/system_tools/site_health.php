@@ -78,7 +78,7 @@ $formatBytes = static function (int $bytes): string {
         <div class="card-body table-responsive">
             <table class="table table-sm table-bordered mb-0">
                 <tbody>
-                <tr><th style="width:260px;">Generated At</th><td><?= esc((string) ($report['generated_at'] ?? '')) ?></td></tr>
+                <tr><th class="spark-w-260">Generated At</th><td><?= esc((string) ($report['generated_at'] ?? '')) ?></td></tr>
                 <tr><th>Server Time</th><td><?= esc((string) ($runtime['server_time'] ?? '')) ?></td></tr>
                 <tr><th>UTC Time</th><td><?= esc((string) ($runtime['now_utc'] ?? '')) ?></td></tr>
                 <tr><th>Timezone</th><td><?= esc((string) ($runtime['timezone'] ?? '')) ?></td></tr>
@@ -95,7 +95,7 @@ $formatBytes = static function (int $bytes): string {
         <div class="card-body table-responsive">
             <table class="table table-sm table-bordered mb-0">
                 <tbody>
-                <tr><th style="width:260px;">SAPI</th><td><?= esc((string) ($runtime['php_sapi'] ?? '')) ?></td></tr>
+                <tr><th class="spark-w-260">SAPI</th><td><?= esc((string) ($runtime['php_sapi'] ?? '')) ?></td></tr>
                 <tr><th>memory_limit</th><td><?= esc((string) ($php['memory_limit'] ?? '')) ?></td></tr>
                 <tr><th>upload_max_filesize</th><td><?= esc((string) ($php['upload_max_filesize'] ?? '')) ?></td></tr>
                 <tr><th>post_max_size</th><td><?= esc((string) ($php['post_max_size'] ?? '')) ?></td></tr>
@@ -130,7 +130,7 @@ $formatBytes = static function (int $bytes): string {
                 <div class="col-md-6 table-responsive">
                     <table class="table table-sm table-bordered mb-0">
                         <tbody>
-                        <tr><th style="width:260px;">OPcache INI Enabled</th><td><?= $formatBool(((string)($php['opcache']['enabled_ini'] ?? '0')) === '1') ?></td></tr>
+                        <tr><th class="spark-w-260">OPcache INI Enabled</th><td><?= $formatBool(((string)($php['opcache']['enabled_ini'] ?? '0')) === '1') ?></td></tr>
                         <tr><th>OPcache Status Available</th><td><?= $formatBool((bool)($php['opcache']['status_available'] ?? false)) ?></td></tr>
                         <tr><th>OPcache Active</th><td><?= $formatBool((bool)(($php['opcache']['status']['opcache_enabled'] ?? false))) ?></td></tr>
                         <tr><th>JIT Setting</th><td><code><?= esc((string) ($php['opcache']['jit_enabled_ini'] ?? '')) ?></code></td></tr>
@@ -147,7 +147,7 @@ $formatBytes = static function (int $bytes): string {
         <div class="card-body table-responsive">
             <table class="table table-sm table-bordered mb-0">
                 <tbody>
-                <tr><th style="width:260px;">Connected</th><td><?= $formatBool((bool) ($db['connected'] ?? false)) ?></td></tr>
+                <tr><th class="spark-w-260">Connected</th><td><?= $formatBool((bool) ($db['connected'] ?? false)) ?></td></tr>
                 <tr><th>Driver</th><td><?= esc((string) ($db['driver'] ?? '')) ?></td></tr>
                 <tr><th>Database Name</th><td><?= esc((string) ($db['database'] ?? '')) ?></td></tr>
                 <tr><th>Server Version</th><td><?= esc((string) ($db['version'] ?? '')) ?></td></tr>
@@ -162,7 +162,7 @@ $formatBytes = static function (int $bytes): string {
         <div class="card-body table-responsive">
             <table class="table table-sm table-bordered mb-0">
                 <tbody>
-                <tr><th style="width:260px;">Configured Mode</th><td><?= esc((string) ($payment['authorize_net_mode'] ?? '')) ?></td></tr>
+                <tr><th class="spark-w-260">Configured Mode</th><td><?= esc((string) ($payment['authorize_net_mode'] ?? '')) ?></td></tr>
                 <tr><th>Active Environment</th><td><?= esc((string) ($payment['active_environment'] ?? '')) ?></td></tr>
                 <tr><th>Active Hosted URL</th><td><code><?= esc((string) ($payment['active_hosted_url'] ?? '')) ?></code></td></tr>
                 <tr><th>Sandbox Credentials Present</th><td><?= $formatBool((bool) ($payment['sandbox_credentials_present'] ?? false)) ?></td></tr>
@@ -210,7 +210,7 @@ $formatBytes = static function (int $bytes): string {
                     <tbody>
                     <?php foreach ($counts as $k => $v): ?>
                         <tr>
-                            <th style="width:260px;"><?= esc(ucwords(str_replace('_', ' ', (string) $k))) ?></th>
+                            <th class="spark-w-260"><?= esc(ucwords(str_replace('_', ' ', (string) $k))) ?></th>
                             <td><?= $v === null ? 'N/A' : number_format((int) $v) ?></td>
                         </tr>
                     <?php endforeach; ?>

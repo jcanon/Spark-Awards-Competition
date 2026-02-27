@@ -10,9 +10,7 @@
                     For security, passwords must be changed every 6 months before you can continue.
                 </div>
 
-                <?php if ($msg = session('error')): ?>
-                    <div class="alert alert-danger"><?= esc($msg) ?></div>
-                <?php endif; ?>
+                <?= view('partials/flash', ['showSuccess' => false]) ?>
 
                 <form id="passwordExpiredForm" action="<?= site_url('auth/password-expired') ?>" method="post" class="needs-validation" novalidate>
                     <?= csrf_field() ?>
@@ -46,16 +44,6 @@
     </div>
 </div>
 
-<script>
-    window.sparkPasswordExpiredI18n = {
-        passwordWeak: <?= json_encode('Please enter a password that meets all requirements.') ?>,
-        passwordStrong: <?= json_encode('Strong password.') ?>,
-        passwordNeedsWork: <?= json_encode('Password does not meet all requirements yet.') ?>,
-        confirmPrompt: <?= json_encode('Confirm your new password.') ?>,
-        confirmMatch: <?= json_encode('Passwords match.') ?>,
-        confirmNoMatch: <?= json_encode('Passwords do not match.') ?>
-    };
-</script>
 <script src="/js/utils/password-policy.js"></script>
 <script src="/js/pages/auth-password-expired.js"></script>
 

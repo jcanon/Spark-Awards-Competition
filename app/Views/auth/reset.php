@@ -7,9 +7,7 @@
             <div class="card-body p-4">
                 <h1 class="h4 mb-3">Reset Password</h1>
 
-                <?php if ($msg = session('error')): ?>
-                    <div class="alert alert-danger"><?= esc($msg) ?></div>
-                <?php endif; ?>
+                <?= view('partials/flash', ['showSuccess' => false]) ?>
 
                 <form id="passwordResetForm" action="<?= site_url('auth/reset/' . $token) ?>" method="post" class="needs-validation" novalidate>
                     <?= csrf_field() ?>
@@ -40,16 +38,6 @@
     </div>
 </div>
 
-<script>
-    window.sparkPasswordResetI18n = {
-        passwordWeak: <?= json_encode('Please enter a password that meets all requirements.') ?>,
-        passwordStrong: <?= json_encode('Strong password.') ?>,
-        passwordNeedsWork: <?= json_encode('Password does not meet all requirements yet.') ?>,
-        confirmPrompt: <?= json_encode('Confirm your new password.') ?>,
-        confirmMatch: <?= json_encode('Passwords match.') ?>,
-        confirmNoMatch: <?= json_encode('Passwords do not match.') ?>
-    };
-</script>
 <script src="/js/utils/password-policy.js"></script>
 <script src="/js/pages/auth-reset.js"></script>
 

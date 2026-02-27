@@ -7,9 +7,7 @@
             <div class="card-body p-4">
                 <h1 class="h4 mb-3">Forgot Your Login?</h1>
 
-                <?php if ($msg = session('error')): ?>
-                    <div class="alert alert-danger"><?= esc($msg) ?></div>
-                <?php endif; ?>
+                <?= view('partials/flash', ['showSuccess' => false]) ?>
 
                 <?php if ($sent ?? false): ?>
                     <div class="alert alert-success">If your email exists in our system, a reset link has been sent.</div>
@@ -31,20 +29,5 @@
         </div>
     </div>
 </div>
-
-<script>
-    (function () {
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-</script>
 
 <?= $this->endSection() ?>

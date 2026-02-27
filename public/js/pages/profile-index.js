@@ -16,6 +16,18 @@
         return;
     }
 
+    var i18n = {
+        optionalKeepCurrent: 'Optional: leave blank to keep your current password.',
+        currentPasswordRequired: 'Current password is required to change your password.',
+        passwordWeak: 'Please enter a password that meets all requirements.',
+        passwordStrong: 'Strong password.',
+        passwordNeedsWork: 'Password does not meet all requirements yet.',
+        enterNewPasswordFirst: 'Enter a new password first.',
+        confirmPrompt: 'Confirm your new password.',
+        confirmMatch: 'Passwords match.',
+        confirmNoMatch: 'Passwords do not match.'
+    };
+
     var policy = window.SparkPasswordPolicy.init({
         formId: 'profileForm',
         passwordId: 'password',
@@ -27,7 +39,7 @@
         mode: 'optional',
         rulesEmptyClass: 'text-muted',
         requireCurrentForChange: true,
-        i18n: window.sparkProfileI18n || {}
+        i18n: i18n
     });
     if (!policy) {
         return;

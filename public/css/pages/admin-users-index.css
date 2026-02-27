@@ -1,0 +1,7 @@
+#usersTable thead th {
+    white-space: nowrap;
+}
+
+#usersTable .btn {
+    white-space: nowrap;
+}

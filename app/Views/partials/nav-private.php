@@ -19,46 +19,6 @@ try {
 }
 ?>
 
-<style>
-    .menu-parent {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .menu-parent-caret {
-        transition: transform 0.2s ease;
-        transform: rotate(0deg);
-    }
-    .menu-parent.is-open .menu-parent-caret {
-        transform: rotate(90deg);
-    }
-    .menu-sub {
-        display: none;
-    }
-    .menu-sub.show {
-        display: block;
-    }
-    .menu-count-pill {
-        min-width: 1.35rem;
-        height: 1.35rem;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-size: 0.72rem;
-        font-weight: 700;
-        line-height: 1;
-        padding: 0 0.35rem;
-    }
-    .menu-count-pill.is-alert {
-        background: #d93025;
-    }
-    .menu-count-pill.is-ok {
-        background: #1e7e34;
-    }
-</style>
-
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?= site_url('home') ?>">
         <img src="/img/sparklogo.jpg" alt="Spark Awards Logo" class="img-fluid" width="160" height="50" loading="eager">
@@ -280,7 +240,7 @@ try {
                 <li class="nav-item dropdown no-arrow">
                     <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?= esc($displayName) ?></span>
-                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light border" style="width:2rem;height:2rem;">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light border spark-square-2rem">
                             <i class="fas fa-user-circle text-gray-600" aria-hidden="true"></i>
                         </span>
                     </a>

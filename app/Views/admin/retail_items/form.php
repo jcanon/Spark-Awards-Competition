@@ -8,77 +8,73 @@
         <a class="btn btn-sm btn-secondary" href="<?= site_url('admin/retail-items') ?>">Back to Retail Items</a>
     </div>
 
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <form method="post" action="<?= $isEdit ? site_url('admin/retail-items/update/' . (int)$row->retail_item_id) : site_url('admin/retail-items/store') ?>" class="needs-validation" novalidate>
         <?= csrf_field() ?>
 
-        <div class="card mb-4">
-            <div class="card-body">
+        <?= view('partials/ui/card-start') ?>
                 <div class="row">
-                    <div class="col-md-5 form-group">
-                        <label>Item Name <span class="text-danger">*</span></label>
-                        <input class="form-control" type="text" name="item_name" maxlength="200" required value="<?= esc((string)(old('item_name') ?? ($row?->item_name ?? ''))) ?>">
-                    </div>
-                    <div class="col-md-2 form-group">
-                        <label>Phase <span class="text-danger">*</span></label>
-                        <?php $phaseVal = (string)(old('phase') ?? ($row?->phase ?? '1')); ?>
-                        <select class="form-control" name="phase" required>
-                            <option value="1" <?= $phaseVal === '1' ? 'selected' : '' ?>>1</option>
-                            <option value="2" <?= $phaseVal === '2' ? 'selected' : '' ?>>2</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>Price (USD) <span class="text-danger">*</span></label>
-                        <input class="form-control" type="number" name="item_price" required min="0" step="1" inputmode="numeric" pattern="[0-9]+" value="<?= esc((string)(old('item_price') ?? ($row?->item_price ?? '0'))) ?>">
-                        <small class="text-muted">Whole dollars only (e.g. 100).</small>
-                    </div>
-                    <div class="col-md-2 form-group">
-                        <label>Active <span class="text-danger">*</span></label>
-                        <?php $activeVal = (string)(old('active') ?? ($row?->active ?? 'Y')); ?>
-                        <select class="form-control" name="active" required>
-                            <option value="Y" <?= $activeVal === 'Y' ? 'selected' : '' ?>>Yes</option>
-                            <option value="N" <?= $activeVal === 'N' ? 'selected' : '' ?>>No</option>
-                        </select>
-                    </div>
+                    <?= view('partials/forms/input', [
+                        'colClass' => 'col-md-5 form-group',
+                        'label' => 'Item Name',
+                        'name' => 'item_name',
+                        'value' => (string)(old('item_name') ?? ($row?->item_name ?? '')),
+                        'required' => true,
+                        'attrs' => ['maxlength' => 200],
+                    ]) ?>
+                    <?php $phaseVal = (string)(old('phase') ?? ($row?->phase ?? '1')); ?>
+                    <?= view('partials/forms/select', [
+                        'colClass' => 'col-md-2 form-group',
+                        'label' => 'Phase',
+                        'name' => 'phase',
+                        'required' => true,
+                        'options' => [
+                            ['value' => '1', 'label' => '1', 'selected' => $phaseVal === '1'],
+                            ['value' => '2', 'label' => '2', 'selected' => $phaseVal === '2'],
+                        ],
+                    ]) ?>
+                    <?= view('partials/forms/input', [
+                        'colClass' => 'col-md-3 form-group',
+                        'label' => 'Price (USD)',
+                        'name' => 'item_price',
+                        'type' => 'number',
+                        'value' => (string)(old('item_price') ?? ($row?->item_price ?? '0')),
+                        'required' => true,
+                        'help' => 'Whole dollars only (e.g. 100).',
+                        'attrs' => ['data-filter' => 'digits', 'min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]+'],
+                    ]) ?>
+                    <?php $activeVal = (string)(old('active') ?? ($row?->active ?? 'Y')); ?>
+                    <?= view('partials/forms/select', [
+                        'colClass' => 'col-md-2 form-group',
+                        'label' => 'Active',
+                        'name' => 'active',
+                        'required' => true,
+                        'options' => [
+                            ['value' => 'Y', 'label' => 'Yes', 'selected' => $activeVal === 'Y'],
+                            ['value' => 'N', 'label' => 'No', 'selected' => $activeVal === 'N'],
+                        ],
+                    ]) ?>
                 </div>
 
                 <div class="row">
-                    <div class="col-md-12 form-group">
-                        <label>Item Description</label>
-                        <textarea class="form-control" name="item_description" rows="4" maxlength="65535"><?= esc((string)(old('item_description') ?? ($row?->item_description ?? ''))) ?></textarea>
-                    </div>
+                    <?= view('partials/forms/textarea', [
+                        'colClass' => 'col-md-12 form-group',
+                        'label' => 'Item Description',
+                        'name' => 'item_description',
+                        'rows' => 4,
+                        'value' => (string)(old('item_description') ?? ($row?->item_description ?? '')),
+                        'attrs' => ['maxlength' => 65535],
+                    ]) ?>
                 </div>
-            </div>
-        </div>
+        <?= view('partials/ui/card-end') ?>
 
-        <button class="btn btn-primary" type="submit"><?= $isEdit ? 'Save Changes' : 'Save Retail Item' ?></button>
-        <a class="btn btn-secondary" href="<?= site_url('admin/retail-items') ?>">Back to Retail Items</a>
+        <?= view('partials/forms/actions', [
+            'submitLabel' => $isEdit ? 'Save Changes' : 'Save Retail Item',
+            'backLabel' => 'Back to Retail Items',
+            'backUrl' => site_url('admin/retail-items'),
+        ]) ?>
     </form>
 </div>
 
-<script>
-    (function () {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        var priceField = document.querySelector('input[name="item_price"]');
-        if (priceField) {
-            priceField.addEventListener('input', function () {
-                this.value = this.value.replace(/[^0-9]/g, '');
-            });
-        }
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-</script>
-
 <?= $this->endSection() ?>
-

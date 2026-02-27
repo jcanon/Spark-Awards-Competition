@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -File tools/pre-commit-checks.ps1
+elif command -v powershell >/dev/null 2>&1; then
+  powershell -NoProfile -ExecutionPolicy Bypass -File tools/pre-commit-checks.ps1
+else
+  bash tools/pre-commit-checks.sh
+fi

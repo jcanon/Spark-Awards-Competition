@@ -1,0 +1,19 @@
+.dashboard-meta {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.dashboard-metric {
+    font-size: 0.92rem;
+    color: #5a5c69;
+}
+
+.chart-canvas-xl {
+    position: relative;
+    height: 360px;
+}
+
+.chart-canvas-md {
+    position: relative;
+    height: 320px;
+}

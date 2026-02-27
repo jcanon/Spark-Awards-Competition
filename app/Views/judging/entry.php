@@ -13,12 +13,7 @@
         <p class="mb-3 font-weight-bold text-primary"><?= esc((string)$competitionLabel) ?></p>
     <?php endif; ?>
 
-    <?php if ($msg = session('success')): ?>
-        <div class="alert alert-success"><?= esc($msg) ?></div>
-    <?php endif; ?>
-    <?php if ($msg = session('error')): ?>
-        <div class="alert alert-danger"><?= esc($msg) ?></div>
-    <?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="row">
         <div class="col-12 col-lg-8">
@@ -151,7 +146,7 @@
                 </button>
             </div>
             <div class="modal-body text-center">
-                <img id="judgingPhotoModalImage" src="" alt="" class="img-fluid rounded border" style="max-height:75vh;">
+                <img id="judgingPhotoModalImage" src="" alt="" class="img-fluid rounded border spark-max-h-75vh">
             </div>
             <div class="modal-footer d-flex justify-content-between">
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="judgingPhotoPrevBtn">Previous</button>
@@ -162,91 +157,9 @@
     </div>
 </div>
 
-<script>
-    (function () {
-        var modalEl = document.getElementById('judgingPhotoModal');
-        var modalImage = document.getElementById('judgingPhotoModalImage');
-        var modalTitle = document.getElementById('judgingPhotoModalLabel');
-        var modalCounter = document.getElementById('judgingPhotoCounter');
-        var prevBtn = document.getElementById('judgingPhotoPrevBtn');
-        var nextBtn = document.getElementById('judgingPhotoNextBtn');
-        var photoLinks = document.querySelectorAll('.js-judging-photo-link');
-        var activeIndex = -1;
-
-        if (!modalEl || !modalImage || !prevBtn || !nextBtn || photoLinks.length === 0) {
-            return;
-        }
-
-        var showModal = function (element) {
-            if (window.bootstrap && window.bootstrap.Modal) {
-                if (typeof window.bootstrap.Modal.getOrCreateInstance === 'function') {
-                    window.bootstrap.Modal.getOrCreateInstance(element).show();
-                    return;
-                }
-                try {
-                    (new window.bootstrap.Modal(element)).show();
-                    return;
-                } catch (e) {
-                    // fall through to jQuery modal fallback
-                }
-            }
-            if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
-                window.jQuery(element).modal('show');
-            }
-        };
-
-        var setPhotoByIndex = function (index) {
-            if (index < 0 || index >= photoLinks.length) {
-                return;
-            }
-            activeIndex = index;
-            var link = photoLinks[index];
-            var photoUrl = link.getAttribute('data-photo-url') || '';
-            var photoTitle = link.getAttribute('data-photo-title') || 'Entry Photo';
-            if (!photoUrl) {
-                return;
-            }
-
-            modalImage.src = photoUrl;
-            modalImage.alt = photoTitle;
-            if (modalTitle) {
-                modalTitle.textContent = photoTitle;
-            }
-            if (modalCounter) {
-                modalCounter.textContent = 'Photo ' + (activeIndex + 1) + ' of ' + photoLinks.length;
-            }
-            prevBtn.disabled = activeIndex <= 0;
-            nextBtn.disabled = activeIndex >= (photoLinks.length - 1);
-        };
-
-        photoLinks.forEach(function (link, idx) {
-            link.addEventListener('click', function (event) {
-                event.preventDefault();
-                setPhotoByIndex(idx);
-                showModal(modalEl);
-            });
-        });
-
-        prevBtn.addEventListener('click', function () {
-            setPhotoByIndex(activeIndex - 1);
-        });
-        nextBtn.addEventListener('click', function () {
-            setPhotoByIndex(activeIndex + 1);
-        });
-
-        document.addEventListener('keydown', function (event) {
-            if (!modalEl.classList.contains('show')) {
-                return;
-            }
-            if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                setPhotoByIndex(activeIndex - 1);
-            } else if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                setPhotoByIndex(activeIndex + 1);
-            }
-        });
-    })();
-</script>
+<script src="/js/utils/modal.js"></script>
+<script src="/js/utils/photo-preview-modal.js"></script>
+<script src="/js/pages/judging-entry.js"></script>
 
 <?= $this->endSection() ?>
+

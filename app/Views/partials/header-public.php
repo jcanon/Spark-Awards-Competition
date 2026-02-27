@@ -11,5 +11,6 @@
     <link href="/css/sb-admin-2.css" rel="stylesheet">
     <link href="/css/entry-status-pill.css" rel="stylesheet">
     <link href="/css/certificate-request-pill.css" rel="stylesheet">
+    <link href="/css/components/view-utilities.css" rel="stylesheet">
 </head>
 <body class="bg-light">

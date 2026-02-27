@@ -46,6 +46,9 @@
 <script src="/vendor/datatables/jquery.dataTables.min.js"></script>
 <script src="/vendor/datatables/dataTables.bootstrap4.min.js"></script>
 <script src="/js/private-datatable-init.js"></script>
+<script src="/js/utils/spark.js"></script>
+<script src="/js/utils/needs-validation.js"></script>
+<script src="/js/utils/input-filters.js"></script>
 
 </body>
 </html>

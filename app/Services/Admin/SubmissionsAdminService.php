@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Admin;
 
 use CodeIgniter\Database\BaseBuilder;
+use App\Support\EntryBulkActions;
 use App\Models\Entries\UserEntriesModel;
 use App\Models\Entries\EntryQuestionModel;
 use App\Models\Judging\EntryPhotoModel;
@@ -266,17 +267,7 @@ class SubmissionsAdminService
 
     private function bulkActionUpdatePayload(string $action): ?array
     {
-        return match ($action) {
-            'gallery_show' => ['gallery_hide' => 'No'],
-            'gallery_hide' => ['gallery_hide' => 'Yes'],
-            'non_finalist' => ['entry_non_finalist' => 'Yes', 'entry_status' => 'Entrant'],
-            'finalist' => ['entry_status' => 'Finalist', 'entry_non_finalist' => 'No'],
-            'winner_platinum' => ['entry_status' => 'Winner', 'winner_level' => 1],
-            'winner_gold' => ['entry_status' => 'Winner', 'winner_level' => 2],
-            'winner_silver' => ['entry_status' => 'Winner', 'winner_level' => 3],
-            'winner_bronze' => ['entry_status' => 'Winner', 'winner_level' => 4],
-            default => null,
-        };
+        return EntryBulkActions::submissionPayload($action);
     }
 
     public function export(array $filters): array

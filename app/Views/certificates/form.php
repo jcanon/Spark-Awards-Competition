@@ -27,7 +27,7 @@ $val = static function (string $field, string $default = '') use ($request, $pre
         <a class="btn btn-sm btn-secondary" href="<?= site_url('certificates') ?>">Back to Certificates</a>
     </div>
 
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash', ['showSuccess' => false]) ?>
     <?php if ($isReadOnly): ?>
         <div class="alert alert-info">
             This request is currently <strong><?= esc($requestStatus) ?></strong> and can no longer be edited.
@@ -196,20 +196,5 @@ $val = static function (string $field, string $default = '') use ($request, $pre
     </div>
 </div>
 
-<script>
-    (function () {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
-</script>
-
 <?= $this->endSection() ?>
+

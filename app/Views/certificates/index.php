@@ -15,8 +15,7 @@
         </div>
     </div>
 
-    <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <div class="card">
         <div class="card-body table-responsive">
@@ -73,3 +72,4 @@
 </div>
 
 <?= $this->endSection() ?>
+

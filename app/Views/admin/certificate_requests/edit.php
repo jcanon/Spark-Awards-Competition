@@ -33,7 +33,7 @@ if (strcasecmp($entryStatus, 'Winner') === 0 && $winnerLevel !== '') {
         ]))) ?>">Back to Certificate Requests</a>
     </div>
 
-    <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?= view('partials/flash', ['showSuccess' => false]) ?>
 
     <div class="card mb-4">
         <div class="card-body">
@@ -179,3 +179,4 @@ if (strcasecmp($entryStatus, 'Winner') === 0 && $winnerLevel !== '') {
 </div>
 
 <?= $this->endSection() ?>
+

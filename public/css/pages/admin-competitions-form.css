@@ -1,0 +1,3 @@
+select[name="comp_type_ids[]"] option:disabled {
+    color: #9aa0a6;
+}

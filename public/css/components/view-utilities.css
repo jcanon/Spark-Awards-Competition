@@ -1,0 +1,51 @@
+.spark-square-2rem {
+    width: 2rem;
+    height: 2rem;
+}
+
+.spark-min-w-220 {
+    min-width: 220px;
+}
+
+.spark-w-25 {
+    width: 25%;
+}
+
+.spark-w-75 {
+    width: 75%;
+}
+
+.spark-w-120 {
+    width: 120px;
+}
+
+.spark-w-220 {
+    width: 220px;
+}
+
+.spark-w-260 {
+    width: 260px;
+}
+
+.spark-max-w-120 {
+    max-width: 120px;
+}
+
+.spark-max-h-70vh {
+    max-height: 70vh;
+}
+
+.spark-max-h-75vh {
+    max-height: 75vh;
+}
+
+.spark-h-70vh {
+    height: 70vh;
+}
+
+.spark-pre-scroll-wrap-70vh {
+    max-height: 70vh;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}

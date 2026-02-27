@@ -22,13 +22,6 @@
     </div>
 </div>
 
-<script>
-    (function () {
-        const form = document.getElementById('anetHostedForm');
-        if (form) {
-            setTimeout(function () { form.submit(); }, 300);
-        }
-    })();
-</script>
+<script src="/js/pages/payment-checkout.js"></script>
 
 <?= $this->endSection() ?>

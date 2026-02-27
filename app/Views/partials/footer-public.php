@@ -15,5 +15,8 @@
 
 <script src="/vendor/jquery/jquery.min.js"></script>
 <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/js/utils/spark.js"></script>
+<script src="/js/utils/needs-validation.js"></script>
+<script src="/js/utils/input-filters.js"></script>
 </body>
 </html>

@@ -7,7 +7,16 @@
         return;
     }
 
-    var i18n = window.sparkAuthLoginI18n || {};
+    var i18n = {
+        emailRequired: 'Email address is required.',
+        emailInvalid: 'Please enter a valid email address.',
+        passwordWeak: 'Please enter a password that meets all requirements.',
+        passwordStrong: 'Strong password.',
+        passwordNeedsWork: 'Password does not meet all requirements yet.',
+        confirmPrompt: 'Confirm your password.',
+        confirmMatch: 'Passwords match.',
+        confirmNoMatch: 'Passwords do not match.'
+    };
     var policy = window.SparkPasswordPolicy.init({
         formId: 'registerForm',
         passwordId: 'reg_password',

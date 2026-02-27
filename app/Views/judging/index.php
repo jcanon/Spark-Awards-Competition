@@ -6,12 +6,7 @@
         <h1 class="h3 mb-0 text-gray-800">Judging</h1>
     </div>
 
-    <?php if ($msg = session('success')): ?>
-        <div class="alert alert-success"><?= esc($msg) ?></div>
-    <?php endif; ?>
-    <?php if ($msg = session('error')): ?>
-        <div class="alert alert-danger"><?= esc($msg) ?></div>
-    <?php endif; ?>
+    <?= view('partials/flash') ?>
 
     <?php
     $phase2SeedCompId = 0;
@@ -160,3 +155,4 @@
 </div>
 
 <?= $this->endSection() ?>
+

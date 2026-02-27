@@ -7,9 +7,7 @@
             <div class="card-body p-4 text-center">
                 <h1 class="h4 mb-3">Two-Factor Authentication</h1>
 
-                <?php if ($msg = session()->getFlashdata('error')): ?>
-                    <div class="alert alert-danger text-left"><?= esc($msg) ?></div>
-                <?php endif; ?>
+                <?= view('partials/flash', ['showSuccess' => false]) ?>
 
                 <p class="text-muted">Admin and Editor accounts require Duo verification.</p>
 
@@ -45,3 +43,4 @@
 </div>
 
 <?= $this->endSection() ?>
+

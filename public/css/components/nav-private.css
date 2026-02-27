@@ -1,0 +1,44 @@
+.menu-parent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.menu-parent-caret {
+    transition: transform 0.2s ease;
+    transform: rotate(0deg);
+}
+
+.menu-parent.is-open .menu-parent-caret {
+    transform: rotate(90deg);
+}
+
+.menu-sub {
+    display: none;
+}
+
+.menu-sub.show {
+    display: block;
+}
+
+.menu-count-pill {
+    min-width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0 0.35rem;
+}
+
+.menu-count-pill.is-alert {
+    background: #d93025;
+}
+
+.menu-count-pill.is-ok {
+    background: #1e7e34;
+}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Support\EntryBulkActions;
 use App\Services\Admin\SubmissionsAdminService;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -267,28 +268,13 @@ class ScoreResultsController extends BaseController
 
     private function applyBulkStatusAction(string $entryId, string $action): bool
     {
-        $statusMap = [
-            'non_finalist' => 'Entrant',
-            'finalist' => 'Finalist',
-            'winner_platinum' => 'Winner',
-            'winner_gold' => 'Winner',
-            'winner_silver' => 'Winner',
-            'winner_bronze' => 'Winner',
-        ];
-        $entryPatchMap = [
-            'non_finalist' => ['entry_non_finalist' => 'Yes'],
-            'finalist' => ['entry_non_finalist' => 'No'],
-            'winner_platinum' => ['winner_level' => 1],
-            'winner_gold' => ['winner_level' => 2],
-            'winner_silver' => ['winner_level' => 3],
-            'winner_bronze' => ['winner_level' => 4],
-        ];
-
-        if (!isset($statusMap[$action], $entryPatchMap[$action])) {
+        $statusAndPatch = EntryBulkActions::scoreResultStatusAndPatch($action);
+        if ($statusAndPatch === null) {
             return false;
         }
 
-        service('judging')->updateStatus($entryId, $statusMap[$action]);
-        return db_connect()->table('comp_entries')->where('entry_id', $entryId)->update($entryPatchMap[$action]);
+        [$status, $patch] = $statusAndPatch;
+        service('judging')->updateStatus($entryId, $status);
+        return db_connect()->table('comp_entries')->where('entry_id', $entryId)->update($patch);
     }
 }
