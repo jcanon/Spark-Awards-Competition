@@ -211,6 +211,14 @@ class SubmissionsController extends BaseController
             $rules['low_photo_' . $i] = 'if_exist|max_size[low_photo_' . $i . ',1024]|ext_in[low_photo_' . $i . ',jpg,jpeg]|mime_in[low_photo_' . $i . ',image/jpeg]';
         }
         $rules['certificate_pdf'] = 'if_exist|max_size[certificate_pdf,5120]|ext_in[certificate_pdf,pdf]|mime_in[certificate_pdf,application/pdf]';
+        $rules['winner_badge'] = 'if_exist|max_size[winner_badge,5120]|is_image[winner_badge]';
+
+        $badgeFile = $this->request->getFile('winner_badge');
+        if (!$this->canManageBadge() && $badgeFile && $badgeFile->getError() !== UPLOAD_ERR_NO_FILE) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Only admins can upload a Winner Badge.');
+        }
 
         if (!$this->validate($rules)) {
             return redirect()->back()
@@ -259,6 +267,12 @@ class SubmissionsController extends BaseController
                     $certErrors = $this->processCertificate($entryId, (int)$entry['comp_id']);
                     if ($certErrors !== null) {
                         return redirect()->back()->withInput()->with('error', implode(' ', $certErrors));
+                    }
+                    if ($this->canManageBadge()) {
+                        $badgeErrors = $this->processWinnerBadge($entryId, (int)$entry['comp_id']);
+                        if ($badgeErrors !== null) {
+                            return redirect()->back()->withInput()->with('error', implode(' ', $badgeErrors));
+                        }
                     }
                 }
             }
@@ -471,6 +485,11 @@ class SubmissionsController extends BaseController
     private function canDelete(): bool
     {
         return (string)session('role') !== 'editor';
+    }
+
+    private function canManageBadge(): bool
+    {
+        return (string)session('role') === 'admin';
     }
 
     private function resolveLegacyReceiptTemplate(string $rawReceipt, array $payment, string $entryId): string
@@ -779,6 +798,155 @@ class SubmissionsController extends BaseController
         }
 
         return $errors === [] ? null : $errors;
+    }
+
+    private function processWinnerBadge(string $entryId, int $compId): ?array
+    {
+        $badge = $this->request->getFile('winner_badge');
+        if (!$badge || $badge->getError() === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if (!$badge->isValid()) {
+            return ['Winner Badge upload failed. Please try again.'];
+        }
+
+        $imgInfo = @getimagesize($badge->getTempName());
+        if (!is_array($imgInfo) || !isset($imgInfo[2])) {
+            return ['Winner Badge must be a valid image file.'];
+        }
+
+        $imageType = (int)$imgInfo[2];
+        $extension = ltrim(strtolower((string)image_type_to_extension($imageType, true)), '.');
+        if ($extension === 'jpeg') {
+            $extension = 'jpg';
+        }
+        if ($extension === '') {
+            $extension = strtolower((string)$badge->getClientExtension());
+        }
+        if ($extension === '') {
+            $extension = 'jpg';
+        }
+
+        $comp = (new CompetitionModel())
+            ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
+            ->where('comp_id', $compId)
+            ->first();
+        if (!$comp) {
+            return ['Invalid competition for winner badge upload.'];
+        }
+
+        $year     = (int) ($comp->comp_year ?? date('Y'));
+        $typeName = strtolower(trim((string) ($comp->comp_type_name ?? 'unknown')));
+        $typeDir  = str_replace(['/', '\\'], '-', $typeName);
+        $baseDir  = rtrim(FCPATH, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR . 'uploads'
+            . DIRECTORY_SEPARATOR . $year
+            . DIRECTORY_SEPARATOR . $typeDir;
+        if (!is_dir($baseDir)) {
+            @mkdir($baseDir, 0775, true);
+            @file_put_contents($baseDir . DIRECTORY_SEPARATOR . 'index.html', '');
+            @file_put_contents($baseDir . DIRECTORY_SEPARATOR . '.htaccess', "Options -Indexes\n<FilesMatch \"\\.(php|phtml|phar|cgi|pl|asp|aspx)$\">\nRequire all denied\n</FilesMatch>\n");
+        }
+
+        $entryRow = $this->adminSubs->find($entryId);
+        $photoId  = (string)($entryRow['photo_id'] ?? '');
+        if ($photoId === '') {
+            $photoId = preg_replace('/[^A-Za-z0-9_-]/', '', $entryId) ?: 'entry';
+        }
+
+        $mime = strtolower((string)($imgInfo['mime'] ?? ''));
+        $isTiff = in_array($extension, ['tif', 'tiff'], true) || in_array($mime, ['image/tiff', 'image/x-tiff'], true);
+        $safeName = 'WinnerBadge_' . $photoId . '.' . ($isTiff ? 'jpg' : $extension);
+        $target = rtrim($baseDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $safeName;
+
+        if ($isTiff) {
+            if (!$this->convertBadgeToJpeg($badge->getTempName(), $target)) {
+                return ['Winner Badge TIFF conversion failed. Please install Imagick or upload JPG/PNG.'];
+            }
+        } else {
+            try {
+                $badge->move($baseDir, $safeName, true);
+            } catch (\Throwable $e) {
+                return ['Winner Badge could not be saved.'];
+            }
+            if (!is_file($target)) {
+                return ['Winner Badge could not be saved.'];
+            }
+        }
+
+        $publicUrl = '/uploads/' . $year . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $typeDir) . '/' . $safeName;
+        $photoModel = new EntryPhotoModel();
+        $existing = $photoModel->asArray()
+            ->where('entry_id', $entryId)
+            ->where('entry_photo_res', 'Badge')
+            ->first();
+
+        $oldPath = trim((string)($existing['entry_photo'] ?? ''));
+        $payload = [
+            'entry_id' => $entryId,
+            'entry_photo_res' => 'Badge',
+            'entry_photo_order' => 12,
+            'entry_photo_caption' => 'Winner Badge',
+            'entry_photo' => $publicUrl,
+            'entry_certificate' => '',
+        ];
+
+        $persisted = false;
+        if ($existing) {
+            $persisted = (bool)$photoModel->skipValidation(true)->update((int)$existing['entry_photo_id'], $payload);
+        } else {
+            $persisted = $photoModel->skipValidation(true)->insert($payload, false) !== false;
+        }
+        if (!$persisted) {
+            @unlink($target);
+            return ['Winner Badge could not be linked to this submission.'];
+        }
+
+        if ($oldPath !== '' && $oldPath !== $publicUrl && $this->isManagedUploadPublicPath($oldPath)) {
+            $oldAbsolute = $this->publicUrlToAbsolutePath($oldPath);
+            if (is_file($oldAbsolute)) {
+                @unlink($oldAbsolute);
+            }
+        }
+
+        return null;
+    }
+
+    private function convertBadgeToJpeg(string $sourcePath, string $targetPath): bool
+    {
+        if (!is_file($sourcePath)) {
+            return false;
+        }
+
+        $dir = dirname($targetPath);
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return false;
+        }
+
+        if (class_exists(\Imagick::class)) {
+            try {
+                $imagick = new \Imagick();
+                $imagick->readImage($sourcePath);
+                if ($imagick->getNumberImages() > 1) {
+                    $imagick->setFirstIterator();
+                }
+                $imagick->setImageBackgroundColor('white');
+                $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+                $imagick->setImageFormat('jpeg');
+                $imagick->setImageCompressionQuality(90);
+                $ok = $imagick->writeImage($targetPath);
+                $imagick->clear();
+                $imagick->destroy();
+                return $ok && is_file($targetPath);
+            } catch (\Throwable $e) {
+                log_message('error', 'Winner Badge TIFF->JPG conversion failed: {message}', [
+                    'message' => $e->getMessage(),
+                ]);
+                return false;
+            }
+        }
+
+        return false;
     }
 
     private function ensureCertificateThumbnailForEdit(array $entry, array $photos): array

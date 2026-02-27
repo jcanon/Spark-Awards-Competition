@@ -66,7 +66,6 @@
                                 referrerpolicy="strict-origin-when-cross-origin"
                             ></iframe>
                         </div>
-                        <div class="small text-muted mt-2"><?= esc(ucfirst((string)($videoEmbed['provider'] ?? 'video'))) ?> embed</div>
                     </div>
                 </div>
             <?php endif; ?>

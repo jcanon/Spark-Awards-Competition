@@ -39,7 +39,18 @@ class MediaController extends BaseController
         }
 
         $ext = strtolower(pathinfo($abs, PATHINFO_EXTENSION));
-        $mime = $ext === 'pdf' ? 'application/pdf' : 'image/jpeg';
+        $mimeMap = [
+            'pdf' => 'application/pdf',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'bmp' => 'image/bmp',
+            'webp' => 'image/webp',
+            'tif' => 'image/tiff',
+            'tiff' => 'image/tiff',
+        ];
+        $mime = $mimeMap[$ext] ?? 'application/octet-stream';
         return $this->response
             ->setHeader('Content-Type', $mime)
             ->setHeader('X-Content-Type-Options', 'nosniff')

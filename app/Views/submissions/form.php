@@ -137,7 +137,7 @@ $deletePhotoIds = [];
                 </h6>
             </div>
             <div class="card-body">
-                <p class="text-muted mb-3"><em>Upload at least three low-resolution (max 1 MB each) JPG images. At least one image should be free of overlays and ideally on a white background.</em></p>
+                <p class="text-muted mb-3"><em>Upload at least three (max 1 MB each) JPG images. At least one image should be free of overlays and ideally on a white background.</em></p>
 
                 <?php for ($i = 1; $i <= 10; $i++): ?>
                     <?php $ph = $byOrder[$i] ?? null; ?>

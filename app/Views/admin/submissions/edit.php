@@ -28,11 +28,14 @@
 
     $lowPhotosByOrder = [];
     $certificate = null;
+    $winnerBadge = null;
     foreach (($photos ?? []) as $photo) {
         if (($photo['entry_photo_res'] ?? '') === 'Low') {
             $lowPhotosByOrder[(int)($photo['entry_photo_order'] ?? 0)] = $photo;
         } elseif (($photo['entry_photo_res'] ?? '') === 'PDF') {
             $certificate = $photo;
+        } elseif (($photo['entry_photo_res'] ?? '') === 'Badge') {
+            $winnerBadge = $photo;
         }
     }
 
@@ -43,6 +46,7 @@
     $deletePhotoIds = [];
     $formErrors = session('errors');
     $formErrors = is_array($formErrors) ? $formErrors : [];
+    $selectedWinnerLevelId = (string)((int)($row['winner_level'] ?? 0));
     ?>
     <link href="/css/components/photo-slot.css" rel="stylesheet">
 
@@ -112,7 +116,8 @@
                         <select id="winner_level" name="winner_level" class="form-control">
                             <option value="0">Select Winner Level</option>
                             <?php foreach ($winnerLevels as $level): ?>
-                                <option value="<?= (int)$level['winner_level_id'] ?>" <?= (string)($row['winner_level'] ?? '') === (string)$level['winner_level_id'] ? 'selected' : '' ?>>
+                                <?php $levelId = (string)((int)($level['winner_level_id'] ?? 0)); ?>
+                                <option value="<?= esc($levelId) ?>" <?= $selectedWinnerLevelId === $levelId ? 'selected' : '' ?>>
                                     <?= esc($level['winner_level_name']) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -238,7 +243,7 @@
         <div class="card mb-4">
             <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Design Photos</h6></div>
             <div class="card-body">
-                <p class="text-muted mb-3"><em>Upload at least three low-resolution (max 1 MB each) JPG images. At least one image should be free of overlays and ideally on a white background.</em></p>
+                <p class="text-muted mb-3"><em>Upload at least three (max 1 MB each) JPG images. At least one image should be free of overlays and ideally on a white background.</em></p>
 
                 <?php for ($i = 1; $i <= 10; $i++): ?>
                     <?php $photo = $lowPhotosByOrder[$i] ?? null; ?>
@@ -305,10 +310,10 @@
         </div>
 
         <div class="card mb-4">
-            <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Certificate Files</h6></div>
+            <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Certificate & Winner Badge Files</h6></div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4 form-group">
+                    <div class="col-md-2 form-group">
                         <label class="form-label">Certificate PDF Thumbnail</label>
                         <div class="photo-thumb-wrap mb-2">
                             <?php if ($certificate && !empty($certificate['entry_certificate'])): ?>
@@ -332,7 +337,7 @@
                         </div>
                         <div class="small text-muted">Thumbnail is auto-generated from the uploaded PDF.</div>
                     </div>
-                    <div class="col-md-8 form-group">
+                    <div class="col-md-3 form-group">
                         <label class="form-label">Certificate PDF</label>
                         <input type="file" name="certificate_pdf" class="form-control" accept=".pdf,application/pdf">
                         <input type="hidden" name="certificate_thumb_data" id="certificate_thumb_data" value="">
@@ -353,6 +358,56 @@
                                         form="delete-certificate-<?= (int)$certificate['entry_photo_id'] ?>"
                                         formnovalidate
                                         onclick="return confirm('Delete this certificate PDF reference? This cannot be undone.');"
+                                    >
+                                        Delete
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-md-2 form-group"></div>
+                    <div class="col-md-2 form-group">
+                        <label class="form-label">Winner Badge Preview</label>
+                        <div class="photo-thumb-wrap mb-2">
+                            <?php if ($winnerBadge && !empty($winnerBadge['entry_photo'])): ?>
+                                <button
+                                    type="button"
+                                    class="btn p-0 border-0 bg-transparent w-100 h-100 js-photo-modal-link"
+                                    data-photo-url="<?= site_url('media/photo/' . (int)$winnerBadge['entry_photo_id']) ?>"
+                                    data-photo-title="Winner Badge"
+                                    aria-label="Winner Badge"
+                                >
+                                    <img src="<?= site_url('media/photo/' . (int)$winnerBadge['entry_photo_id']) ?>" alt="Winner Badge">
+                                </button>
+                            <?php else: ?>
+                                <div class="photo-thumb-empty">No Badge</div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label class="form-label">Winner Badge</label>
+                        <?php if ((string)session('role') === 'admin'): ?>
+                            <input type="file" name="winner_badge" class="form-control" accept="image/*,.jpg,.jpeg,.png,.tif,.tiff">
+                        <?php else: ?>
+                            <div class="small text-muted mt-2">Only admins can upload a Winner Badge.</div>
+                        <?php endif; ?>
+                        <?php if ($winnerBadge): ?>
+                            <div class="small mt-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-link p-0 align-baseline js-photo-modal-link"
+                                    data-photo-url="<?= site_url('media/photo/' . (int)$winnerBadge['entry_photo_id']) ?>"
+                                    data-photo-title="Winner Badge"
+                                >View</button>
+                                <?php if ($canDelete): ?>
+                                    <?php $badgePhotoId = (int)$winnerBadge['entry_photo_id']; ?>
+                                    <?php $deletePhotoIds[$badgePhotoId] = true; ?>
+                                    <button
+                                        type="submit"
+                                        class="btn btn-link text-danger p-0 ml-2"
+                                        form="delete-photo-<?= $badgePhotoId ?>"
+                                        formnovalidate
+                                        onclick="return confirm('Delete this winner badge? This cannot be undone.');"
                                     >
                                         Delete
                                     </button>
@@ -548,4 +603,3 @@
 <script src="/js/pages/admin-submissions-edit.js"></script>
 
 <?= $this->endSection() ?>
-

@@ -25,7 +25,7 @@ class EntryPhotoModel extends Model
         'entry_id' => 'required|max_length[35]',
         'entry_photo' => 'required|max_length[200]',
         'entry_photo_caption' => 'permit_empty|max_length[200]',
-        'entry_photo_res' => 'required|in_list[High,PDF,Low]',
+        'entry_photo_res' => 'required|in_list[High,PDF,Low,Badge]',
         'entry_photo_order' => 'permit_empty|integer',
         'entry_certificate' => 'permit_empty|max_length[200]',
     ];

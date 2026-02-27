@@ -91,10 +91,11 @@ class SubmissionsAdminService
     public function find(string $entryId): ?array
     {
         $row = db_connect()->table('comp_entries a')
-            ->select('a.*, b.comp_year, b.comp_type_id, c.comp_type_name, d.first_name, d.last_name, d.email_address, d.company_name')
+            ->select('a.*, b.comp_year, b.comp_type_id, c.comp_type_name, d.first_name, d.last_name, d.email_address, d.company_name, f.winner_level_name AS selected_winner_level_name')
             ->join('comp_competitions b', 'a.comp_id = b.comp_id')
             ->join('comp_type c', 'b.comp_type_id = c.comp_type_id')
             ->join('comp_users d', 'a.user_id = d.user_id')
+            ->join('comp_winner_levels f', 'a.winner_level = f.winner_level_id', 'left')
             ->where('a.entry_id', $entryId)
             ->get()
             ->getRowArray();
