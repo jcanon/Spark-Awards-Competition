@@ -17,7 +17,7 @@
                 <tbody>
                 <?php foreach ($rows as $row): ?>
                     <tr>
-                        <td><a class="font-weight-bold" href="<?= site_url('admin/system-tools/states/edit/' . rawurlencode((string)$row->scode)) ?>"><?= esc((string)$row->scode) ?></a></td>
+                        <td><a href="<?= site_url('admin/system-tools/states/edit/' . rawurlencode((string)$row->scode)) ?>"><?= esc((string)$row->scode) ?></a></td>
                         <td><?= esc((string)$row->state) ?></td>
                         <td>
                             <a class="btn btn-sm btn-primary mr-1" href="<?= site_url('admin/system-tools/states/edit/' . rawurlencode((string)$row->scode)) ?>">Edit</a>

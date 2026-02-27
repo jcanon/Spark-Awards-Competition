@@ -130,7 +130,14 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var list<string>|string|null
      */
-    public $frameSrc = ['self', 'https://www.google.com', 'https://www.recaptcha.net'];
+    public $frameSrc = [
+        'self',
+        'https://www.google.com',
+        'https://www.recaptcha.net',
+        'https://www.youtube.com',
+        'https://www.youtube-nocookie.com',
+        'https://player.vimeo.com',
+    ];
 
     /**
      * Restricts the origins allowed to deliver video and audio.

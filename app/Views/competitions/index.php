@@ -5,11 +5,11 @@
     <div class="container-fluid">
 
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800"><?= esc(lang('Entrant.competitions_title')) ?></h1>
+            <h1 class="h3 mb-0 text-gray-800">Competitions</h1>
         </div>
 
-        <p><?= esc(lang('Entrant.competitions_intro')) ?>
-            <a href="https://www.sparkawards.com/about/process/" target="_blank" rel="noopener"><strong><?= esc(lang('Entrant.process_page')) ?></strong></a> <?= esc(lang('Entrant.process_page_suffix')) ?></p>
+        <p>Entering your design is quick and easy. Please read the preceding information on the
+            <a href="https://www.sparkawards.com/about/process/" target="_blank" rel="noopener"><strong>Process</strong></a> page.</p>
 
         <hr class="mb-4">
 
@@ -19,7 +19,7 @@
             <div class="col-lg-12 mb-12">
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary"><?= esc(lang('Entrant.open_competitions')) ?></h6>
+                        <h6 class="m-0 font-weight-bold text-primary">Open Competitions: Enter Now</h6>
                     </div>
                     <div class="card-body">
                         <?php
@@ -28,9 +28,9 @@
                                 <table class="table table-bordered table-hover align-middle">
                                     <thead>
                                     <tr>
-                                        <th width="55%"><?= esc(lang('Entrant.competition')) ?></th>
-                                        <th width="15%"><?= esc(lang('Entrant.opens')) ?></th>
-                                        <th width="15%"><?= esc(lang('Entrant.closes')) ?></th>
+                                        <th width="55%">Competition</th>
+                                        <th width="15%">Opens</th>
+                                        <th width="15%">Closes</th>
                                         <th width="15%"></th>
                                     </tr>
                                     </thead>
@@ -56,7 +56,7 @@
                                             <td class="text-center">
                                                 <a href="<?= site_url('competitions/create/' . $compId) ?>"
                                                    class="btn btn-sm btn-primary shadow-sm">
-                                                    <?= esc(lang('Entrant.create_submission')) ?>
+                                                    Create Submission
                                                 </a>
                                             </td>
                                         </tr>
@@ -67,7 +67,7 @@
                             </div>
                         <?php
                         else: ?>
-                            <p class="mb-0"><?= esc(lang('Entrant.no_open_competitions')) ?></p>
+                            <p class="mb-0">There are currently no open competitions at this time.</p>
                         <?php
                         endif; ?>
                     </div>
@@ -78,7 +78,7 @@
             <div class="col-lg-12 mb-12">
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary"><?= esc(lang('Entrant.upcoming_competitions')) ?></h6>
+                        <h6 class="m-0 font-weight-bold text-primary">Upcoming Competitions</h6>
                     </div>
                     <div class="card-body">
                         <?php
@@ -87,9 +87,9 @@
                                 <table class="table table-bordered table-hover align-middle">
                                     <thead>
                                     <tr>
-                                        <th width="55%"><?= esc(lang('Entrant.competition')) ?></th>
-                                        <th width="15%"><?= esc(lang('Entrant.opens')) ?></th>
-                                        <th width="15%"><?= esc(lang('Entrant.closes')) ?></th>
+                                        <th width="55%">Competition</th>
+                                        <th width="15%">Opens</th>
+                                        <th width="15%">Closes</th>
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -114,7 +114,7 @@
                             </div>
                         <?php
                         else: ?>
-                            <p class="mb-0"><?= esc(lang('Entrant.no_upcoming_competitions')) ?></p>
+                            <p class="mb-0">There are currently no additional upcoming competitions at this time.</p>
                         <?php
                         endif; ?>
                     </div>

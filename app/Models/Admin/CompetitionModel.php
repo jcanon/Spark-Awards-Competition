@@ -15,7 +15,6 @@ class CompetitionModel extends Model
     protected $allowedFields = [
         'comp_type_id',
         'comp_year',
-        'shortlist_enabled',
         'comp_phase_1_open',
         'comp_regular_reg_open',
         'comp_late_reg_open',
@@ -45,7 +44,6 @@ class CompetitionModel extends Model
     protected $validationRules = [
         'comp_type_id' => 'required|integer',
         'comp_year' => 'required|integer|greater_than_equal_to[2000]|less_than_equal_to[2100]',
-        'shortlist_enabled' => 'permit_empty|in_list[0,1]|integer',
         'comp_phase_1_open' => 'permit_empty|valid_date[Y-m-d H:i:s]',
         'comp_regular_reg_open' => 'permit_empty|valid_date[Y-m-d H:i:s]',
         'comp_late_reg_open' => 'permit_empty|valid_date[Y-m-d H:i:s]',

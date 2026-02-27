@@ -26,7 +26,7 @@
                 <tbody>
                 <?php foreach ($rows as $row): ?>
                     <tr>
-                        <td><a class="font-weight-bold" href="<?= site_url('admin/retail-items/edit/' . (int)$row->retail_item_id) ?>"><?= esc((string)$row->item_name) ?></a></td>
+                        <td><a href="<?= site_url('admin/retail-items/edit/' . (int)$row->retail_item_id) ?>"><?= esc((string)$row->item_name) ?></a></td>
                         <td><?= esc((string)$row->phase) ?></td>
                         <td>$<?= number_format((float)$row->item_price, 2) ?></td>
                         <td><?= esc(((string)$row->active === 'N') ? 'No' : 'Yes') ?></td>

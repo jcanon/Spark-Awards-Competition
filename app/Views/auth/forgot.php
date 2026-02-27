@@ -5,26 +5,26 @@
     <div class="col-12 col-md-8 col-lg-6">
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <h1 class="h4 mb-3"><?= esc(lang('Entrant.forgot_login_title')) ?></h1>
+                <h1 class="h4 mb-3">Forgot Your Login?</h1>
 
                 <?php if ($msg = session('error')): ?>
                     <div class="alert alert-danger"><?= esc($msg) ?></div>
                 <?php endif; ?>
 
                 <?php if ($sent ?? false): ?>
-                    <div class="alert alert-success"><?= esc(lang('Entrant.forgot_sent')) ?></div>
-                    <a href="<?= site_url('auth/login') ?>" class="btn btn-primary"><?= esc(lang('Entrant.back_to_login')) ?></a>
+                    <div class="alert alert-success">If your email exists in our system, a reset link has been sent.</div>
+                    <a href="<?= site_url('auth/login') ?>" class="btn btn-primary">Back to login</a>
                 <?php else: ?>
-                    <p class="text-muted"><?= esc(lang('Entrant.forgot_intro')) ?></p>
+                    <p class="text-muted">Enter your account email and we will send a password reset link.</p>
                     <form action="<?= site_url('auth/forgot') ?>" method="post" class="needs-validation" novalidate>
                         <?= csrf_field() ?>
                         <div class="form-group">
-                            <label for="forgot_email"><?= esc(lang('Entrant.email_address')) ?></label>
+                            <label for="forgot_email">Email Address</label>
                             <input id="forgot_email" name="forgot_email" type="email" maxlength="100" class="form-control" value="<?= esc(old('forgot_email')) ?>" required>
-                            <div class="invalid-feedback"><?= esc(lang('Entrant.valid_email_required')) ?></div>
+                            <div class="invalid-feedback">Please enter a valid email address.</div>
                         </div>
-                        <button type="submit" class="btn btn-primary"><?= esc(lang('Entrant.send_request')) ?></button>
-                        <a href="<?= site_url('auth/login') ?>" class="btn btn-link"><?= esc(lang('Entrant.back_to_login')) ?></a>
+                        <button type="submit" class="btn btn-primary">Send Request</button>
+                        <a href="<?= site_url('auth/login') ?>" class="btn btn-link">Back to login</a>
                     </form>
                 <?php endif; ?>
             </div>

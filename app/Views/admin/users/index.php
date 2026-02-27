@@ -145,7 +145,7 @@
                         render: function (row) {
                             var id = encodeURIComponent(String(row.user_id || ''));
                             var label = esc((row.last_name || '') + ', ' + (row.first_name || ''));
-                            return '<a class="font-weight-bold" href="' + editBase + id + '">' + label + '</a>';
+                            return '<a href="' + editBase + id + '">' + label + '</a>';
                         }
                     },
                     { data: 'company_name', render: function (v) { return esc(v); } },

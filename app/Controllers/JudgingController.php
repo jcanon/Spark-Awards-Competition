@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\JudgingService;
+use App\Services\SubmissionsService;
 
 class JudgingController extends BaseController
 {
@@ -20,7 +21,6 @@ class JudgingController extends BaseController
         return view('judging/index', [
             'openPhase1' => $this->judging->getOpenPhase1Judging(),
             'openPhase2' => $this->judging->getOpenPhase2Judging(),
-            'openPhase2Short' => $this->judging->getOpenPhase2ShortlistJudging(),
             'upcomingPhase1' => $this->judging->getUpcomingPhase1Judging(),
             'upcomingPhase2' => $this->judging->getUpcomingPhase2Judging(),
         ]);
@@ -93,7 +93,7 @@ class JudgingController extends BaseController
         }
 
         $competition = (new \App\Models\Admin\CompetitionModel())
-            ->select('comp_competitions.comp_year, comp_competitions.shortlist_enabled, comp_competitions.jury_phase_1_open, comp_competitions.jury_phase_1_close, comp_competitions.jury_phase_2_open, comp_competitions.jury_phase_2_close, comp_type.comp_type_name, comp_type.comp_type_id')
+            ->select('comp_competitions.comp_year, comp_competitions.jury_phase_1_open, comp_competitions.jury_phase_1_close, comp_competitions.jury_phase_2_open, comp_competitions.jury_phase_2_close, comp_type.comp_type_name, comp_type.comp_type_id')
             ->join('comp_type', 'comp_type.comp_type_id = comp_competitions.comp_type_id')
             ->where('comp_competitions.comp_id', $compId)
             ->asArray()
@@ -108,8 +108,7 @@ class JudgingController extends BaseController
                 $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 1 Entrant Judging';
             } elseif ($phase === '2') {
                 $isOpen = (string)($competition['jury_phase_2_open'] ?? '') <= $now && (string)($competition['jury_phase_2_close'] ?? '') > $now;
-                $isShortlist = (int)($competition['shortlist_enabled'] ?? 0) === 1;
-                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 2 ' . ($isShortlist ? 'Shortlist' : 'Finalist') . ' Judging';
+                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 2 Finalist Judging';
             } elseif ($phase === 'AllSpark') {
                 $isOpen = (string)($competition['jury_phase_2_open'] ?? '') <= $now && (string)($competition['jury_phase_2_close'] ?? '') > $now;
                 $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' AllSpark Judging';
@@ -148,7 +147,7 @@ class JudgingController extends BaseController
         }
         $contextCompId = $compId > 0 ? $compId : (int)($entry['comp_id'] ?? 0);
         $competition = (new \App\Models\Admin\CompetitionModel())
-            ->select('comp_competitions.comp_year, comp_competitions.shortlist_enabled, comp_competitions.jury_phase_1_open, comp_competitions.jury_phase_1_close, comp_competitions.jury_phase_2_open, comp_competitions.jury_phase_2_close, comp_type.comp_type_name')
+            ->select('comp_competitions.comp_year, comp_competitions.jury_phase_1_open, comp_competitions.jury_phase_1_close, comp_competitions.jury_phase_2_open, comp_competitions.jury_phase_2_close, comp_type.comp_type_name')
             ->join('comp_type', 'comp_type.comp_type_id = comp_competitions.comp_type_id')
             ->where('comp_competitions.comp_id', $contextCompId)
             ->asArray()
@@ -163,8 +162,7 @@ class JudgingController extends BaseController
                 $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 1 Entrant Judging';
             } elseif ($phase === '2') {
                 $isOpen = (string)($competition['jury_phase_2_open'] ?? '') <= $now && (string)($competition['jury_phase_2_close'] ?? '') > $now;
-                $isShortlist = (int)($competition['shortlist_enabled'] ?? 0) === 1;
-                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 2 ' . ($isShortlist ? 'Shortlist' : 'Finalist') . ' Judging';
+                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 2 Finalist Judging';
             } elseif ($phase === 'AllSpark') {
                 $isOpen = (string)($competition['jury_phase_2_open'] ?? '') <= $now && (string)($competition['jury_phase_2_close'] ?? '') > $now;
                 $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' AllSpark Judging';
@@ -204,6 +202,8 @@ class JudgingController extends BaseController
             true
         );
 
+        $videoEmbed = (new SubmissionsService())->getVideoEmbedData((string)($entry['youtube_url'] ?? ''));
+
         return view('judging/entry', [
             'entry' => $entry,
             'phase' => $phase,
@@ -222,13 +222,14 @@ class JudgingController extends BaseController
             'entryPosition' => ($position === false) ? null : ($position + 1),
             'competitionLabel' => $competitionLabel,
             'judgingContextLabel' => $judgingContextLabel,
+            'videoEmbed' => $videoEmbed,
         ]);
     }
 
     public function saveScore()
     {
         $rules = [
-            'entry_id' => 'required|max_length[36]',
+            'entry_id' => 'required|max_length[35]',
             'entry_phase' => 'required|in_list[1,2,AllSpark]',
             'entry_score' => 'required|integer|greater_than_equal_to[0]|less_than_equal_to[2]',
             'entry_comments' => 'permit_empty|max_length[5000]',
@@ -286,9 +287,8 @@ class JudgingController extends BaseController
         $phase = (string)($this->request->getGet('phase') ?? '1');
         $userType = (string)($this->request->getGet('userType') ?? 'all');
         $status = (string)($this->request->getGet('status') ?? 'all');
-        $shortlist = (string)($this->request->getGet('shortlist') ?? 'all');
 
-        $rows = $this->judging->getScoreResults($year, $type, $phase, $userType, $status, $shortlist);
+        $rows = $this->judging->getScoreResults($year, $type, $phase, $userType, $status);
 
         return view('judging/results', [
             'year' => $year,
@@ -296,7 +296,6 @@ class JudgingController extends BaseController
             'phase' => $phase,
             'userType' => $userType,
             'status' => $status,
-            'shortlist' => $shortlist,
             'rows' => $rows,
         ]);
     }

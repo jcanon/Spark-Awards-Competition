@@ -211,6 +211,35 @@ class CompetitionService
             ->first(); // Competition
     }
 
+    /**
+     * @return array<int, list<int>> map: comp_year => [comp_type_id, ...]
+     */
+    public function getExistingCompetitionTypeIdsByYear(): array
+    {
+        $rows = (new CompetitionModel())
+            ->select('comp_year, comp_type_id')
+            ->findAll();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $year = (int)($row->comp_year ?? 0);
+            $typeId = (int)($row->comp_type_id ?? 0);
+            if ($year <= 0 || $typeId <= 0) {
+                continue;
+            }
+            if (!isset($map[$year])) {
+                $map[$year] = [];
+            }
+            $map[$year][] = $typeId;
+        }
+
+        foreach ($map as $year => $ids) {
+            $map[$year] = array_values(array_unique($ids));
+        }
+
+        return $map;
+    }
+
     // ---------- helpers ----------
 
     private function dt(?string $value): ?string
@@ -240,7 +269,6 @@ class CompetitionService
         $payload = [
             'comp_type_id' => (int)($form['comp_type_id'] ?? 0),
             'comp_year' => (int)($form['comp_year'] ?? 0),
-            'shortlist_enabled' => (int)($form['shortlist_enabled'] ?? 0),
 
             'comp_phase_1_open' => $this->dt($form['comp_phase_1_open'] ?? null),
             'comp_regular_reg_open' => $this->dt($form['comp_regular_reg_open'] ?? null),

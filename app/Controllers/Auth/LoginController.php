@@ -38,7 +38,7 @@ class LoginController extends BaseController
             ]);
             return redirect()->back()->withInput()->with(
                 'error',
-                lang('Entrant.too_many_login_attempts')
+                'Too many login attempts. Please wait a few minutes and try again.'
             );
         }
 
@@ -51,7 +51,7 @@ class LoginController extends BaseController
                 'email_hash' => hash('sha256', strtolower(trim($email))),
                 'ip' => $ip,
             ]);
-            return redirect()->back()->withInput()->with('error', lang('Entrant.invalid_login'));
+            return redirect()->back()->withInput()->with('error', 'Your username or password is incorrect. Please try again.');
         }
 
         if (!service('auth')->attempt($email, $password)) {
@@ -59,7 +59,7 @@ class LoginController extends BaseController
                 'email_hash' => hash('sha256', strtolower(trim($email))),
                 'ip' => $ip,
             ]);
-            return redirect()->back()->withInput()->with('error', lang('Entrant.invalid_login'));
+            return redirect()->back()->withInput()->with('error', 'Your username or password is incorrect. Please try again.');
         }
 
         if ((bool)session('password_reset_required')) {
@@ -87,7 +87,7 @@ class LoginController extends BaseController
     public function stopImpersonation()
     {
         if (!(bool)session('impersonating')) {
-            return redirect()->to('/home')->with('error', lang('Entrant.no_active_impersonation_session'));
+            return redirect()->to('/home')->with('error', 'No active impersonation session.');
         }
 
         $restoreUid = (string)session('impersonator_uid');
@@ -96,7 +96,7 @@ class LoginController extends BaseController
 
         if ($restoreUid === '' || !in_array($restoreRole, ['admin', 'editor', 'judge', 'user'], true)) {
             service('auth')->logout();
-            return redirect()->to('/')->with('error', lang('Entrant.could_not_restore_impersonation'));
+            return redirect()->to('/')->with('error', 'Could not restore impersonation session. Please log in again.');
         }
 
         $isAdmin = $restoreRole === 'admin';
@@ -118,14 +118,14 @@ class LoginController extends BaseController
             'impersonator_name' => null,
         ]);
 
-        return redirect()->to('/admin/users')->with('success', lang('Entrant.returned_to_account'));
+        return redirect()->to('/admin/users')->with('success', 'Returned to your account.');
     }
 
     public function register()
     {
         $token = (string)$this->request->getPost('g-recaptcha-response');
         if (!service('captcha')->verify($token, $this->request->getIPAddress())) {
-            return redirect()->back()->withInput()->with('error', lang('Entrant.invalid_captcha'));
+            return redirect()->back()->withInput()->with('error', 'Invalid CAPTCHA');
         }
 
         $email = strtolower(trim((string)$this->request->getPost('email')));
@@ -141,22 +141,22 @@ class LoginController extends BaseController
             ]);
             return redirect()->back()->withInput()->with(
                 'error',
-                lang('Entrant.too_many_register_attempts')
+                'Too many account creation attempts. Please wait a few minutes and try again.'
             );
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return redirect()->back()->withInput()->with('error', lang('Entrant.invalid_email_try_again'));
+            return redirect()->back()->withInput()->with('error', 'Invalid email address. Please try again.');
         }
         $emailStatus = $auth->checkEmailExists($email);
         if ($emailStatus === 'yes') {
             return redirect()->back()->withInput()->with(
                 'error',
-                lang('Entrant.could_not_create_account_email')
+                'We could not create an account with that email. Try signing in or use a different email address.'
             );
         }
         if ($emailStatus !== 'no') {
-            return redirect()->back()->withInput()->with('error', lang('Entrant.invalid_email_try_again'));
+            return redirect()->back()->withInput()->with('error', 'Invalid email address. Please try again.');
         }
 
         $passwordStatus = $auth->checkPassword($pass);
@@ -164,7 +164,7 @@ class LoginController extends BaseController
             return redirect()->back()->withInput()->with('error', $auth->passwordErrorMessage($passwordStatus));
         }
         if (!hash_equals($pass, $confirm)) {
-            return redirect()->back()->withInput()->with('error', lang('Entrant.passwords_do_not_match_try_again'));
+            return redirect()->back()->withInput()->with('error', 'Passwords do not match. Please try again.');
         }
 
         try {
@@ -174,20 +174,20 @@ class LoginController extends BaseController
             if (str_contains($message, 'duplicate') || str_contains($message, 'already exists')) {
                 return redirect()->back()->withInput()->with(
                     'error',
-                    lang('Entrant.could_not_create_account_email')
+                    'We could not create an account with that email. Try signing in or use a different email address.'
                 );
             }
             log_message('error', 'Registration failed for {email}: {message}', [
                 'email' => $email,
                 'message' => $e->getMessage(),
             ]);
-            return redirect()->back()->withInput()->with('error', lang('Entrant.unable_create_account'));
+            return redirect()->back()->withInput()->with('error', 'Unable to create your account right now. Please try again.');
         } catch (\Throwable $e) {
             log_message('error', 'Registration failed for {email}: {message}', [
                 'email' => $email,
                 'message' => $e->getMessage(),
             ]);
-            return redirect()->back()->withInput()->with('error', lang('Entrant.unable_create_account'));
+            return redirect()->back()->withInput()->with('error', 'Unable to create your account right now. Please try again.');
         }
 
         // Auto-login the user after account creation

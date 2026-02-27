@@ -1,0 +1,64 @@
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.status-pill .medal-icon {
+    font-size: 0.82rem;
+}
+
+.status-draft {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+.status-entrant {
+    background: #e8f3ff;
+    border-color: #bcd8ff;
+    color: #0f4c81;
+}
+
+.status-finalist {
+    background: #fff8e5;
+    border-color: #ffd67a;
+    color: #7a4a00;
+}
+
+.status-winner {
+    background: #f8f4ff;
+    border-color: #d9c7ff;
+    color: #4b2b8a;
+}
+
+.winner-platinum {
+    background: #f4f7fb;
+    border-color: #c9d4e5;
+    color: #2f425b;
+}
+
+.winner-gold {
+    background: #fff6de;
+    border-color: #f2ce6a;
+    color: #7d5600;
+}
+
+.winner-silver {
+    background: #f4f6f8;
+    border-color: #cfd5dd;
+    color: #4b5563;
+}
+
+.winner-bronze {
+    background: #f8eee7;
+    border-color: #d8ae8e;
+    color: #764a2f;
+}

@@ -11,7 +11,7 @@ use Psr\Log\LoggerInterface;
 
 class BaseController extends Controller
 {
-    protected $helpers = ['url'];
+    protected $helpers = ['url', 'entry_status', 'certificate_request'];
 
     public function initController(
         RequestInterface $request,

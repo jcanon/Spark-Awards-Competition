@@ -3,6 +3,11 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class UsersExportController extends BaseController
 {
@@ -40,42 +45,62 @@ class UsersExportController extends BaseController
             'userTypePricing' => $userTypePricing,
         ]);
 
-        $csv = $this->toCsv($rows);
-        $filename = 'users-export-' . date('Ymd_His') . '.csv';
+        $binary = $this->toXlsx($rows);
+        $filename = 'users-export-' . date('Ymd_His') . '.xlsx';
 
         return $this->response
-            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setHeader('Cache-Control', 'max-age=0')
             ->setHeader('X-Content-Type-Options', 'nosniff')
-            ->setBody("\xEF\xBB\xBF" . $csv); // UTF-8 BOM for Excel
+            ->setBody($binary);
     }
 
-    /**
-     * Convert an array of associative rows to CSV text.
-     * Uses keys from the first row as headers.
-     */
-    private function toCsv(array $rows): string
+    private function toXlsx(array $rows): string
     {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Users');
+
         if ($rows === []) {
-            return "No data\n";
-        }
+            $sheet->setCellValueExplicit('A1', 'No data', DataType::TYPE_STRING);
+        } else {
+            $headers = array_keys($rows[0]);
+            $lastHeaderCol = Coordinate::stringFromColumnIndex(count($headers));
 
-        $headers = array_keys($rows[0]);
-
-        $fh = fopen('php://temp', 'r+');
-        fputcsv($fh, $headers);
-        foreach ($rows as $row) {
-            $line = [];
-            foreach ($headers as $h) {
-                $val = $row[$h] ?? '';
-                $line[] = is_scalar($val) ? (string)$val : json_encode($val, JSON_UNESCAPED_UNICODE);
+            foreach ($headers as $index => $header) {
+                $cell = Coordinate::stringFromColumnIndex($index + 1) . '1';
+                $sheet->setCellValueExplicit($cell, (string)$header, DataType::TYPE_STRING);
             }
-            fputcsv($fh, $line);
-        }
-        rewind($fh);
-        $csv = (string)stream_get_contents($fh);
-        fclose($fh);
 
-        return $csv;
+            $sheet->getStyle('A1:' . $lastHeaderCol . '1')->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E9ECEF'],
+                ],
+            ]);
+
+            $rowNum = 2;
+            foreach ($rows as $row) {
+                foreach ($headers as $index => $header) {
+                    $val = $row[$header] ?? '';
+                    $cell = Coordinate::stringFromColumnIndex($index + 1) . (string)$rowNum;
+                    $sheet->setCellValueExplicit(
+                        $cell,
+                        is_scalar($val) ? (string)$val : (string)json_encode($val, JSON_UNESCAPED_UNICODE),
+                        DataType::TYPE_STRING
+                    );
+                }
+                $rowNum++;
+            }
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(false);
+        ob_start();
+        $writer->save('php://output');
+
+        return (string)ob_get_clean();
     }
 }

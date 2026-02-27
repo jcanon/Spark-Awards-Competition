@@ -6,13 +6,15 @@ namespace App\Controllers;
 
 use App\Models\Payments\EntryPaymentModel;
 use App\Services\Payments\AuthorizeNetGateway;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class PaymentsController extends BaseController
 {
     public function show(string $entryId, int $phase)
     {
         if (!$this->canAccessEntry($entryId)) {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.entry_not_found'));
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
         }
 
         $phase = $this->normalizePhase($phase);
@@ -29,7 +31,7 @@ class PaymentsController extends BaseController
     public function setCoupon(string $entryId, int $phase)
     {
         if (!$this->canAccessEntry($entryId)) {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.entry_not_found'));
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
         }
 
         $phase = $this->normalizePhase($phase);
@@ -43,17 +45,17 @@ class PaymentsController extends BaseController
         $compId = (int)($entry['comp_id'] ?? 0);
         $check = service('payments')->getCoupon($coupon, $compId);
         if ($check === []) {
-            return redirect()->back()->with('error', lang('Entrant.invalid_or_expired_coupon'));
+            return redirect()->back()->with('error', 'Invalid or expired coupon code.');
         }
 
         service('payments')->updateCoupon($entryId, (string)$phase, $coupon);
-        return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}")->with('success', lang('Entrant.coupon_applied'));
+        return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}")->with('success', 'Coupon applied.');
     }
 
     public function setAddons(string $entryId, int $phase)
     {
         if (!$this->canAccessEntry($entryId)) {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.entry_not_found'));
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
         }
 
         $phase = $this->normalizePhase($phase);
@@ -63,7 +65,7 @@ class PaymentsController extends BaseController
         }
 
         service('payments')->setAddonsForEntryPhase($entryId, $phase, $selected);
-        return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}")->with('success', lang('Entrant.addons_updated'));
+        return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}")->with('success', 'Add-ons updated.');
     }
 
     public function setTotal(string $entryId, int $phase)
@@ -81,7 +83,7 @@ class PaymentsController extends BaseController
     public function checkout(string $entryId, int $phase)
     {
         if (!$this->canAccessEntry($entryId)) {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.entry_not_found'));
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
         }
 
         $phase = $this->normalizePhase($phase);
@@ -91,7 +93,7 @@ class PaymentsController extends BaseController
         if ($total <= 0) {
             service('payments')->userSuccessPaid($entryId, (string)$phase, 'NO-CHARGE-' . date('YmdHis'));
             return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/receipt")
-                ->with('success', lang('Entrant.no_payment_due_marked_paid'));
+                ->with('success', 'No payment due. Entry marked as paid.');
         }
 
         $gateway = new AuthorizeNetGateway();
@@ -123,7 +125,7 @@ class PaymentsController extends BaseController
         }
 
         if (!$token) {
-            $errorMessage = lang('Entrant.unable_initialize_gateway');
+            $errorMessage = 'Unable to initialize payment gateway.';
             if (ENVIRONMENT !== 'production') {
                 $gatewayDetail = $gateway->lastError();
                 if (is_string($gatewayDetail) && $gatewayDetail !== '') {
@@ -147,7 +149,7 @@ class PaymentsController extends BaseController
     public function receipt(string $entryId, int $phase)
     {
         if (!$this->canAccessEntry($entryId)) {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.entry_not_found'));
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
         }
 
         $phase = $this->normalizePhase($phase);
@@ -174,7 +176,7 @@ class PaymentsController extends BaseController
         if (!$this->canAccessEntry($entryId)) {
             return $this->response
                 ->setStatusCode(404)
-                ->setBody('<div class="alert alert-danger mb-0">' . esc(lang('Entrant.entry_not_found')) . '</div>');
+                ->setBody('<div class="alert alert-danger mb-0">' . 'Entry not found.' . '</div>');
         }
 
         $phase = $this->normalizePhase($phase);
@@ -197,6 +199,53 @@ class PaymentsController extends BaseController
         );
     }
 
+    public function receiptPdf(string $entryId, int $phase)
+    {
+        if (!$this->canAccessEntry($entryId)) {
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
+        }
+
+        $phase = $this->normalizePhase($phase);
+        $payment = (new EntryPaymentModel())
+            ->asArray()
+            ->where('entry_id', $entryId)
+            ->where('payment_phase', $phase)
+            ->first();
+
+        if (!$payment) {
+            return redirect()->back()->with('error', 'Receipt not found.');
+        }
+
+        $payment['payment_receipt'] = $this->resolveLegacyReceiptTemplate((string)($payment['payment_receipt'] ?? ''), $payment, $entryId);
+        $entryMeta = $this->loadReceiptEntryContext($entryId);
+
+        helper('html_sanitize');
+
+        $html = view('receipt/pdf', [
+            'payment' => $payment,
+            'entryId' => $entryId,
+            'entryMeta' => $entryMeta,
+            'logoPath' => FCPATH . 'img/sparklogo.jpg',
+            'title' => 'Spark Awards Payment Receipt',
+        ]);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->loadHtml($html);
+        $dompdf->render();
+
+        $fileName = 'spark-receipt-' . $entryId . '-phase-' . $phase . '.pdf';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="' . $fileName . '"')
+            ->setBody($dompdf->output());
+    }
+
     public function success(string $entryId, int $phase)
     {
         if (!$this->canAccessEntry($entryId)) {
@@ -216,19 +265,49 @@ class PaymentsController extends BaseController
         return $this->response->setJSON(['ok' => true]);
     }
 
-    private function canAccessEntry(string $entryId): bool
+    private function canAccessEntry(string &$entryId): bool
     {
-        $entry = db_connect()->table('comp_entries')->select('user_id')->where('entry_id', $entryId)->get()->getRowArray();
-        if (!$entry) {
+        $raw = trim(rawurldecode($entryId));
+        if ($raw === '') {
+            return false;
+        }
+
+        $candidates = [$raw];
+        // Safety fallback for environments with legacy/truncated UUID storage.
+        if (strlen($raw) === 36 && substr_count($raw, '-') === 4) {
+            $candidates[] = substr($raw, 0, 35);
+        }
+
+        $entry = null;
+        foreach (array_values(array_unique($candidates)) as $candidate) {
+            $row = db_connect()
+                ->table('comp_entries')
+                ->select('entry_id, user_id')
+                ->where('entry_id', $candidate)
+                ->get()
+                ->getRowArray();
+            if ($row) {
+                $entry = $row;
+                break;
+            }
+        }
+
+        if (! $entry) {
             return false;
         }
 
         $role = (string)session('role');
         if (in_array($role, ['admin', 'editor'], true)) {
+            $entryId = (string)$entry['entry_id'];
             return true;
         }
 
-        return hash_equals((string)$entry['user_id'], (string)session('uid'));
+        $owned = hash_equals((string)$entry['user_id'], (string)session('uid'));
+        if ($owned) {
+            $entryId = (string)$entry['entry_id'];
+        }
+
+        return $owned;
     }
 
     private function normalizePhase(int $phase): int
@@ -267,5 +346,17 @@ class PaymentsController extends BaseController
         $resolved = preg_replace('/#[A-Za-z0-9_.]+#/', '', $resolved) ?? $resolved;
 
         return trim($resolved);
+    }
+
+    private function loadReceiptEntryContext(string $entryId): array
+    {
+        return db_connect()->table('comp_entries e')
+            ->select('e.design_name, e.company_name, c.comp_year, t.comp_type_name, u.first_name, u.last_name, u.email_address')
+            ->join('comp_users u', 'u.user_id = e.user_id')
+            ->join('comp_competitions c', 'c.comp_id = e.comp_id', 'left')
+            ->join('comp_type t', 't.comp_type_id = c.comp_type_id', 'left')
+            ->where('e.entry_id', $entryId)
+            ->get()
+            ->getRowArray() ?? [];
     }
 }

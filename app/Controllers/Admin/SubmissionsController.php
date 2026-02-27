@@ -11,9 +11,18 @@ use App\Models\Judging\EntryPhotoModel;
 use App\Services\SubmissionsService;
 use App\Services\Admin\SubmissionsAdminService;
 use Config\Services;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class SubmissionsController extends BaseController
 {
+    private const VIDEO_URL_ERROR = 'Video URL must be a valid YouTube or Vimeo URL (for example: https://www.youtube.com/embed/VIDEO_ID or https://player.vimeo.com/video/VIDEO_ID).';
+
     private SubmissionsAdminService $adminSubs;
 
     public function __construct()
@@ -73,7 +82,7 @@ class SubmissionsController extends BaseController
     public function store()
     {
         $rules = [
-            'user_id' => 'required|max_length[36]',
+            'user_id' => 'required|max_length[35]',
             'comp_id' => 'required|integer',
             'design_name' => 'required|max_length[100]',
         ];
@@ -131,6 +140,7 @@ class SubmissionsController extends BaseController
             'questions' => $this->adminSubs->questions(),
             'answersMap' => $answersMap,
             'photos' => $photos,
+            'videoEmbedUrl' => (new SubmissionsService())->normalizeVideoEmbedUrl((string)($row['youtube_url'] ?? '')),
             'designTypes' => $designTypes,
             'addonLines' => $addOnLines,
             'winnerLevels' => $this->adminSubs->getWinnerLevels(),
@@ -195,6 +205,7 @@ class SubmissionsController extends BaseController
             'designer_email_address' => 'required|valid_email|max_length[100]',
             'short_description' => 'required|max_length[600]',
             'full_description' => 'required|max_length[2400]',
+            'youtube_url' => 'permit_empty|max_length[255]',
         ];
         for ($i = 1; $i <= 10; $i++) {
             $rules['low_photo_' . $i] = 'if_exist|max_size[low_photo_' . $i . ',1024]|ext_in[low_photo_' . $i . ',jpg,jpeg]|mime_in[low_photo_' . $i . ',image/jpeg]';
@@ -206,6 +217,14 @@ class SubmissionsController extends BaseController
                 ->withInput()
                 ->with('error', 'Submission validation failed. Please review the highlighted fields.')
                 ->with('errors', $this->validator ? $this->validator->getErrors() : []);
+        }
+
+        $videoUrl = (string)$this->request->getPost('youtube_url');
+        if (!(new SubmissionsService())->isValidVideoEmbedUrl($videoUrl)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Submission validation failed. Please review the highlighted fields.')
+                ->with('errors', ['youtube_url' => self::VIDEO_URL_ERROR]);
         }
 
         $requiredPhotoErrors = $this->validateRequiredLowPhotos($entryId);
@@ -306,14 +325,15 @@ class SubmissionsController extends BaseController
     public function export()
     {
         $rows = $this->adminSubs->export($this->getFilters());
-        $csv = $this->toCsv($rows);
-        $filename = 'submissions-export-' . date('Ymd_His') . '.csv';
+        $binary = $this->toXlsx($rows);
+        $filename = 'submissions-export-' . date('Ymd_His') . '.xlsx';
 
         return $this->response
-            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setHeader('Cache-Control', 'max-age=0')
             ->setHeader('X-Content-Type-Options', 'nosniff')
-            ->setBody("\xEF\xBB\xBF" . $csv);
+            ->setBody($binary);
     }
 
     public function judgingCards()
@@ -362,6 +382,43 @@ class SubmissionsController extends BaseController
         return $this->response->setBody(
             view('admin/submissions/_receipt_content', ['payment' => $row])
         );
+    }
+
+    public function receiptPdf(int $paymentId, string $entryId)
+    {
+        $row = service('payments')->getPaymentReceipt($paymentId, $entryId);
+        if (!$row) {
+            return redirect()->to('/admin/submissions/edit/' . rawurlencode($entryId))->with('error', 'Receipt not found.');
+        }
+
+        $row['payment_receipt'] = $this->resolveLegacyReceiptTemplate((string)($row['payment_receipt'] ?? ''), $row, $entryId);
+        $entryMeta = $this->loadReceiptEntryContext($entryId);
+
+        helper('html_sanitize');
+
+        $html = view('receipt/pdf', [
+            'payment' => $row,
+            'entryId' => $entryId,
+            'entryMeta' => $entryMeta,
+            'logoPath' => FCPATH . 'img/sparklogo.jpg',
+            'title' => 'Spark Awards Payment Receipt',
+        ]);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->loadHtml($html);
+        $dompdf->render();
+
+        $fileName = 'spark-receipt-' . $entryId . '-payment-' . $paymentId . '.pdf';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="' . $fileName . '"')
+            ->setBody($dompdf->output());
     }
 
     public function deletePhoto(int $entryPhotoId)
@@ -464,32 +521,67 @@ class SubmissionsController extends BaseController
             'compYear' => $compYear,
             'compType' => (string)($this->request->getGet('compType') ?? 'ALL'),
             'excludeNonFinalists' => (string)($this->request->getGet('excludeNonFinalists') ?? 'No'),
-            'shortlistEntries' => (string)($this->request->getGet('shortlistEntries') ?? 'No'),
         ];
     }
 
-    private function toCsv(array $rows): string
+    private function loadReceiptEntryContext(string $entryId): array
     {
+        return db_connect()->table('comp_entries e')
+            ->select('e.design_name, e.company_name, c.comp_year, t.comp_type_name, u.first_name, u.last_name, u.email_address')
+            ->join('comp_users u', 'u.user_id = e.user_id')
+            ->join('comp_competitions c', 'c.comp_id = e.comp_id', 'left')
+            ->join('comp_type t', 't.comp_type_id = c.comp_type_id', 'left')
+            ->where('e.entry_id', $entryId)
+            ->get()
+            ->getRowArray() ?? [];
+    }
+
+    private function toXlsx(array $rows): string
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Submissions');
+
         if ($rows === []) {
-            return "No data\n";
-        }
+            $sheet->setCellValueExplicit('A1', 'No data', DataType::TYPE_STRING);
+        } else {
+            $headers = array_keys($rows[0]);
+            $lastHeaderCol = Coordinate::stringFromColumnIndex(count($headers));
 
-        $headers = array_keys($rows[0]);
-        $fh = fopen('php://temp', 'r+');
-        fputcsv($fh, $headers);
-        foreach ($rows as $row) {
-            $line = [];
-            foreach ($headers as $h) {
-                $val = $row[$h] ?? '';
-                $line[] = is_scalar($val) ? (string)$val : json_encode($val, JSON_UNESCAPED_UNICODE);
+            foreach ($headers as $index => $header) {
+                $cell = Coordinate::stringFromColumnIndex($index + 1) . '1';
+                $sheet->setCellValueExplicit($cell, (string)$header, DataType::TYPE_STRING);
             }
-            fputcsv($fh, $line);
-        }
-        rewind($fh);
-        $csv = (string)stream_get_contents($fh);
-        fclose($fh);
 
-        return $csv;
+            $sheet->getStyle('A1:' . $lastHeaderCol . '1')->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E9ECEF'],
+                ],
+            ]);
+
+            $rowNum = 2;
+            foreach ($rows as $row) {
+                foreach ($headers as $index => $header) {
+                    $val = $row[$header] ?? '';
+                    $cell = Coordinate::stringFromColumnIndex($index + 1) . (string)$rowNum;
+                    $sheet->setCellValueExplicit(
+                        $cell,
+                        is_scalar($val) ? (string)$val : (string)json_encode($val, JSON_UNESCAPED_UNICODE),
+                        DataType::TYPE_STRING
+                    );
+                }
+                $rowNum++;
+            }
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(false);
+        ob_start();
+        $writer->save('php://output');
+
+        return (string)ob_get_clean();
     }
 
     private function processImages(string $entryId, int $compId, string $resLabel, int $from, int $to): ?array
@@ -874,7 +966,7 @@ class SubmissionsController extends BaseController
             $file = $this->request->getFile('low_photo_' . $i);
             $hasUpload = $file && $file->getError() !== UPLOAD_ERR_NO_FILE;
             if (!$hasUpload && !isset($existingByOrder[$i])) {
-                $errors['low_photo_' . $i] = lang('Entrant.photo_slot_required', [$i]);
+                $errors['low_photo_' . $i] = 'Photo ' . $i . ' is required. Please upload a JPG image.';
             }
         }
 

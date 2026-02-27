@@ -23,7 +23,6 @@ class Competition extends Entity
         'comp_id' => 'integer',
         'comp_type_id' => 'integer',
         'comp_year' => 'integer',
-        'shortlist_enabled' => 'integer',
         'pro_early_reg_price' => 'float',
         'pro_regular_reg_price' => 'float',
         'pro_late_reg_price' => 'float',
@@ -134,9 +133,4 @@ class Competition extends Entity
         return $this;
     }
 
-    // Helper to present shortlist as boolean in views
-    public function getShortlistEnabledBool(): bool
-    {
-        return (int)($this->attributes['shortlist_enabled'] ?? 0) === 1;
-    }
 }

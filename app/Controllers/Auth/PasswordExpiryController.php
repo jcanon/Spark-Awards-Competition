@@ -33,7 +33,7 @@ class PasswordExpiryController extends BaseController
         if (!service('authThrottle')->allowForcedPasswordUpdate($ip, $userId)) {
             return redirect()->back()->withInput()->with(
                 'error',
-                lang('Entrant.too_many_password_update_attempts')
+                'Too many password update attempts. Please wait a few minutes and try again.'
             );
         }
 
@@ -46,9 +46,9 @@ class PasswordExpiryController extends BaseController
         if ($pwStatus !== 'ok' || $confirmStatus !== 'ok') {
             $errorMsg = $auth->passwordErrorMessage($pwStatus);
             if ($confirmStatus === 'blank') {
-                $errorMsg = lang('Entrant.password_confirmation_blank_with_period');
+                $errorMsg = 'Password confirmation cannot be blank.';
             } elseif ($confirmStatus === 'nomatch') {
-                $errorMsg = lang('Entrant.passwords_do_not_match_with_period');
+                $errorMsg = 'Passwords do not match.';
             }
             return redirect()->back()->withInput()->with('error', $errorMsg);
         }
@@ -57,19 +57,19 @@ class PasswordExpiryController extends BaseController
         if ($setStatus === 'reused') {
             return redirect()->back()->withInput()->with(
                 'error',
-                lang('Entrant.password_reuse_not_allowed')
+                'You cannot reuse a previously used password. Please choose a new password.'
             );
         }
         if ($setStatus !== 'ok') {
-            return redirect()->back()->withInput()->with('error', lang('Entrant.unable_update_password'));
+            return redirect()->back()->withInput()->with('error', 'Unable to update password right now. Please try again.');
         }
 
         session()->set('password_reset_required', false);
 
         if (in_array((string)session('role'), ['admin', 'editor'], true) && !session('2fa_pass')) {
-            return redirect()->to('/auth/2fa')->with('success', lang('Entrant.password_updated_continue_2fa'));
+            return redirect()->to('/auth/2fa')->with('success', 'Password updated. Continue with two-factor verification.');
         }
 
-        return redirect()->to('/home')->with('success', lang('Entrant.password_updated_successfully'));
+        return redirect()->to('/home')->with('success', 'Password updated successfully.');
     }
 }

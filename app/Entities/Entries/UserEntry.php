@@ -11,7 +11,6 @@ class UserEntry extends Entity
     protected $casts = [
         'comp_id' => 'integer',
         'winner_level' => 'integer',
-        'shortlist' => 'integer',
         'photo_id' => 'integer',
     ];
 

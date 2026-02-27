@@ -382,7 +382,7 @@ class ProfileService
     public function getUserSubmissions(string $userId): array
     {
         return db_connect()->table('comp_entries a')
-            ->select('a.entry_id, a.design_name, a.entry_status, a.winner_level, a.phase_1_payment, a.phase_2_payment, a.entry_non_finalist, a.shortlist, a.date_created, b.comp_year, c.comp_type_name, d.winner_level_name')
+            ->select('a.entry_id, a.design_name, a.entry_status, a.winner_level, a.phase_1_payment, a.phase_2_payment, a.entry_non_finalist, a.date_created, b.comp_year, c.comp_type_name, d.winner_level_name')
             ->join('comp_competitions b', 'a.comp_id = b.comp_id')
             ->join('comp_type c', 'b.comp_type_id = c.comp_type_id')
             ->join('comp_winner_levels d', 'a.winner_level = d.winner_level_id', 'left')
@@ -434,7 +434,12 @@ class ProfileService
 
     public function getStates(): array
     {
-        $rows = (new StateModel())->orderBy('state', 'ASC')->findAll();
+        $rows = (new StateModel())
+            ->builder()
+            ->orderBy("CASE WHEN scode = 'NA' THEN 0 ELSE 1 END", '', false)
+            ->orderBy('state', 'ASC')
+            ->get()
+            ->getResultArray();
 
         $out = [];
         foreach ($rows as $r) {
@@ -618,7 +623,7 @@ class ProfileService
         $data = random_bytes(16);
         $data[6] = chr((ord($data[6]) & 0x0f) | 0x40);
         $data[8] = chr((ord($data[8]) & 0x3f) | 0x80);
-        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+        return substr(vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4)), 0, 35);
     }
 
     private function normalizeUserForm(array $form): array

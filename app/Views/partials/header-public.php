@@ -9,5 +9,7 @@
     <link href="/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet">
     <link href="/css/sb-admin-2.css" rel="stylesheet">
+    <link href="/css/entry-status-pill.css" rel="stylesheet">
+    <link href="/css/certificate-request-pill.css" rel="stylesheet">
 </head>
 <body class="bg-light">

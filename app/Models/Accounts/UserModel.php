@@ -48,7 +48,7 @@ class UserModel extends Model
     ];
 
     protected $validationRules = [
-        'user_id' => 'required|max_length[36]',
+        'user_id' => 'required|max_length[35]',
         'email_address' => 'required|valid_email|max_length[100]',
         'password' => 'permit_empty|string',
         'password_changed_at' => 'permit_empty|valid_date[Y-m-d H:i:s]',

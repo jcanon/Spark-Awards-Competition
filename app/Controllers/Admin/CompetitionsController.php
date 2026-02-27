@@ -18,47 +18,97 @@ class CompetitionsController extends BaseController
 
     public function create()
     {
+        $svc = service('competitions');
         return view('admin/competitions/form', [
             'row' => null,
-            'types' => service('competitions')->getActiveCompetitionTypes(),
+            'types' => $svc->getActiveCompetitionTypes(),
+            'existingTypeIdsByYear' => $svc->getExistingCompetitionTypeIdsByYear(),
             'canDelete' => $this->canDelete(),
         ]);
     }
 
     public function store()
     {
-        $rules = $this->competitionRules();
+        $rules = $this->competitionRules(false);
         if (!$this->validate($rules)) {
             $errors = array_values($this->validator->getErrors());
             $message = $errors !== [] ? implode(' ', $errors) : 'Invalid competition data.';
             return redirect()->back()->withInput()->with('error', $message);
         }
 
-        $compId = service('competitions')->createCompetition($this->request->getPost());
-        if ($compId <= 0) {
+        $selectedTypeIds = $this->selectedTypeIds();
+        if ($selectedTypeIds === []) {
+            return redirect()->back()->withInput()->with('error', 'At least one competition category is required.');
+        }
+
+        $activeTypeIds = array_map(
+            static fn($type): int => (int)($type->comp_type_id ?? 0),
+            service('competitions')->getActiveCompetitionTypes()
+        );
+        $activeTypeIds = array_values(array_unique(array_filter($activeTypeIds, static fn(int $id): bool => $id > 0)));
+
+        foreach ($selectedTypeIds as $typeId) {
+            if (!in_array($typeId, $activeTypeIds, true)) {
+                return redirect()->back()->withInput()->with('error', 'One or more selected competition categories are invalid.');
+            }
+        }
+
+        $svc = service('competitions');
+        $form = $this->request->getPost();
+        $createdCount = 0;
+        $duplicateCount = 0;
+        $firstCompId = 0;
+
+        foreach ($selectedTypeIds as $typeId) {
+            $form['comp_type_id'] = $typeId;
+            $compId = $svc->createCompetition($form);
+            if ($compId > 0) {
+                $createdCount++;
+                if ($firstCompId === 0) {
+                    $firstCompId = $compId;
+                }
+            } else {
+                $duplicateCount++;
+            }
+        }
+
+        if ($createdCount === 0) {
             return redirect()->back()->withInput()->with('error', 'Competition already exists or could not be created.');
         }
 
-        return redirect()->to('/admin/competitions/edit/' . $compId)->with('success', 'Competition created.');
+        $message = $createdCount === 1
+            ? '1 competition created.'
+            : $createdCount . ' competitions created.';
+        if ($duplicateCount > 0) {
+            $message .= ' ' . $duplicateCount . ' skipped because they already exist.';
+        }
+
+        if ($createdCount === 1 && $firstCompId > 0) {
+            return redirect()->to('/admin/competitions/edit/' . $firstCompId)->with('success', $message);
+        }
+
+        return redirect()->to('/admin/competitions')->with('success', $message);
     }
 
     public function edit(int $compId)
     {
-        $row = service('competitions')->getCompetitionByID($compId);
+        $svc = service('competitions');
+        $row = $svc->getCompetitionByID($compId);
         if (!$row) {
             return redirect()->to('/admin/competitions')->with('error', 'Competition not found.');
         }
 
         return view('admin/competitions/form', [
             'row' => $row,
-            'types' => service('competitions')->getActiveCompetitionTypes(),
+            'types' => $svc->getActiveCompetitionTypes(),
+            'existingTypeIdsByYear' => $svc->getExistingCompetitionTypeIdsByYear(),
             'canDelete' => $this->canDelete(),
         ]);
     }
 
     public function update(int $compId)
     {
-        $rules = $this->competitionRules();
+        $rules = $this->competitionRules(true);
         if (!$this->validate($rules)) {
             $errors = array_values($this->validator->getErrors());
             $message = $errors !== [] ? implode(' ', $errors) : 'Invalid competition data.';
@@ -192,12 +242,11 @@ class CompetitionsController extends BaseController
         return (string)session('role') !== 'editor';
     }
 
-    private function competitionRules(): array
+    private function competitionRules(bool $isEdit): array
     {
         $moneyRule = 'required|regex_match[/^\$?\d{1,9}(,\d{3})*(\.\d{1,2})?$/]';
 
-        return [
-            'comp_type_id' => 'required|integer',
+        $rules = [
             'comp_year' => 'required|integer|greater_than_equal_to[2000]|less_than_equal_to[2100]',
             'comp_phase_1_open' => 'required',
             'comp_regular_reg_open' => 'required',
@@ -224,5 +273,32 @@ class CompetitionsController extends BaseController
             'trophy_price' => $moneyRule,
             'additional_trophy_price' => $moneyRule,
         ];
+
+        if ($isEdit) {
+            $rules['comp_type_id'] = 'required|integer';
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function selectedTypeIds(): array
+    {
+        $ids = $this->request->getPost('comp_type_ids');
+        if (!is_array($ids)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($ids as $id) {
+            $intId = (int)$id;
+            if ($intId > 0) {
+                $normalized[] = $intId;
+            }
+        }
+
+        return array_values(array_unique($normalized));
     }
 }

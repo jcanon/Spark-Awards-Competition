@@ -35,7 +35,7 @@
                 <?php foreach ($rows as $row): ?>
                     <tr>
                         <td>
-                            <a class="font-weight-bold" href="<?= site_url('admin/system-tools/notifications/edit/' . (int)$row['notification_id']) ?>">
+                            <a href="<?= site_url('admin/system-tools/notifications/edit/' . (int)$row['notification_id']) ?>">
                                 <?= esc((string)$row['title']) ?>
                             </a>
                         </td>

@@ -112,7 +112,7 @@
                     <div class="col-md-4 form-group mb-2">
                         <label class="form-label mb-1">Submitted By</label>
                         <div class="form-control-plaintext">
-                            <a class="font-weight-bold" href="<?= site_url('admin/users/edit/' . rawurlencode((string)$row['user_id'])) ?>">
+                            <a href="<?= site_url('admin/users/edit/' . rawurlencode((string)$row['user_id'])) ?>">
                                 <?= esc(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? ''))) ?>
                             </a>
                         </div>
@@ -135,13 +135,6 @@
                         <select id="gallery_hide" name="gallery_hide" class="form-control">
                             <option value="No" <?= (($row['gallery_hide'] ?? 'No') === 'No') ? 'selected' : '' ?>>No</option>
                             <option value="Yes" <?= (($row['gallery_hide'] ?? 'No') === 'Yes') ? 'selected' : '' ?>>Yes</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 form-group mb-0">
-                        <label class="form-label" for="shortlist">Add to Shortlist?</label>
-                        <select id="shortlist" name="shortlist" class="form-control">
-                            <option value="0" <?= ((int)($row['shortlist'] ?? 0) === 0) ? 'selected' : '' ?>>No</option>
-                            <option value="1" <?= ((int)($row['shortlist'] ?? 0) === 1) ? 'selected' : '' ?>>Yes</option>
                         </select>
                     </div>
                 </div>
@@ -210,6 +203,7 @@
                                 <a
                                     href="<?= site_url('admin/submissions/receipt/' . (int)$p['payment_id'] . '/' . rawurlencode((string)$row['entry_id'])) ?>"
                                     data-receipt-url="<?= site_url('admin/submissions/receipt-content/' . (int)$p['payment_id'] . '/' . rawurlencode((string)$row['entry_id'])) ?>"
+                                    data-receipt-pdf-url="<?= site_url('admin/submissions/receipt-pdf/' . (int)$p['payment_id'] . '/' . rawurlencode((string)$row['entry_id'])) ?>"
                                     class="js-receipt-modal-link"
                                 >
                                     Phase <?= esc((string)$p['payment_phase']) ?> Receipt
@@ -436,9 +430,22 @@
                     <div class="invalid-feedback">Full description is required.</div>
                 </div>
                 <div class="form-group mb-0">
-                    <label class="form-label" for="youtube_url">YouTube Video</label>
-                    <input id="youtube_url" name="youtube_url" class="form-control" maxlength="50" value="<?= esc((string)($row['youtube_url'] ?? '')) ?>">
-                    <small class="text-muted">Paste a share URL like: <strong>https://youtu.be/1D_YL9LwKnc</strong></small>
+                    <label class="form-label d-inline-flex align-items-center" for="youtube_url">
+                        Video Embed URL (YouTube or Vimeo)
+                        <button
+                            type="button"
+                            class="btn btn-link btn-sm p-0 ml-2 align-baseline"
+                            data-toggle="modal"
+                            data-target="#videoEmbedHelpModal"
+                            aria-label="How to find a YouTube or Vimeo embed URL"
+                            title="How to find embed URL"
+                        >
+                            <i class="fas fa-question-circle" aria-hidden="true"></i>
+                        </button>
+                    </label>
+                    <input id="youtube_url" name="youtube_url" class="form-control" maxlength="255" value="<?= esc((string)(old('youtube_url') ?? ($videoEmbedUrl ?? ''))) ?>">
+                    <small class="text-muted">Enter one video URL only. Accepted providers: YouTube or Vimeo.</small><br>
+                    <small class="text-muted">Examples: <strong>https://www.youtube.com/embed/VIDEO_ID</strong> or <strong>https://player.vimeo.com/video/123456789</strong></small>
                 </div>
             </div>
         </div>
@@ -558,6 +565,26 @@
                 <div class="modal-body" id="receiptModalBody">
                     <div class="text-muted">Loading receipt...</div>
                 </div>
+                <div class="modal-footer">
+                    <a id="receiptModalPdfBtn" class="btn btn-sm btn-primary" href="#" target="_blank" rel="noopener">Save as PDF</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="videoEmbedHelpModal" tabindex="-1" role="dialog" aria-labelledby="videoEmbedHelpModalTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="videoEmbedHelpModalTitle">How To Get A Video Embed URL</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2"><strong>YouTube:</strong> Open your video, choose <em>Share</em> then <em>Embed</em>, and copy the iframe <code>src</code> URL (starts with <code>https://www.youtube.com/embed/</code>).</p>
+                    <p class="mb-0"><strong>Vimeo:</strong> Open your video, choose <em>Share</em> or <em>Embed</em>, and copy the iframe <code>src</code> URL (starts with <code>https://player.vimeo.com/video/</code>).</p>
+                </div>
             </div>
         </div>
     </div>
@@ -567,6 +594,49 @@
 <script>
     (function () {
         'use strict';
+        var videoUrlError = <?= json_encode('Video URL must be a valid YouTube or Vimeo URL (for example: https://www.youtube.com/embed/VIDEO_ID or https://player.vimeo.com/video/VIDEO_ID).') ?>;
+        var validVideoEmbedUrl = function (url) {
+            var trimmed = (url || '').trim();
+            if (!trimmed) {
+                return true;
+            }
+
+            if (/^[A-Za-z0-9_-]{6,25}$/.test(trimmed) && !/^\d+$/.test(trimmed)) {
+                return true;
+            }
+
+            var parsed;
+            try {
+                parsed = new URL(trimmed);
+            } catch (error) {
+                return false;
+            }
+
+            var host = (parsed.hostname || '').toLowerCase();
+            var path = (parsed.pathname || '').replace(/^\/+|\/+$/g, '');
+
+            if (host === 'youtu.be' || host === 'www.youtu.be') {
+                var yShort = path.split('/')[0] || '';
+                return /^[A-Za-z0-9_-]{6,25}$/.test(yShort);
+            }
+
+            if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+                if (path === 'watch') {
+                    var watchId = parsed.searchParams.get('v') || '';
+                    return /^[A-Za-z0-9_-]{6,25}$/.test(watchId);
+                }
+                var ytMatch = path.match(/^(embed|shorts|live)\/([^/?#]+)/i);
+                return !!(ytMatch && /^[A-Za-z0-9_-]{6,25}$/.test(ytMatch[2]));
+            }
+
+            if (host.indexOf('vimeo.com') !== -1) {
+                var vimeoMatch = path.match(/(?:^|\/)(?:video\/)?(\d+)(?:$|[/?#])/i);
+                return !!(vimeoMatch && /^\d+$/.test(vimeoMatch[1]));
+            }
+
+            return false;
+        };
+
         var forms = document.querySelectorAll('.needs-validation');
         Array.prototype.slice.call(forms).forEach(function (form) {
             form.addEventListener('submit', function (event) {
@@ -597,6 +667,10 @@
 
         form.addEventListener('submit', function (event) {
             syncRequiredPhotoValidity();
+            var youtubeEl = document.getElementById('youtube_url');
+            if (youtubeEl) {
+                youtubeEl.setCustomValidity(validVideoEmbedUrl(youtubeEl.value) ? '' : videoUrlError);
+            }
             if (!form.checkValidity()) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -641,6 +715,13 @@
         photoInputs.forEach(function (input) {
             input.addEventListener('change', syncRequiredPhotoValidity);
         });
+
+        var youtube = document.getElementById('youtube_url');
+        if (youtube) {
+            youtube.addEventListener('input', function () {
+                this.setCustomValidity(validVideoEmbedUrl(this.value) ? '' : videoUrlError);
+            });
+        }
 
         var certificateInput = form.querySelector('input[name="certificate_pdf"]');
         var certificateThumbData = document.getElementById('certificate_thumb_data');
@@ -753,6 +834,7 @@
 
         var modalEl = document.getElementById('receiptModal');
         var modalBody = document.getElementById('receiptModalBody');
+        var pdfBtn = document.getElementById('receiptModalPdfBtn');
         var links = document.querySelectorAll('.js-receipt-modal-link');
         var showModal = function (element) {
             if (window.bootstrap && window.bootstrap.Modal) {
@@ -789,6 +871,12 @@
                     }
 
                     modalBody.innerHTML = '<div class="text-muted">Loading receipt...</div>';
+                    var pdfUrl = this.getAttribute('data-receipt-pdf-url') || '';
+                    if (pdfBtn) {
+                        pdfBtn.href = pdfUrl || '#';
+                        pdfBtn.classList.toggle('disabled', pdfUrl === '');
+                        pdfBtn.setAttribute('aria-disabled', pdfUrl === '' ? 'true' : 'false');
+                    }
                     showModal(modalEl);
 
                     fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})

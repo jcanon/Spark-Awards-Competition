@@ -16,7 +16,7 @@ class ProfileController extends BaseController
         /** @var \App\Entities\Accounts\User|null $user */
         $user = (new UserModel())->find($currentUserId);
         if (!$user) {
-            return redirect()->back()->with('errors', ['general' => lang('Entrant.account_not_found')]);
+            return redirect()->back()->with('errors', ['general' => 'Account not found.']);
         }
 
         $dropdowns = [
@@ -40,7 +40,7 @@ class ProfileController extends BaseController
         if ($currentUserId === '') {
             return redirect()->back()->withInput()->with(
                 'errors',
-                ['general' => lang('Entrant.invalid_session_login_again')]
+                ['general' => 'Invalid session. Please log in again.']
             );
         }
 
@@ -54,10 +54,10 @@ class ProfileController extends BaseController
         $emailStatus = $auth->checkEmailExists($email, $currentUserId);
         if ($emailStatus !== 'no') {
             $msg = match ($emailStatus) {
-                'blank' => lang('Entrant.email_required'),
-                'invalid' => lang('Entrant.enter_valid_email'),
-                'yes' => lang('Entrant.email_already_used'),
-                default => lang('Entrant.email_invalid_or_in_use'),
+                'blank' => 'Email address is required.',
+                'invalid' => 'Please enter a valid email address.',
+                'yes' => 'That email address is already in use.',
+                default => 'Email is invalid or already in use.',
             };
             return redirect()->back()->withInput()->with('errors', ['email_address' => $msg]);
         }
@@ -67,7 +67,7 @@ class ProfileController extends BaseController
             if (!$auth->verifyCurrentPassword($currentUserId, $currentPassword)) {
                 return redirect()->back()->withInput()->with(
                     'errors',
-                    ['general' => lang('Entrant.current_password_incorrect')]
+                    ['general' => 'Current password is incorrect.']
                 );
             }
             $passwordStatus = $auth->checkPassword($password);
@@ -75,7 +75,7 @@ class ProfileController extends BaseController
                 return redirect()->back()->withInput()->with('errors', ['general' => $auth->passwordErrorMessage($passwordStatus)]);
             }
             if ($auth->checkConfirmPassword($confirm, $password) !== 'ok') {
-                return redirect()->back()->withInput()->with('errors', ['general' => lang('Entrant.password_confirmation_not_match')]);
+                return redirect()->back()->withInput()->with('errors', ['general' => 'Password confirmation does not match.']);
             }
         }
 
@@ -90,13 +90,13 @@ class ProfileController extends BaseController
             if (str_contains($message, 'reuse')) {
                 return redirect()->back()->withInput()->with(
                     'errors',
-                    ['general' => lang('Entrant.password_reuse_not_allowed')]
+                    ['general' => 'You cannot reuse a previously used password. Please choose a new password.']
                 );
             }
-            return redirect()->back()->withInput()->with('errors', ['general' => lang('Entrant.unable_update_profile')]);
+            return redirect()->back()->withInput()->with('errors', ['general' => 'Could not update profile at this time.']);
         }
 
-        return redirect()->to('/profile')->with('success', lang('Entrant.profile_updated'));
+        return redirect()->to('/profile')->with('success', 'Profile updated');
     }
 
     public function regenerateRecoveryCodes()
@@ -107,21 +107,21 @@ class ProfileController extends BaseController
         }
 
         if (!in_array((string)session('role'), ['admin', 'editor'], true)) {
-            return redirect()->to('/profile')->with('errors', ['general' => lang('Entrant.recovery_codes_only_admin_editor')]);
+            return redirect()->to('/profile')->with('errors', ['general' => 'Recovery codes are only available for Admin and Editor accounts.']);
         }
 
         $currentPassword = (string)$this->request->getPost('recovery_current_password');
         if (!service('auth')->verifyCurrentPassword($currentUserId, $currentPassword)) {
-            return redirect()->to('/profile')->with('errors', ['general' => lang('Entrant.current_password_required_recovery')]);
+            return redirect()->to('/profile')->with('errors', ['general' => 'Current password is required to generate recovery codes.']);
         }
 
         $codes = service('recoveryCodes')->regenerateCodes($currentUserId, 10, 12);
         if ($codes === []) {
-            return redirect()->to('/profile')->with('errors', ['general' => lang('Entrant.unable_generate_recovery_codes')]);
+            return redirect()->to('/profile')->with('errors', ['general' => 'Unable to generate recovery codes right now.']);
         }
 
         return redirect()->to('/profile')
-            ->with('success', lang('Entrant.recovery_codes_generated_once'))
+            ->with('success', 'Recovery codes generated. Save them now; they will only be shown once.')
             ->with('recovery_codes', $codes);
     }
 }

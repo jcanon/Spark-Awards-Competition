@@ -1,73 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
-<style>
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.2rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        line-height: 1;
-        border: 1px solid transparent;
-        white-space: nowrap;
-    }
-
-    .status-pill .medal-icon {
-        font-size: 0.82rem;
-    }
-
-    .status-draft {
-        background: #f3f4f6;
-        border-color: #d1d5db;
-        color: #374151;
-    }
-
-    .status-entrant {
-        background: #e8f3ff;
-        border-color: #bcd8ff;
-        color: #0f4c81;
-    }
-
-    .status-finalist {
-        background: #fff8e5;
-        border-color: #ffd67a;
-        color: #7a4a00;
-    }
-
-    .status-winner {
-        background: #f8f4ff;
-        border-color: #d9c7ff;
-        color: #4b2b8a;
-    }
-
-    .winner-platinum {
-        background: #f4f7fb;
-        border-color: #c9d4e5;
-        color: #2f425b;
-    }
-
-    .winner-gold {
-        background: #fff6de;
-        border-color: #f2ce6a;
-        color: #7d5600;
-    }
-
-    .winner-silver {
-        background: #f4f6f8;
-        border-color: #cfd5dd;
-        color: #4b5563;
-    }
-
-    .winner-bronze {
-        background: #f8eee7;
-        border-color: #d8ae8e;
-        color: #764a2f;
-    }
-</style>
-
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Edit User</h1>
@@ -84,15 +17,28 @@
 
     <?php if ($msg = session('success')): ?><div class="alert alert-success"><?= esc($msg) ?></div><?php endif; ?>
     <?php if ($msg = session('error')): ?><div class="alert alert-danger"><?= esc($msg) ?></div><?php endif; ?>
+    <?php
+        $oldOrRow = static function (string $key, string $default = '') use ($row): string {
+            $old = old($key);
+            if ($old !== null) {
+                return (string)$old;
+            }
+            return (string)($row[$key] ?? $default);
+        };
+    ?>
 
-    <form action="<?= site_url('admin/users/update/' . rawurlencode((string)$row['user_id'])) ?>" method="post" class="needs-validation" novalidate>
+    <form id="adminUserEditForm" action="<?= site_url('admin/users/update/' . rawurlencode((string)$row['user_id'])) ?>" method="post" class="needs-validation" novalidate>
         <?= csrf_field() ?>
 
         <div class="card mb-4">
             <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Login & Role</h6></div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4 form-group"><label>Email</label><input type="email" name="email_address" class="form-control" maxlength="100" required value="<?= esc((string)$row['email_address']) ?>"></div>
+                    <div class="col-md-4 form-group">
+                        <label for="email_address">Email <span class="text-danger">*</span></label>
+                        <input id="email_address" type="email" name="email_address" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('email_address')) ?>">
+                        <div class="invalid-feedback">A valid, unique email address is required.</div>
+                    </div>
                     <div class="col-md-4 form-group">
                         <label for="admin_user_password">New Password</label>
                         <input id="admin_user_password" type="password" name="password" class="form-control" maxlength="128">
@@ -163,32 +109,96 @@
             <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Profile</h6></div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4 form-group"><label>Title</label><input type="text" name="title" class="form-control" maxlength="100" value="<?= esc((string)($row['title'] ?? '')) ?>"></div>
-                    <div class="col-md-4 form-group"><label>First Name</label><input type="text" name="first_name" class="form-control" maxlength="100" value="<?= esc((string)($row['first_name'] ?? '')) ?>"></div>
-                    <div class="col-md-4 form-group"><label>Last Name</label><input type="text" name="last_name" class="form-control" maxlength="100" value="<?= esc((string)($row['last_name'] ?? '')) ?>"></div>
+                    <div class="col-md-4 form-group"><label for="title">Title</label><input id="title" type="text" name="title" class="form-control" maxlength="100" value="<?= esc($oldOrRow('title')) ?>"></div>
+                    <div class="col-md-4 form-group">
+                        <label for="first_name">First Name <span class="text-danger">*</span></label>
+                        <input id="first_name" type="text" name="first_name" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('first_name')) ?>">
+                        <div class="invalid-feedback">First name is required.</div>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="last_name">Last Name <span class="text-danger">*</span></label>
+                        <input id="last_name" type="text" name="last_name" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('last_name')) ?>">
+                        <div class="invalid-feedback">Last name is required.</div>
+                    </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4 form-group"><label>Website</label><input type="text" name="website" class="form-control" maxlength="100" value="<?= esc((string)($row['website'] ?? '')) ?>"></div>
-                    <div class="col-md-4 form-group"><label>Phone</label><input type="text" name="phone" class="form-control" maxlength="25" value="<?= esc((string)($row['phone'] ?? '')) ?>"></div>
-                    <div class="col-md-4 form-group"><label>Mobile</label><input type="text" name="mobile" class="form-control" maxlength="25" value="<?= esc((string)($row['mobile'] ?? '')) ?>"></div>
+                    <div class="col-md-4 form-group"><label for="website">Website</label><input id="website" type="text" name="website" class="form-control" maxlength="100" value="<?= esc($oldOrRow('website')) ?>"></div>
+                    <div class="col-md-4 form-group">
+                        <label for="phone">Phone <span class="text-danger">*</span></label>
+                        <input id="phone" type="text" name="phone" class="form-control" maxlength="25" required value="<?= esc($oldOrRow('phone')) ?>">
+                        <div class="invalid-feedback">Telephone is required.</div>
+                    </div>
+                    <div class="col-md-4 form-group"><label for="mobile">Mobile</label><input id="mobile" type="text" name="mobile" class="form-control" maxlength="25" value="<?= esc($oldOrRow('mobile')) ?>"></div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4 form-group"><label>User Type</label><select name="user_type_id" class="form-control"><?php foreach ($userTypes as $ut): ?><option value="<?= (int)$ut['user_type_id'] ?>" <?= (string)$row['user_type_id'] === (string)$ut['user_type_id'] ? 'selected' : '' ?>><?= esc($ut['user_type_name']) ?></option><?php endforeach; ?></select></div>
-                    <div class="col-md-4 form-group"><label>Company</label><input type="text" name="company_name" class="form-control" maxlength="100" value="<?= esc((string)($row['company_name'] ?? '')) ?>"></div>
-                    <div class="col-md-4 form-group"><label>Address 1</label><input type="text" name="address1" class="form-control" maxlength="100" value="<?= esc((string)($row['address1'] ?? '')) ?>"></div>
+                    <div class="col-md-4 form-group">
+                        <label for="user_type_id">User Type <span class="text-danger">*</span></label>
+                        <select id="user_type_id" name="user_type_id" class="form-control" required>
+                            <option value=""></option>
+                            <?php foreach ($userTypes as $ut): ?>
+                                <option value="<?= (int)$ut['user_type_id'] ?>" <?= $oldOrRow('user_type_id') === (string)$ut['user_type_id'] ? 'selected' : '' ?>><?= esc($ut['user_type_name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="invalid-feedback">Entrant type is required.</div>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="company_name">Company <span class="text-danger">*</span></label>
+                        <input id="company_name" type="text" name="company_name" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('company_name')) ?>">
+                        <div class="invalid-feedback">Organization is required.</div>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="address1">Address 1 <span class="text-danger">*</span></label>
+                        <input id="address1" type="text" name="address1" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('address1')) ?>">
+                        <div class="invalid-feedback">Street Address 1 is required.</div>
+                    </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4 form-group"><label>Address 2</label><input type="text" name="address2" class="form-control" maxlength="100" value="<?= esc((string)($row['address2'] ?? '')) ?>"></div>
-                    <div class="col-md-4 form-group"><label>City</label><input type="text" name="city" class="form-control" maxlength="100" value="<?= esc((string)($row['city'] ?? '')) ?>"></div>
-                    <div class="col-md-2 form-group"><label>State / Province</label><select name="state" class="form-control"><option value="">-</option><?php foreach ($states as $st): ?><option value="<?= esc($st['scode']) ?>" <?= (string)($row['state'] ?? '') === (string)$st['scode'] ? 'selected' : '' ?>><?= esc($st['state']) ?></option><?php endforeach; ?></select></div>
-                    <div class="col-md-2 form-group"><label>Postal Code</label><input type="text" name="zipcode" class="form-control" maxlength="25" value="<?= esc((string)($row['zipcode'] ?? '')) ?>"></div>
+                    <?php
+                        $selectedState = $oldOrRow('state');
+                        if ($selectedState === 'None') {
+                            $selectedState = 'NA';
+                        }
+                    ?>
+                    <div class="col-md-4 form-group"><label for="address2">Address 2</label><input id="address2" type="text" name="address2" class="form-control" maxlength="100" value="<?= esc($oldOrRow('address2')) ?>"></div>
+                    <div class="col-md-4 form-group">
+                        <label for="city">City <span class="text-danger">*</span></label>
+                        <input id="city" type="text" name="city" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('city')) ?>">
+                        <div class="invalid-feedback">City is required.</div>
+                    </div>
+                    <div class="col-md-2 form-group">
+                        <label for="state">State / Province <span class="text-danger">*</span></label>
+                        <select id="state" name="state" class="form-control" required>
+                            <option value=""></option>
+                            <?php foreach ($states as $idx => $st): ?>
+                                <option value="<?= esc($st['scode']) ?>" <?= $selectedState === (string)$st['scode'] ? 'selected' : '' ?>><?= esc($st['state']) ?></option>
+                                <?php if ($idx === 0 && (string)$st['scode'] === 'NA'): ?>
+                                    <option value="" disabled>--------------------</option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="invalid-feedback">State or Province is required.</div>
+                    </div>
+                    <div class="col-md-2 form-group"><label for="zipcode">Postal Code</label><input id="zipcode" type="text" name="zipcode" class="form-control" maxlength="25" value="<?= esc($oldOrRow('zipcode')) ?>"></div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4 form-group"><label>Country</label><select name="country" class="form-control"><option value="">-</option><?php foreach ($countries as $ct): ?><option value="<?= esc($ct['ccode']) ?>" <?= (string)($row['country'] ?? '') === (string)$ct['ccode'] ? 'selected' : '' ?>><?= esc($ct['country']) ?></option><?php endforeach; ?></select></div>
-                    <div class="col-md-4 form-group"><label>How did you find us?</label><input type="text" name="how_did_you_find_us" class="form-control" maxlength="100" value="<?= esc((string)($row['how_did_you_find_us'] ?? '')) ?>"></div>
-                    <div class="col-md-4 form-group"><label>How did you find us (Other)</label><input type="text" name="how_did_you_find_us_other" class="form-control" maxlength="100" value="<?= esc((string)($row['how_did_you_find_us_other'] ?? '')) ?>"></div>
+                    <div class="col-md-4 form-group">
+                        <label for="country">Country <span class="text-danger">*</span></label>
+                        <select id="country" name="country" class="form-control" required>
+                            <option value=""></option>
+                            <?php foreach ($countries as $ct): ?>
+                                <option value="<?= esc($ct['ccode']) ?>" <?= $oldOrRow('country') === (string)$ct['ccode'] ? 'selected' : '' ?>><?= esc($ct['country']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="invalid-feedback">Country is required.</div>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="how_did_you_find_us">How did you find us? <span class="text-danger">*</span></label>
+                        <input id="how_did_you_find_us" type="text" name="how_did_you_find_us" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('how_did_you_find_us')) ?>">
+                        <div class="invalid-feedback">Please select or enter how you found us.</div>
+                    </div>
+                    <div class="col-md-4 form-group"><label for="how_did_you_find_us_other">How did you find us (Other)</label><input id="how_did_you_find_us_other" type="text" name="how_did_you_find_us_other" class="form-control" maxlength="100" value="<?= esc($oldOrRow('how_did_you_find_us_other')) ?>"></div>
                 </div>
-                <div class="form-group mb-0"><label>Internal Notes</label><textarea name="internal_notes" class="form-control" rows="4"><?= esc((string)($row['internal_notes'] ?? '')) ?></textarea></div>
+                <div class="form-group mb-0"><label for="internal_notes">Internal Notes</label><textarea id="internal_notes" name="internal_notes" class="form-control" rows="4"><?= esc($oldOrRow('internal_notes')) ?></textarea></div>
             </div>
         </div>
 
@@ -220,35 +230,8 @@
                         <?php foreach (($userSubmissions ?? []) as $sub): ?>
                             <?php
                                 $entryId = (string)($sub['entry_id'] ?? '');
-                                $winnerLabel = trim((string)($sub['winner_level_name'] ?? ''));
                                 $isMarkedNonFinalist = strtolower(trim((string)($sub['entry_non_finalist'] ?? 'No'))) === 'yes';
-                                $statusLabel = trim((string)($sub['entry_status'] ?? ''));
-                                $statusClass = 'status-draft';
-                                $medalIconClass = '';
-
-                                if ($statusLabel === 'Entrant') {
-                                    $statusClass = 'status-entrant';
-                                } elseif ($statusLabel === 'Finalist') {
-                                    $statusClass = 'status-finalist';
-                                } elseif ($statusLabel === 'Winner') {
-                                    $statusClass = 'status-winner';
-                                    if ($winnerLabel !== '') {
-                                        $statusLabel .= ': ' . $winnerLabel;
-                                        if (strcasecmp($winnerLabel, 'Platinum') === 0) {
-                                            $statusClass = 'winner-platinum';
-                                            $medalIconClass = 'fas fa-medal';
-                                        } elseif (strcasecmp($winnerLabel, 'Gold') === 0) {
-                                            $statusClass = 'winner-gold';
-                                            $medalIconClass = 'fas fa-medal';
-                                        } elseif (strcasecmp($winnerLabel, 'Silver') === 0) {
-                                            $statusClass = 'winner-silver';
-                                            $medalIconClass = 'fas fa-medal';
-                                        } elseif (strcasecmp($winnerLabel, 'Bronze') === 0) {
-                                            $statusClass = 'winner-bronze';
-                                            $medalIconClass = 'fas fa-medal';
-                                        }
-                                    }
-                                }
+                                [$statusLabel, $statusClass, $medalIconClass] = entry_status_pill($sub);
 
                                 if ($isMarkedNonFinalist) {
                                     $statusLabel .= ' (Non-Finalist)';
@@ -256,7 +239,7 @@
                             ?>
                             <tr>
                                 <td>
-                                    <a class="font-weight-bold" href="<?= site_url('admin/submissions/edit/' . rawurlencode($entryId)) ?>">
+                                    <a href="<?= site_url('admin/submissions/edit/' . rawurlencode($entryId)) ?>">
                                         <?= esc((string)($sub['design_name'] ?? '(Untitled Submission)')) ?>
                                     </a>
                                 </td>
@@ -269,9 +252,6 @@
                                         <?php endif; ?>
                                         <?= esc($statusLabel) ?>
                                     </span>
-                                    <?php if ((int)($sub['shortlist'] ?? 0) === 1): ?>
-                                        <span class="badge badge-info ml-1">Shortlist</span>
-                                    <?php endif; ?>
                                 </td>
                                 <td><?= esc((string)($sub['phase_1_payment'] ?? '')) ?></td>
                                 <td><?= esc((string)($sub['phase_2_payment'] ?? '')) ?></td>
@@ -332,165 +312,7 @@
     <?php endif; ?>
 </div>
 
-<script>
-    (function () {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-
-        var adminSelect = document.getElementById('is_admin');
-        var editorSelect = document.getElementById('is_editor');
-        var roleConflictHelp = document.getElementById('role_conflict_help');
-        if (adminSelect && editorSelect && roleConflictHelp) {
-            var syncRoleState = function (source) {
-                if (adminSelect.value === 'Yes' && editorSelect.value === 'Yes') {
-                    if (source === 'admin') {
-                        editorSelect.value = 'No';
-                    } else if (source === 'editor') {
-                        adminSelect.value = 'No';
-                    } else {
-                        editorSelect.value = 'No';
-                    }
-                    roleConflictHelp.classList.remove('d-none');
-                } else {
-                    roleConflictHelp.classList.add('d-none');
-                }
-            };
-
-            adminSelect.addEventListener('change', function () {
-                syncRoleState('admin');
-            });
-            editorSelect.addEventListener('change', function () {
-                syncRoleState('editor');
-            });
-            syncRoleState('');
-        }
-
-        var passwordInput = document.getElementById('admin_user_password');
-        var confirmInput = document.getElementById('admin_user_confirm_password');
-        var rules = document.getElementById('adminUserPasswordRules');
-        var status = document.getElementById('adminUserPasswordStatus');
-        var confirmStatus = document.getElementById('adminUserConfirmStatus');
-        if (!passwordInput || !confirmInput || !rules || !status || !confirmStatus) {
-            return;
-        }
-
-        var ruleEls = {
-            length: rules.querySelector('[data-rule="length"]'),
-            upper: rules.querySelector('[data-rule="upper"]'),
-            lower: rules.querySelector('[data-rule="lower"]'),
-            number: rules.querySelector('[data-rule="number"]'),
-            symbol: rules.querySelector('[data-rule="symbol"]')
-        };
-
-        var evaluate = function (value) {
-            return {
-                length: value.length >= 8,
-                upper: /[A-Z]/.test(value),
-                lower: /[a-z]/.test(value),
-                number: /[0-9]/.test(value),
-                symbol: /[^A-Za-z0-9\s]/.test(value)
-            };
-        };
-
-        var updateIndicator = function () {
-            var value = passwordInput.value || '';
-            if (value === '') {
-                Object.keys(ruleEls).forEach(function (key) {
-                    var el = ruleEls[key];
-                    if (!el) {
-                        return;
-                    }
-                    el.classList.remove('text-success', 'text-danger');
-                    el.classList.add('text-danger');
-                });
-                status.textContent = 'Password does not meet all requirements yet.';
-                status.className = 'small text-danger mt-1';
-                passwordInput.setCustomValidity('');
-                return;
-            }
-
-            var checks = evaluate(value);
-            var allPassed = true;
-            Object.keys(ruleEls).forEach(function (key) {
-                var el = ruleEls[key];
-                if (!el) {
-                    return;
-                }
-                var ok = checks[key];
-                el.classList.remove('text-success', 'text-danger');
-                el.classList.add(ok ? 'text-success' : 'text-danger');
-                if (!ok) {
-                    allPassed = false;
-                }
-            });
-
-            passwordInput.setCustomValidity(allPassed ? '' : 'Password does not meet the required complexity.');
-            if (allPassed) {
-                status.textContent = 'Strong password.';
-                status.className = 'small text-success mt-1';
-            } else {
-                status.textContent = 'Password does not meet all requirements yet.';
-                status.className = 'small text-danger mt-1';
-            }
-        };
-
-        var updateConfirmStatus = function () {
-            var pwd = passwordInput.value || '';
-            var cfm = confirmInput.value || '';
-            if (pwd === '' && cfm === '') {
-                confirmStatus.textContent = '';
-                confirmStatus.className = 'small mt-1';
-                confirmInput.setCustomValidity('');
-                return;
-            }
-
-            if (cfm === '') {
-                confirmStatus.textContent = 'Confirm the new password.';
-                confirmStatus.className = 'small text-muted mt-1';
-                confirmInput.setCustomValidity('');
-                return;
-            }
-
-            if (pwd !== '' && cfm === pwd) {
-                confirmStatus.textContent = 'Passwords match.';
-                confirmStatus.className = 'small text-success mt-1';
-                confirmInput.setCustomValidity('');
-                return;
-            }
-
-            confirmStatus.textContent = 'Passwords do not match.';
-            confirmStatus.className = 'small text-danger mt-1';
-            confirmInput.setCustomValidity('Passwords do not match.');
-        };
-
-        var updateVisibility = function () {
-            var showRules = document.activeElement === passwordInput || (passwordInput.value || '') !== '';
-            var showConfirm = document.activeElement === confirmInput || (confirmInput.value || '') !== '';
-            rules.classList.toggle('d-none', !showRules);
-            status.classList.toggle('d-none', !showRules);
-            confirmStatus.classList.toggle('d-none', !showConfirm);
-        };
-
-        passwordInput.addEventListener('input', updateIndicator);
-        passwordInput.addEventListener('input', updateConfirmStatus);
-        confirmInput.addEventListener('input', updateConfirmStatus);
-        passwordInput.addEventListener('focus', updateVisibility);
-        passwordInput.addEventListener('blur', updateVisibility);
-        confirmInput.addEventListener('focus', updateVisibility);
-        confirmInput.addEventListener('blur', updateVisibility);
-        updateIndicator();
-        updateConfirmStatus();
-        updateVisibility();
-    })();
-</script>
+<script src="/js/utils/password-policy.js"></script>
+<script src="/js/pages/admin-users-edit.js"></script>
 
 <?= $this->endSection() ?>

@@ -8,8 +8,15 @@ $notificationItems = is_array($notificationsData['items'] ?? null) ? $notificati
 $notificationCount = (int)($notificationsData['count'] ?? 0);
 $isDemoNotifications = (bool)($notificationsData['is_demo'] ?? false);
 $isImpersonating = (bool)session('impersonating');
-$currentLocale = (string)(service('request')->getLocale() ?: 'en');
-$isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
+$pendingCertificateRequests = 0;
+try {
+    $pendingCertificateRequests = (int)db_connect()
+        ->table('comp_entry_certificate_requests')
+        ->where('request_status', 'Pending')
+        ->countAllResults();
+} catch (\Throwable $e) {
+    $pendingCertificateRequests = 0;
+}
 ?>
 
 <style>
@@ -30,6 +37,25 @@ $isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
     }
     .menu-sub.show {
         display: block;
+    }
+    .menu-count-pill {
+        min-width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0 0.35rem;
+    }
+    .menu-count-pill.is-alert {
+        background: #d93025;
+    }
+    .menu-count-pill.is-ok {
+        background: #1e7e34;
     }
 </style>
 
@@ -96,6 +122,10 @@ $isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
                             <a class="collapse-item pl-4 <?= $is('admin/submission-questions') ? 'active' : '' ?>" href="<?= site_url('admin/submission-questions') ?>">- Submission Questions</a>
                         </div>
                     </div>
+                    <a class="collapse-item menu-parent <?= $is('admin/certificate-requests') ? 'active' : '' ?>" href="<?= site_url('admin/certificate-requests') ?>">
+                        <span>Certificate Requests</span>
+                        <span class="menu-count-pill <?= $pendingCertificateRequests > 0 ? 'is-alert' : 'is-ok' ?>"><?= $pendingCertificateRequests ?></span>
+                    </a>
 
                     <?php $couponsOpen = $is('admin/coupons'); ?>
                     <a class="collapse-item menu-parent <?= $couponsOpen ? 'active is-open' : '' ?>" href="<?= site_url('admin/coupons') ?>">
@@ -145,27 +175,30 @@ $isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
         </li>
     <?php endif; ?>
 
-    <?php if (!$user['is_admin'] && !$user['is_editor'] && $user['profile_completed']): ?>
+    <?php if ($user['profile_completed'] || $user['is_admin'] || $user['is_editor']): ?>
         <li class="nav-item <?= $is('competitions') ? 'active' : '' ?>">
-            <a href="<?= site_url('competitions') ?>" class="nav-link"><i class="fas fa-fw fa-trophy"></i> <span><?= esc(lang('Entrant.nav_competitions')) ?></span></a>
+            <a href="<?= site_url('competitions') ?>" class="nav-link"><i class="fas fa-fw fa-trophy"></i> <span>Competitions</span></a>
         </li>
         <li class="nav-item <?= $is('submissions') ? 'active' : '' ?>">
-            <a href="<?= site_url('submissions') ?>" class="nav-link"><i class="fas fa-fw fa-list"></i> <span><?= esc(lang('Entrant.nav_submissions')) ?></span></a>
+            <a href="<?= site_url('submissions') ?>" class="nav-link"><i class="fas fa-fw fa-list"></i> <span>Submissions</span></a>
+        </li>
+        <li class="nav-item <?= $is('certificates') ? 'active' : '' ?>">
+            <a href="<?= site_url('certificates') ?>" class="nav-link"><i class="fas fa-fw fa-certificate"></i> <span>Certificates</span></a>
         </li>
     <?php endif; ?>
 
     <li class="nav-item <?= $is('profile') ? 'active' : '' ?>">
-        <a href="<?= site_url('profile') ?>" class="nav-link"><i class="fas fa-fw fa-user"></i> <span><?= esc(lang('Entrant.nav_profile')) ?></span></a>
+        <a href="<?= site_url('profile') ?>" class="nav-link"><i class="fas fa-fw fa-user"></i> <span>Profile</span></a>
     </li>
 
     <li class="nav-item">
         <a href="https://www.sparkawards.com/contact/" class="nav-link" target="_blank" rel="noopener">
-            <i class="fas fa-fw fa-question-circle"></i> <span><?= esc(lang('Entrant.nav_support')) ?></span>
+            <i class="fas fa-fw fa-question-circle"></i> <span>Support</span>
         </a>
     </li>
 
     <li class="nav-item">
-        <a href="#" class="nav-link" data-toggle="modal" data-target="#logoutModal"><i class="fas fa-fw fa-sign-out-alt"></i> <span><?= esc(lang('Entrant.nav_logout')) ?></span></a>
+        <a href="#" class="nav-link" data-toggle="modal" data-target="#logoutModal"><i class="fas fa-fw fa-sign-out-alt"></i> <span>Logout</span></a>
     </li>
 
     <hr class="sidebar-divider d-none d-md-block">
@@ -180,7 +213,7 @@ $isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
         <?php
         $displayName = trim((string)(session('name') ?? ''));
         if ($displayName === '') {
-            $displayName = (string)($user['email'] ?? lang('Entrant.account_label'));
+            $displayName = (string)($user['email'] ?? 'Account');
         }
         ?>
 
@@ -198,7 +231,7 @@ $isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
                         <?php endif; ?>
                     </a>
                     <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="alertsDropdown">
-                        <h6 class="dropdown-header"><?= esc(lang('Entrant.topbar_notifications')) ?><?= $isDemoNotifications ? ' ' . lang('Entrant.topbar_demo_suffix') : '' ?></h6>
+                        <h6 class="dropdown-header">Notifications<?= $isDemoNotifications ? ' ' . '(Demo)' : '' ?></h6>
                         <?php if (!empty($notificationItems)): ?>
                             <?php foreach ($notificationItems as $item): ?>
                                 <?php
@@ -228,7 +261,7 @@ $isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
                                     </div>
                                     <div>
                                         <div class="small text-gray-600"><?= esc(format_datetime_ui($when, 'Now')) ?></div>
-                                        <?php if ($title !== ''): ?><div class="font-weight-bold"><?= esc($title) ?></div><?php endif; ?>
+                                        <?php if ($title !== ''): ?><div><?= esc($title) ?></div><?php endif; ?>
                                         <div><?= esc($message) ?></div>
                                         <?php if ($linkText !== '' && $linkUrl !== ''): ?>
                                             <div class="small mt-1 text-primary"><?= esc($linkText) ?></div>
@@ -237,25 +270,10 @@ $isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
                                 </a>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <div class="dropdown-item text-center small text-gray-600"><?= esc(lang('Entrant.topbar_no_notifications')) ?></div>
+                            <div class="dropdown-item text-center small text-gray-600">No active notifications.</div>
                         <?php endif; ?>
                     </div>
                 </li>
-
-                <?php if ($isEntrantLocaleEligible): ?>
-                    <li class="topbar-divider d-none d-sm-block"></li>
-
-                    <li class="nav-item dropdown no-arrow mx-2">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center px-3 py-2 text-gray-600" href="#" id="localeDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="<?= esc(lang('Entrant.language')) ?>" aria-label="<?= esc(lang('Entrant.language')) ?>">
-                            <i class="fas fa-globe-americas fa-lg mr-2" aria-hidden="true"></i>
-                            <span class="d-inline small"><?= esc(lang('Entrant.language')) ?>: <?= esc($currentLocale === 'zh-CN' ? 'ZH-CN' : 'EN') ?></span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="localeDropdown">
-                            <a class="dropdown-item <?= $currentLocale === 'en' ? 'active' : '' ?>" href="<?= site_url('locale/switch/en') ?>"><?= esc(lang('Entrant.language_en_label')) ?></a>
-                            <a class="dropdown-item <?= $currentLocale === 'zh-CN' ? 'active' : '' ?>" href="<?= site_url('locale/switch/zh-CN') ?>"><?= esc(lang('Entrant.language_zh_cn_label')) ?></a>
-                        </div>
-                    </li>
-                <?php endif; ?>
 
                 <li class="topbar-divider d-none d-sm-block"></li>
 
@@ -270,18 +288,18 @@ $isEntrantLocaleEligible = !$user['is_admin'] && !$user['is_editor'];
                         <?php if ($isImpersonating): ?>
                             <a class="dropdown-item text-warning" href="<?= site_url('auth/impersonation/stop') ?>">
                                 <i class="fas fa-user-shield fa-sm fa-fw mr-2 text-warning"></i>
-                                <?= esc(lang('Entrant.stop_impersonating')) ?>
+                                Stop Impersonating
                             </a>
                             <div class="dropdown-divider"></div>
                         <?php endif; ?>
                         <a class="dropdown-item" href="<?= site_url('profile') ?>">
                             <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-600"></i>
-                            <?= esc(lang('Entrant.topbar_edit_profile')) ?>
+                            Edit Profile
                         </a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
                             <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-600"></i>
-                            <?= esc(lang('Entrant.nav_logout')) ?>
+                            Logout
                         </a>
                     </div>
                 </li>

@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Score Results</h1>
-        <a href="<?= site_url('admin/score-results/export?year=' . (int)$year . '&type=' . (int)$type . '&phase=' . rawurlencode((string)$phase) . '&userType=' . rawurlencode($userType) . '&status=' . rawurlencode($status) . '&shortlist=' . rawurlencode($shortlist)) ?>" class="btn btn-sm btn-primary">Export CSV</a>
+    <a href="<?= site_url('admin/score-results/export?year=' . (int)$year . '&type=' . (int)$type . '&phase=' . rawurlencode((string)$phase) . '&userType=' . rawurlencode($userType) . '&status=' . rawurlencode($status)) ?>" class="btn btn-sm btn-primary">Export Excel</a>
     </div>
 
     <div class="card">

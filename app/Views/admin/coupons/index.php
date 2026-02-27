@@ -18,7 +18,7 @@
                 <?php foreach ($rows as $row): ?>
                     <tr>
                         <?php $couponCompId = (int)($row->coupon_comp ?? 0); ?>
-                        <td><a class="font-weight-bold" href="<?= site_url('admin/coupons/edit/' . (int)$row->coupon_id) ?>"><?= esc((string)$row->coupon_code) ?></a></td>
+                        <td><a href="<?= site_url('admin/coupons/edit/' . (int)$row->coupon_id) ?>"><?= esc((string)$row->coupon_code) ?></a></td>
                         <td><?= esc((string)$row->coupon_type) ?></td>
                         <td><?= esc((string)$row->coupon_amount) ?></td>
                         <td><?= esc((string)($competitionLabels[$couponCompId] ?? 'Unknown Competition')) ?></td>

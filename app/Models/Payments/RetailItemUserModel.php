@@ -20,7 +20,7 @@ class RetailItemUserModel extends Model
 
     protected $validationRules = [
         'retail_item_id' => 'required|integer',
-        'entry_id' => 'required|max_length[36]',
+        'entry_id' => 'required|max_length[35]',
         'quantity' => 'required|integer',
     ];
 

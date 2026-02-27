@@ -11,7 +11,7 @@ user_guide_src/cilexer/build/*
 user_guide_src/cilexer/dist/*
 user_guide_src/cilexer/pycilexer.egg-info/*
 
-/_coldfusion_backup/*
+.env
 
 /public/uploads/*
 
@@ -28,3 +28,4 @@ application/logs/*
 /writable/session
 /writable/system-tools
 /writable/uploads
+/public/trash

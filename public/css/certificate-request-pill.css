@@ -1,0 +1,65 @@
+.request-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.request-not-requested {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #4b5563;
+}
+
+.request-pending {
+    background: #ffecec;
+    border-color: #f5b3b3;
+    color: #9b1c1c;
+}
+
+.request-in-review {
+    background: #fff4e5;
+    border-color: #ffd299;
+    color: #8a5200;
+}
+
+.request-quoted {
+    background: #efe9ff;
+    border-color: #cfc2ff;
+    color: #4b2b8a;
+}
+
+.request-paid {
+    background: #e8f5ff;
+    border-color: #b9dcff;
+    color: #0f4c81;
+}
+
+.request-in-production {
+    background: #fff8d9;
+    border-color: #f3df8a;
+    color: #6e5a00;
+}
+
+.request-shipped {
+    background: #e7fbf7;
+    border-color: #a9e8d9;
+    color: #0f6b57;
+}
+
+.request-completed {
+    background: #eaf8ee;
+    border-color: #b9e2c3;
+    color: #1f6b34;
+}
+
+.request-cancelled {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #4b5563;
+}

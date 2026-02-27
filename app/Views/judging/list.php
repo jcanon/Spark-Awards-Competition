@@ -1,72 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
-<style>
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.2rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        line-height: 1;
-        border: 1px solid transparent;
-        white-space: nowrap;
-    }
-
-    .status-pill .medal-icon {
-        font-size: 0.82rem;
-    }
-
-    .status-draft {
-        background: #f3f4f6;
-        border-color: #d1d5db;
-        color: #374151;
-    }
-
-    .status-entrant {
-        background: #e8f3ff;
-        border-color: #bcd8ff;
-        color: #0f4c81;
-    }
-
-    .status-finalist {
-        background: #fff8e5;
-        border-color: #ffd67a;
-        color: #7a4a00;
-    }
-
-    .status-winner {
-        background: #f8f4ff;
-        border-color: #d9c7ff;
-        color: #4b2b8a;
-    }
-
-    .winner-platinum {
-        background: #f4f7fb;
-        border-color: #c9d4e5;
-        color: #2f425b;
-    }
-
-    .winner-gold {
-        background: #fff6de;
-        border-color: #f2ce6a;
-        color: #7d5600;
-    }
-
-    .winner-silver {
-        background: #f4f6f8;
-        border-color: #cfd5dd;
-        color: #4b5563;
-    }
-
-    .winner-bronze {
-        background: #f8eee7;
-        border-color: #d8ae8e;
-        color: #764a2f;
-    }
-</style>
+<link href="/css/pages/judging-list.css" rel="stylesheet">
 
 <div class="container-fluid">
     <?php
@@ -118,40 +53,19 @@
                 <tbody>
                 <?php foreach ($entries as $i => $row): ?>
                     <?php
-                        $statusLabel = (string)($row['entry_status'] ?? '');
-                        $statusClass = 'status-draft';
-                        $medalIconClass = '';
-                        $winnerLevel = trim((string)($row['winner_level_name'] ?? ''));
-
-                        if ($statusLabel === 'Winner' && $winnerLevel !== '') {
-                            $statusLabel .= ': ' . $winnerLevel;
+                        $myScore = $row['_my_score'] ?? null;
+                        $isScored = $myScore !== null && $myScore !== '';
+                        $rowClass = '';
+                        if ($currentView === 'applications') {
+                            $rowClass = $isScored ? 'judging-row-scored' : 'judging-row-unscored';
                         }
 
-                        if ($statusLabel === 'Entrant') {
-                            $statusClass = 'status-entrant';
-                        } elseif ($statusLabel === 'Finalist') {
-                            $statusClass = 'status-finalist';
-                        } elseif (str_starts_with($statusLabel, 'Winner')) {
-                            $statusClass = 'status-winner';
-                            if (strcasecmp($winnerLevel, 'Platinum') === 0) {
-                                $statusClass = 'winner-platinum';
-                                $medalIconClass = 'fas fa-medal';
-                            } elseif (strcasecmp($winnerLevel, 'Gold') === 0) {
-                                $statusClass = 'winner-gold';
-                                $medalIconClass = 'fas fa-medal';
-                            } elseif (strcasecmp($winnerLevel, 'Silver') === 0) {
-                                $statusClass = 'winner-silver';
-                                $medalIconClass = 'fas fa-medal';
-                            } elseif (strcasecmp($winnerLevel, 'Bronze') === 0) {
-                                $statusClass = 'winner-bronze';
-                                $medalIconClass = 'fas fa-medal';
-                            }
-                        }
+                        [$statusLabel, $statusClass, $medalIconClass] = entry_status_pill($row);
                     ?>
-                    <tr>
+                    <tr class="<?= esc($rowClass) ?>">
                         <td><?= $i + 1 ?></td>
                         <td>
-                            <a class="font-weight-bold" href="<?= site_url('judging/entry/' . rawurlencode((string)$row['entry_id']) . '/status/' . rawurlencode($status) . '?phase=' . rawurlencode((string)$phase) . '&comp=' . (int)($row['comp_id'] ?? $compId) . ($fullList ? '&all=1' : '') . '&view=' . rawurlencode($currentView)) ?>">
+                            <a href="<?= site_url('judging/entry/' . rawurlencode((string)$row['entry_id']) . '/status/' . rawurlencode($status) . '?phase=' . rawurlencode((string)$phase) . '&comp=' . (int)($row['comp_id'] ?? $compId) . ($fullList ? '&all=1' : '') . '&view=' . rawurlencode($currentView)) ?>">
                                 <?= esc((string)$row['design_name']) ?>
                             </a>
                         </td>
@@ -163,7 +77,7 @@
                                 <?= esc($statusLabel) ?>
                             </span>
                         </td>
-                        <td><?= esc((string)($row['_my_score'] ?? '')) ?></td>
+                        <td><?= esc((string)$myScore) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

@@ -38,7 +38,7 @@
                     <tr>
                         <td>
                             <?php if (!empty($row['comp_id'])): ?>
-                                <a class="font-weight-bold" href="<?= site_url('admin/competitions/edit/' . (int) $row['comp_id']) ?>">
+                                <a href="<?= site_url('admin/competitions/edit/' . (int) $row['comp_id']) ?>">
                                     <?= esc((string) ($row['competition'] ?? '')) ?>
                                 </a>
                             <?php else: ?>

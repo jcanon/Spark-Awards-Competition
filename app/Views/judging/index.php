@@ -44,7 +44,7 @@
                     <?php endforeach; ?>
                     <?php $voteUrl = site_url('judging/entries/competition/' . (int)$row['comp_id'] . '/status/Entrant?phase=1'); ?>
                     <tr>
-                        <td><a class="font-weight-bold" href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
+                        <td><a href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
                         <td><?= count($entries) ?></td>
                         <td><?= (int)$scoredCount ?> out of <?= count($entries) ?></td>
                         <td><?= esc(format_datetime_ui((string)$row['jury_phase_1_close'])) ?></td>
@@ -76,7 +76,7 @@
                     <?php endforeach; ?>
                     <?php $voteUrl = site_url('judging/entries/competition/' . (int)$row['comp_id'] . '/status/Entrant?phase=1'); ?>
                     <tr>
-                        <td><a class="font-weight-bold" href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
+                        <td><a href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
                         <td><?= count($entries) ?></td>
                         <td><?= (int)$scoredCount ?> out of <?= count($entries) ?></td>
                         <td><?= esc(format_datetime_ui((string)$row['jury_phase_1_open'])) ?></td>
@@ -107,7 +107,7 @@
                     <?php endforeach; ?>
                     <?php $voteUrl = site_url('judging/entries/competition/' . (int)$row['comp_id'] . '/status/Finalist?phase=2'); ?>
                     <tr>
-                        <td><a class="font-weight-bold" href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
+                        <td><a href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
                         <td><?= count($entries) ?></td>
                         <td><?= (int)$scoredCount ?> out of <?= count($entries) ?></td>
                         <td><?= esc(format_datetime_ui((string)$row['jury_phase_2_close'])) ?></td>
@@ -118,39 +118,7 @@
             </table>
             <?php endif; ?>
             <?php if ($phase2AllEntriesUrl !== null): ?>
-                <p class="mb-0 mt-2"><a class="font-weight-bold" href="<?= esc($phase2AllEntriesUrl) ?>">SPARK: ALL ENTRIES LIST &raquo;</a></p>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Open Phase 2 Shortlist Judging</h6></div>
-        <div class="card-body table-responsive">
-            <?php if (empty($openPhase2Short)): ?>
-                <p class="mb-0">There are currently no open phase 2 shortlist competitions at this time.</p>
-            <?php else: ?>
-            <table class="table table-bordered table-hover">
-                <thead><tr><th>Competition</th><th>Entries</th><th>My Votes</th><th>Closes</th><th></th></tr></thead>
-                <tbody>
-                <?php foreach ($openPhase2Short as $row): ?>
-                    <?php $entries = service('judging')->judgingEntries((int)$row['comp_id'], 'Finalist'); ?>
-                    <?php $entryIds = array_values(array_map(static fn (array $entry): string => (string)($entry['entry_id'] ?? ''), $entries)); ?>
-                    <?php $scoreMap = service('judging')->judgingScoresByEntryIds($entryIds, '2'); ?>
-                    <?php $scoredCount = 0; ?>
-                    <?php foreach ($entryIds as $entryId): ?>
-                        <?php if (array_key_exists($entryId, $scoreMap) && $scoreMap[$entryId] !== null) { $scoredCount++; } ?>
-                    <?php endforeach; ?>
-                    <?php $voteUrl = site_url('judging/entries/competition/' . (int)$row['comp_id'] . '/status/Finalist?phase=2'); ?>
-                    <tr>
-                        <td><a class="font-weight-bold" href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
-                        <td><?= count($entries) ?></td>
-                        <td><?= (int)$scoredCount ?> out of <?= count($entries) ?></td>
-                        <td><?= esc(format_datetime_ui((string)$row['jury_phase_2_close'])) ?></td>
-                        <td class="text-center"><a class="btn btn-sm btn-primary" href="<?= $voteUrl ?>">Vote Now</a></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+                <p class="mb-0 mt-2"><a href="<?= esc($phase2AllEntriesUrl) ?>">SPARK: ALL ENTRIES LIST &raquo;</a></p>
             <?php endif; ?>
         </div>
     </div>
@@ -174,7 +142,7 @@
                     <?php endforeach; ?>
                     <?php $voteUrl = site_url('judging/entries/competition/' . (int)$row['comp_id'] . '/status/Finalist?phase=2'); ?>
                     <tr>
-                        <td><a class="font-weight-bold" href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
+                        <td><a href="<?= $voteUrl ?>">SPARK:<?= esc(strtoupper((string)$row['comp_type_name'])) ?> <?= esc((string)$row['comp_year']) ?></a></td>
                         <td><?= count($entries) ?></td>
                         <td><?= (int)$scoredCount ?> out of <?= count($entries) ?></td>
                         <td><?= esc(format_datetime_ui((string)$row['jury_phase_2_open'])) ?></td>
@@ -184,7 +152,7 @@
             </table>
             <?php endif; ?>
             <?php if ($phase2AllEntriesUrl !== null): ?>
-                <p class="mb-0 mt-2"><a class="font-weight-bold" href="<?= esc($phase2AllEntriesUrl) ?>">SPARK: ALL ENTRIES LIST &raquo;</a></p>
+                <p class="mb-0 mt-2"><a href="<?= esc($phase2AllEntriesUrl) ?>">SPARK: ALL ENTRIES LIST &raquo;</a></p>
             <?php endif; ?>
         </div>
     </div>

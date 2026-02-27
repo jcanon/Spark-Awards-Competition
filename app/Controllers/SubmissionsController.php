@@ -10,6 +10,8 @@ use Config\Services;
 
 class SubmissionsController extends BaseController
 {
+    private const VIDEO_URL_ERROR = 'Video URL must be a valid YouTube or Vimeo URL (for example: https://www.youtube.com/embed/VIDEO_ID or https://player.vimeo.com/video/VIDEO_ID).';
+
     private function wordCount(string $value): int
     {
         $value = trim($value);
@@ -20,46 +22,23 @@ class SubmissionsController extends BaseController
         return count($matches[0] ?? []);
     }
 
-    private function isValidYoutubeUrl(string $url): bool
-    {
-        $url = trim($url);
-        if ($url === '') {
-            return true;
-        }
-        if (preg_match('/^[\w\-]{6,25}$/', $url) === 1) {
-            return true;
-        }
-
-        $patterns = [
-            '#^https?://youtu\.be/[\w\-]{6,25}(?:\?.*)?$#i',
-            '#^https?://(?:www\.)?youtube\.com/watch\?v=[\w\-]{6,25}(?:&.*)?$#i',
-            '#^https?://(?:www\.)?youtube\.com/embed/[\w\-]{6,25}(?:\?.*)?$#i',
-        ];
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $url) === 1) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private function validateEntrantContentRules(array $form): array
     {
         $errors = [];
 
         $short = (string) ($form['short_description'] ?? '');
         if ($this->wordCount($short) > 50) {
-            $errors['short_description'] = lang('Entrant.short_description_word_limit_error');
+            $errors['short_description'] = 'Short Description must be 50 words or fewer.';
         }
 
         $full = (string) ($form['full_description'] ?? '');
         if ($this->wordCount($full) > 200) {
-            $errors['full_description'] = lang('Entrant.full_description_word_limit_error');
+            $errors['full_description'] = 'Full Description must be 200 words or fewer.';
         }
 
-        $youtube = (string) ($form['youtube_url'] ?? '');
-        if (! $this->isValidYoutubeUrl($youtube)) {
-            $errors['youtube_url'] = lang('Entrant.youtube_share_url_invalid');
+        $videoUrl = (string) ($form['youtube_url'] ?? '');
+        if (!(new SubmissionsService())->isValidVideoEmbedUrl($videoUrl)) {
+            $errors['youtube_url'] = self::VIDEO_URL_ERROR;
         }
 
         foreach ($form as $key => $value) {
@@ -67,7 +46,7 @@ class SubmissionsController extends BaseController
                 continue;
             }
             if ($this->wordCount((string) $value) > 50) {
-                $errors[(string) $key] = lang('Entrant.question_answer_word_limit_error');
+                $errors[(string) $key] = 'Each answer must be 50 words or fewer.';
             }
         }
 
@@ -135,7 +114,7 @@ class SubmissionsController extends BaseController
 
         $compId = $compId ?? (int) ($this->request->getGet('comp_id') ?? 0);
         if ($compId <= 0) {
-            return redirect()->to('/competitions')->with('error', lang('Entrant.select_competition_first'));
+            return redirect()->to('/competitions')->with('error', 'Select a competition first.');
         }
 
         $comp = (new CompetitionModel())
@@ -143,7 +122,7 @@ class SubmissionsController extends BaseController
             ->where('comp_id', $compId)
             ->first();
         if (! $comp) {
-            return redirect()->to('/competitions')->with('error', lang('Entrant.invalid_competition'));
+            return redirect()->to('/competitions')->with('error', 'Invalid competition.');
         }
 
         $svc = new SubmissionsService();
@@ -157,6 +136,7 @@ class SubmissionsController extends BaseController
             'isEdit'      => false,
             'user'        => $user,
             'entry'       => null,
+            'videoEmbedUrl' => '',
             'competition' => $comp,
             'compId'      => (int) $compId,
             'designTypes' => $designTypes,
@@ -174,7 +154,7 @@ class SubmissionsController extends BaseController
 
         $compId = (int) $this->request->getPost('comp_id');
         if ($compId <= 0) {
-            return redirect()->back()->withInput()->with('errors', ['general' => lang('Entrant.invalid_competition')]);
+            return redirect()->back()->withInput()->with('errors', ['general' => 'Invalid competition.']);
         }
 
         $rules = $this->submissionRules(true);
@@ -198,10 +178,10 @@ class SubmissionsController extends BaseController
         }
 
         if ($this->request->getPost('submitPayment')) {
-            return redirect()->to('/payments/entry/' . rawurlencode($entryId) . '/phase/1')->with('success', lang('Entrant.submission_saved_proceed_payment'));
+            return redirect()->to('/payments/entry/' . rawurlencode($entryId) . '/phase/1')->with('success', 'Submission saved. Proceed to payment.');
         }
 
-        return redirect()->to('/submissions')->with('success', lang('Entrant.submission_saved_draft'));
+        return redirect()->to('/submissions')->with('success', 'Submission saved as draft.');
     }
 
     public function update(string $entryId)
@@ -216,13 +196,14 @@ class SubmissionsController extends BaseController
         $svc   = new SubmissionsService();
         $entry = $svc->getEntryByID($entryId);
         if (! $entry) {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.entry_not_found'));
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
         }
 
         $comp = (new CompetitionModel())
             ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
             ->where('comp_id', (int) $entry->comp_id)
             ->first();
+        $isReadOnly = $comp && $this->isEditLockedForStatus((string)($entry->entry_status ?? ''), $comp);
 
         $designTypes = $svc->getDesignTypes((int) $comp->comp_type_id);
         $questions   = (new EntryQuestionModel())
@@ -244,8 +225,10 @@ class SubmissionsController extends BaseController
 
         return view('submissions/form', [
             'isEdit'      => true,
+            'isReadOnly'  => $isReadOnly,
             'user'        => $user,
             'entry'       => $entry,
+            'videoEmbedUrl' => $svc->normalizeVideoEmbedUrl((string)($entry->youtube_url ?? '')),
             'competition' => $comp,
             'compId'      => (int) $entry->comp_id,
             'designTypes' => $designTypes,
@@ -264,7 +247,13 @@ class SubmissionsController extends BaseController
         $svc   = new SubmissionsService();
         $entry = $svc->getEntryByID($entryId);
         if (! $entry) {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.entry_not_found'));
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
+        }
+        $comp = (new CompetitionModel())
+            ->where('comp_id', (int) $entry->comp_id)
+            ->first();
+        if ($comp && $this->isEditLockedForStatus((string)($entry->entry_status ?? ''), $comp)) {
+            return redirect()->to('/submissions')->with('error', 'This submission is locked during judging and cannot be edited right now.');
         }
 
         $rules = $this->submissionRules(false);
@@ -295,7 +284,7 @@ class SubmissionsController extends BaseController
             $file = $this->request->getFile('low_photo_' . $i);
             $hasUpload = $file && $file->getError() !== UPLOAD_ERR_NO_FILE;
             if (!isset($existingByOrder[$i]) && !$hasUpload) {
-                $requiredPhotoErrors['low_photo_' . $i] = lang('Entrant.photo_slot_required', [$i]);
+                $requiredPhotoErrors['low_photo_' . $i] = 'Photo ' . $i . ' is required. Please upload a JPG image.';
             }
         }
         if ($requiredPhotoErrors !== []) {
@@ -312,7 +301,12 @@ class SubmissionsController extends BaseController
             return redirect()->back()->withInput()->with('errors', $photoErrors);
         }
 
-        return redirect()->to('/submissions')->with('success', lang('Entrant.submission_updated'));
+        $phase1Paid = strtoupper((string)($entry->phase_1_payment ?? 'Unpaid')) === 'PAID';
+        if ($this->request->getPost('submitPayment') && ! $phase1Paid) {
+            return redirect()->to('/payments/entry/' . rawurlencode($entryId) . '/phase/1')->with('success', 'Submission updated. Proceed to payment.');
+        }
+
+        return redirect()->to('/submissions')->with('success', 'Submission updated.');
     }
 
     public function delete(string $entryId)
@@ -321,7 +315,7 @@ class SubmissionsController extends BaseController
             return redirect()->to('/auth/login');
         }
         if ((string)session('role') === 'editor') {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.editors_cannot_delete'));
+            return redirect()->to('/submissions')->with('error', 'Editors are not allowed to delete records.');
         }
 
         $svc = new SubmissionsService();
@@ -329,11 +323,11 @@ class SubmissionsController extends BaseController
         try {
             $ok = $svc->deleteSubmission($entryId);
             if (! $ok) {
-                return redirect()->to('/submissions')->with('error', lang('Entrant.entry_not_found_or_owned'));
+                return redirect()->to('/submissions')->with('error', 'Entry not found or not owned by you.');
             }
-            return redirect()->to('/submissions')->with('success', lang('Entrant.entry_deleted'));
+            return redirect()->to('/submissions')->with('success', 'Entry successfully deleted.');
         } catch (\Throwable $e) {
-            return redirect()->to('/submissions')->with('error', lang('Entrant.unable_delete_entry'));
+            return redirect()->to('/submissions')->with('error', 'Could not delete entry at this time.');
         }
     }
 
@@ -354,10 +348,10 @@ class SubmissionsController extends BaseController
             if ($this->request->isAJAX()) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'ok' => false,
-                    'error' => lang('Entrant.first_three_photos_cannot_delete'),
+                    'error' => 'Photos 1-3 are required and cannot be deleted.',
                 ]);
             }
-            return redirect()->back()->with('error', lang('Entrant.first_three_photos_cannot_delete'));
+            return redirect()->back()->with('error', 'Photos 1-3 are required and cannot be deleted.');
         }
         // Ownership check: ensure photo's entry belongs to current user
         $svc   = new SubmissionsService();
@@ -371,7 +365,7 @@ class SubmissionsController extends BaseController
             return $this->response->setJSON(['ok' => (bool) $ok]);
         }
 
-        return redirect()->back()->with($ok ? 'success' : 'error', $ok ? lang('Entrant.photo_deleted') : lang('Entrant.unable_delete_photo'));
+        return redirect()->back()->with($ok ? 'success' : 'error', $ok ? 'Photo deleted.' : 'Could not delete photo.');
     }
 
     // ---------- helpers ----------
@@ -427,12 +421,12 @@ class SubmissionsController extends BaseController
 
             $clientExt = strtolower((string) $file->getClientExtension());
             if (! in_array($clientExt, ['jpg', 'jpeg'], true)) {
-                return ['photo' . $i => lang('Entrant.only_valid_jpg')];
+                return ['photo' . $i => 'Only valid JPG images are allowed.'];
             }
 
             $imgInfo = @getimagesize($file->getTempName());
             if (!is_array($imgInfo) || ($imgInfo['mime'] ?? '') !== 'image/jpeg') {
-                return ['photo' . $i => lang('Entrant.only_valid_jpg')];
+                return ['photo' . $i => 'Only valid JPG images are allowed.'];
             }
 
             // Name format: CompPhotoLow_<order>_<photo_id>.jpg
@@ -467,14 +461,38 @@ class SubmissionsController extends BaseController
                     $photoModel->insert($data, false);
                 }
             } catch (\Throwable $e) {
-                return ['photo' . $i => lang('Entrant.image_processing_failed')];
+                return ['photo' . $i => 'Image processing failed.'];
             }
         }
 
         if ($requireAtLeastThree && $saved < 3) {
-            return ['photos' => lang('Entrant.upload_at_least_three_jpg')];
+            return ['photos' => 'Please upload at least three JPG images (1 MB max each).'];
         }
 
         return null;
+    }
+
+    private function isEditLockedForStatus(string $entryStatus, object $competition): bool
+    {
+        $now = date('Y-m-d H:i:s');
+        $status = trim($entryStatus);
+
+        if ($status === 'Draft' || $status === 'Entrant') {
+            $open = trim((string)($competition->jury_phase_1_open ?? ''));
+            $close = trim((string)($competition->jury_phase_1_close ?? ''));
+            if ($open !== '' && $close !== '' && $open <= $now && $close > $now) {
+                return true;
+            }
+        }
+
+        if ($status === 'Finalist') {
+            $open = trim((string)($competition->jury_phase_2_open ?? ''));
+            $close = trim((string)($competition->jury_phase_2_close ?? ''));
+            if ($open !== '' && $close !== '' && $open <= $now && $close > $now) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

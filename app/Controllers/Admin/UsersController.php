@@ -153,6 +153,14 @@ class UsersController extends BaseController
             }
         }
 
+        $missing = $this->missingRequiredProfileFields((array)$this->request->getPost());
+        if ($missing !== []) {
+            return redirect()->back()->withInput()->with(
+                'error',
+                'Missing required fields: ' . implode(', ', $missing) . '.'
+            );
+        }
+
         $form = $this->request->getPost();
         $form['is_admin'] = ($this->request->getPost('is_admin') === 'Yes') ? 'Yes' : 'No';
         $form['is_editor'] = ($this->request->getPost('is_editor') === 'Yes') ? 'Yes' : 'No';
@@ -268,5 +276,33 @@ class UsersController extends BaseController
     private function isElevatedUser(array $user): bool
     {
         return (($user['is_admin'] ?? 'No') === 'Yes') || (($user['is_editor'] ?? 'No') === 'Yes');
+    }
+
+    private function missingRequiredProfileFields(array $form): array
+    {
+        $required = [
+            'first_name' => 'First Name',
+            'last_name' => 'Last Name',
+            'phone' => 'Phone',
+            'company_name' => 'Company',
+            'address1' => 'Address 1',
+            'city' => 'City',
+            'state' => 'State / Province',
+            'country' => 'Country',
+            'how_did_you_find_us' => 'How did you find us?',
+        ];
+
+        $missing = [];
+        foreach ($required as $key => $label) {
+            if (trim((string)($form[$key] ?? '')) === '') {
+                $missing[] = $label;
+            }
+        }
+
+        if ((int)($form['user_type_id'] ?? 0) <= 0) {
+            $missing[] = 'User Type';
+        }
+
+        return $missing;
     }
 }

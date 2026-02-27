@@ -39,22 +39,6 @@ class JudgingService
             ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
             ->where('jury_phase_2_open <=', $now)
             ->where('jury_phase_2_close >', $now)
-            ->where('shortlist_enabled', 0)
-            ->where('b.comp_type_id <>', 9)
-            ->orderBy('comp_phase_2_close ASC, b.comp_type_name ASC')
-            ->asArray()
-            ->findAll();
-    }
-
-    public function getOpenPhase2ShortlistJudging(): array
-    {
-        $now = date('Y-m-d H:i:s');
-
-        return (new CompetitionModel())
-            ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
-            ->where('jury_phase_2_open <=', $now)
-            ->where('jury_phase_2_close >', $now)
-            ->where('shortlist_enabled', 1)
             ->where('b.comp_type_id <>', 9)
             ->orderBy('comp_phase_2_close ASC, b.comp_type_name ASC')
             ->asArray()
@@ -105,10 +89,6 @@ class JudgingService
 
     public function judgingEntries(int $compId, string $entryStatus): array
     {
-        // shortlist filter
-        $comp = (new CompetitionModel())->select('shortlist_enabled')->find($compId);
-        $shortlistEnabled = $comp ? (int)($comp->shortlist_enabled ?? 0) : 0;
-
         $builder = db_connect()->table('comp_entries a')
             ->select('a.*')
             ->join('comp_competitions b', 'a.comp_id = b.comp_id')
@@ -116,10 +96,6 @@ class JudgingService
             ->join('comp_users d', 'a.user_id = d.user_id')
             ->where('a.comp_id', $compId)
             ->where('a.entry_status', $entryStatus);
-
-        if ($shortlistEnabled === 1) {
-            $builder->where('a.shortlist', 1);
-        }
 
         $builder->orderBy('a.design_name', 'ASC');
 
@@ -273,14 +249,12 @@ class JudgingService
         int $compType,
         string $compPhase,
         string $compUserType,
-        string $compStatus,
-        string $shortlist
+        string $compStatus
     ): array {
         $params = [];
         $sql = "
             SELECT DISTINCT
                 b.entry_id,
-                b.shortlist,
                 b.design_name,
                 b.entry_status,
                 b.designer_first_name,
@@ -318,12 +292,6 @@ class JudgingService
         if (strcasecmp($compStatus, 'all') !== 0) {
             $sql .= " AND b.entry_status = ?";
             $params[] = $compStatus;
-        }
-
-        if (strcasecmp($shortlist, 'Yes') === 0) {
-            $sql .= " AND b.shortlist = 1";
-        } elseif (strcasecmp($shortlist, 'No') === 0) {
-            $sql .= " AND b.shortlist = 0";
         }
 
         return db_connect()->query($sql, $params)->getResultArray();

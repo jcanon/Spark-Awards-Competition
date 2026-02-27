@@ -24,8 +24,6 @@ $routes->post('auth/password-expired', 'Auth\PasswordExpiryController::update', 
 $routes->get('auth/2fa', 'Auth\TwoFactorController::start', ['filter' => 'auth:admin,editor']);
 $routes->get('auth/2fa/callback', 'Auth\TwoFactorController::callback', ['filter' => 'auth:admin,editor']);
 $routes->post('auth/2fa/recovery', 'Auth\TwoFactorController::verifyRecoveryCode', ['filter' => 'auth:admin,editor']);
-$routes->get('locale/switch/(:any)', 'LocaleController::switch/$1', ['filter' => 'auth']);
-
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('home', 'HomeController::index');
 
@@ -50,6 +48,12 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('photo/delete/(:num)', 'SubmissionsController::deletePhoto/$1');
     });
 
+    $routes->group('certificates', static function ($routes) {
+        $routes->get('/', 'CertificatesController::index');
+        $routes->get('request/(:segment)', 'CertificatesController::request/$1');
+        $routes->post('request/(:segment)', 'CertificatesController::save/$1');
+    });
+
     $routes->group('payments', static function ($routes) {
         $routes->get('entry/(:segment)/phase/(:num)', 'PaymentsController::show/$1/$2');
         $routes->post('entry/(:segment)/phase/(:num)/coupon', 'PaymentsController::setCoupon/$1/$2');
@@ -58,6 +62,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('entry/(:segment)/phase/(:num)/checkout', 'PaymentsController::checkout/$1/$2');
         $routes->get('entry/(:segment)/phase/(:num)/receipt', 'PaymentsController::receipt/$1/$2');
         $routes->get('entry/(:segment)/phase/(:num)/receipt-content', 'PaymentsController::receiptContent/$1/$2');
+        $routes->get('entry/(:segment)/phase/(:num)/receipt-pdf', 'PaymentsController::receiptPdf/$1/$2');
         $routes->post('entry/(:segment)/phase/(:num)/success', 'PaymentsController::success/$1/$2');
         $routes->get('hosted-return', 'PaymentController::hostedReturn');
     });
@@ -137,6 +142,11 @@ $routes->group('admin', ['filter' => 'auth:admin,editor,2fa'], static function (
     $routes->get('submissions/judging-cards', 'Admin\SubmissionsController::judgingCards');
     $routes->get('submissions/receipt/(:num)/(:segment)', 'Admin\SubmissionsController::receipt/$1/$2');
     $routes->get('submissions/receipt-content/(:num)/(:segment)', 'Admin\SubmissionsController::receiptContent/$1/$2');
+    $routes->get('submissions/receipt-pdf/(:num)/(:segment)', 'Admin\SubmissionsController::receiptPdf/$1/$2');
+    $routes->get('certificate-requests', 'Admin\CertificateRequestsController::index');
+    $routes->get('certificate-requests/edit/(:num)', 'Admin\CertificateRequestsController::edit/$1');
+    $routes->post('certificate-requests/status/(:num)', 'Admin\CertificateRequestsController::updateStatus/$1');
+    $routes->post('certificate-requests/update/(:num)', 'Admin\CertificateRequestsController::update/$1');
 
     $routes->get('score-results', 'Admin\ScoreResultsController::index');
     $routes->post('score-results/bulk', 'Admin\ScoreResultsController::bulk');

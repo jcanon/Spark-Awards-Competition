@@ -11,6 +11,11 @@ use App\Models\Admin\CompetitionTypeModel;
  */
 class CompetitionBrowseService
 {
+    private function shouldShowAllCompetitionTypesForCurrentUser(): bool
+    {
+        return (bool)session('is_admin') || (bool)session('is_editor');
+    }
+
     /**
      * Is the given user a student based on comp_user_type.user_type_pricing.
      * Kept as a small direct query for performance.
@@ -41,14 +46,17 @@ class CompetitionBrowseService
         if (!$uid) {
             return [];
         }
-        $isStudent = $this->userIsStudent($uid) ? 1 : 0;
         $now = date('Y-m-d H:i:s');
-
-        return (new CompetitionModel())
+        $builder = (new CompetitionModel())
             ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
             ->where('comp_phase_1_open <=', $now)
-            ->where('comp_phase_1_close >', $now)
-            ->where('b.is_student_comp', $isStudent)
+            ->where('comp_phase_1_close >', $now);
+
+        if (!$this->shouldShowAllCompetitionTypesForCurrentUser()) {
+            $builder->where('b.is_student_comp', $this->userIsStudent($uid) ? 1 : 0);
+        }
+
+        return $builder
             ->orderBy('comp_phase_1_close ASC, b.comp_type_name ASC')
             ->findAll(); // array<Competition>
     }
@@ -59,14 +67,17 @@ class CompetitionBrowseService
         if (!$uid) {
             return [];
         }
-        $isStudent = $this->userIsStudent($uid) ? 1 : 0;
         $now = date('Y-m-d H:i:s');
-
-        return (new CompetitionModel())
+        $builder = (new CompetitionModel())
             ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
             ->where('comp_phase_2_open <=', $now)
-            ->where('comp_phase_2_close >', $now)
-            ->where('b.is_student_comp', $isStudent)
+            ->where('comp_phase_2_close >', $now);
+
+        if (!$this->shouldShowAllCompetitionTypesForCurrentUser()) {
+            $builder->where('b.is_student_comp', $this->userIsStudent($uid) ? 1 : 0);
+        }
+
+        return $builder
             ->orderBy('comp_phase_2_close ASC, b.comp_type_name ASC')
             ->findAll();
     }
@@ -77,12 +88,15 @@ class CompetitionBrowseService
         if (!$uid) {
             return [];
         }
-        $isStudent = $this->userIsStudent($uid) ? 1 : 0;
-
-        return (new CompetitionModel())
+        $builder = (new CompetitionModel())
             ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
-            ->where('comp_phase_1_open >', date('Y-m-d H:i:s'))
-            ->where('b.is_student_comp', $isStudent)
+            ->where('comp_phase_1_open >', date('Y-m-d H:i:s'));
+
+        if (!$this->shouldShowAllCompetitionTypesForCurrentUser()) {
+            $builder->where('b.is_student_comp', $this->userIsStudent($uid) ? 1 : 0);
+        }
+
+        return $builder
             ->orderBy('comp_phase_1_open ASC, b.comp_type_name ASC')
             ->findAll();
     }

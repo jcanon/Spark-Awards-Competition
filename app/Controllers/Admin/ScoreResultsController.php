@@ -6,6 +6,11 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Services\Admin\SubmissionsAdminService;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ScoreResultsController extends BaseController
 {
@@ -17,8 +22,7 @@ class ScoreResultsController extends BaseController
             $filters['type'],
             $filters['phase'],
             $filters['userType'],
-            $filters['status'],
-            $filters['shortlist']
+            $filters['status']
         );
 
         $entryIds = array_map(static fn (array $row): string => (string)($row['entry_id'] ?? ''), $rows);
@@ -62,40 +66,15 @@ class ScoreResultsController extends BaseController
                 continue;
             }
 
-            if ($action === 'shortlist_add') {
-                db_connect()->table('comp_entries')->where('entry_id', $entryId)->update(['shortlist' => 1]);
-                $updated++;
-            } elseif ($action === 'shortlist_remove') {
-                db_connect()->table('comp_entries')->where('entry_id', $entryId)->update(['shortlist' => 0]);
-                $updated++;
-            } elseif ($action === 'non_finalist') {
-                service('judging')->updateStatus($entryId, 'Entrant');
-                db_connect()->table('comp_entries')->where('entry_id', $entryId)->update(['entry_non_finalist' => 'Yes']);
-                $updated++;
-            } elseif ($action === 'finalist') {
-                service('judging')->updateStatus($entryId, 'Finalist');
-                db_connect()->table('comp_entries')->where('entry_id', $entryId)->update(['entry_non_finalist' => 'No']);
-                $updated++;
-            } elseif ($action === 'winner_platinum') {
-                service('judging')->updateStatus($entryId, 'Winner');
-                db_connect()->table('comp_entries')->where('entry_id', $entryId)->update(['winner_level' => 1]);
-                $updated++;
-            } elseif ($action === 'winner_gold') {
-                service('judging')->updateStatus($entryId, 'Winner');
-                db_connect()->table('comp_entries')->where('entry_id', $entryId)->update(['winner_level' => 2]);
-                $updated++;
-            } elseif ($action === 'winner_silver') {
-                service('judging')->updateStatus($entryId, 'Winner');
-                db_connect()->table('comp_entries')->where('entry_id', $entryId)->update(['winner_level' => 3]);
-                $updated++;
-            } elseif ($action === 'winner_bronze') {
-                service('judging')->updateStatus($entryId, 'Winner');
-                db_connect()->table('comp_entries')->where('entry_id', $entryId)->update(['winner_level' => 4]);
-                $updated++;
-            } elseif ($action === 'delete') {
+            if ($action === 'delete') {
                 if ($adminSubs->delete($entryId)) {
                     $updated++;
                 }
+                continue;
+            }
+
+            if ($this->applyBulkStatusAction($entryId, $action)) {
+                $updated++;
             }
         }
 
@@ -110,8 +89,7 @@ class ScoreResultsController extends BaseController
             $filters['type'],
             $filters['phase'],
             $filters['userType'],
-            $filters['status'],
-            $filters['shortlist']
+            $filters['status']
         );
 
         foreach ($rows as &$row) {
@@ -126,14 +104,73 @@ class ScoreResultsController extends BaseController
         }
         unset($row);
 
-        $csv = $this->toCsv($rows);
-        $filename = 'score-results-' . date('Ymd_His') . '.csv';
+        $rows = $this->sortExportRows($rows);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Score Results');
+
+        if ($rows !== []) {
+            $headers = array_keys($rows[0]);
+            $columnCount = count($headers);
+
+            foreach ($headers as $index => $header) {
+                $col = $index + 1;
+                $cell = Coordinate::stringFromColumnIndex($col) . '1';
+                $sheet->setCellValueExplicit($cell, (string)$header, DataType::TYPE_STRING);
+            }
+
+            $lastHeaderCol = Coordinate::stringFromColumnIndex($columnCount);
+            $sheet->getStyle('A1:' . $lastHeaderCol . '1')->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E9ECEF'],
+                ],
+            ]);
+
+            $rowNum = 2;
+            foreach ($rows as $row) {
+                foreach ($headers as $index => $header) {
+                    $col = $index + 1;
+                    $val = $row[$header] ?? '';
+                    $cell = Coordinate::stringFromColumnIndex($col) . (string)$rowNum;
+                    $sheet->setCellValueExplicit(
+                        $cell,
+                        is_scalar($val) ? (string)$val : (string)json_encode($val, JSON_UNESCAPED_UNICODE),
+                        DataType::TYPE_STRING
+                    );
+                }
+
+                $winnerFill = $this->winnerFillColorHex($row);
+                if ($winnerFill !== null) {
+                    $sheet->getStyle('A' . $rowNum . ':' . $lastHeaderCol . $rowNum)->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => $winnerFill],
+                        ],
+                    ]);
+                }
+
+                $rowNum++;
+            }
+        } else {
+            $sheet->setCellValueExplicit('A1', 'No data', DataType::TYPE_STRING);
+        }
+
+        $filename = 'score-results-' . date('Ymd_His') . '.xlsx';
+        $writer = new Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(false);
+        ob_start();
+        $writer->save('php://output');
+        $binary = (string)ob_get_clean();
 
         return $this->response
-            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setHeader('Cache-Control', 'max-age=0')
             ->setHeader('X-Content-Type-Options', 'nosniff')
-            ->setBody("\xEF\xBB\xBF" . $csv);
+            ->setBody($binary);
     }
 
     private function filters(): array
@@ -144,7 +181,6 @@ class ScoreResultsController extends BaseController
             'phase' => (string)($this->request->getGet('phase') ?? '1'),
             'userType' => (string)($this->request->getGet('userType') ?? 'all'),
             'status' => (string)($this->request->getGet('status') ?? 'All'),
-            'shortlist' => (string)($this->request->getGet('shortlist') ?? 'All'),
         ];
     }
 
@@ -172,27 +208,87 @@ class ScoreResultsController extends BaseController
         return (string)session('role') !== 'editor';
     }
 
-    private function toCsv(array $rows): string
+    private function sortExportRows(array $rows): array
     {
-        if ($rows === []) {
-            return "No data\n";
-        }
-
-        $headers = array_keys($rows[0]);
-        $fh = fopen('php://temp', 'r+');
-        fputcsv($fh, $headers);
-        foreach ($rows as $row) {
-            $line = [];
-            foreach ($headers as $h) {
-                $val = $row[$h] ?? '';
-                $line[] = is_scalar($val) ? (string)$val : json_encode($val, JSON_UNESCAPED_UNICODE);
+        usort($rows, function (array $a, array $b): int {
+            $cmp = $this->statusSortRank($a) <=> $this->statusSortRank($b);
+            if ($cmp !== 0) {
+                return $cmp;
             }
-            fputcsv($fh, $line);
-        }
-        rewind($fh);
-        $csv = (string)stream_get_contents($fh);
-        fclose($fh);
 
-        return $csv;
+            $typeCmp = strcasecmp((string)($a['comp_type_name'] ?? ''), (string)($b['comp_type_name'] ?? ''));
+            if ($typeCmp !== 0) {
+                return $typeCmp;
+            }
+
+            return strcasecmp((string)($a['design_name'] ?? ''), (string)($b['design_name'] ?? ''));
+        });
+
+        return $rows;
+    }
+
+    private function statusSortRank(array $row): int
+    {
+        $status = strtolower(trim((string)($row['entry_status'] ?? '')));
+        $level = strtolower(trim((string)($row['winner_level_name'] ?? '')));
+
+        if ($status === 'winner') {
+            return match ($level) {
+                'platinum' => 1,
+                'gold' => 2,
+                'silver' => 3,
+                'bronze' => 4,
+                default => 5,
+            };
+        }
+
+        return match ($status) {
+            'finalist' => 6,
+            'entrant' => 7,
+            'draft' => 8,
+            default => 9,
+        };
+    }
+
+    private function winnerFillColorHex(array $row): ?string
+    {
+        if (strcasecmp((string)($row['entry_status'] ?? ''), 'Winner') !== 0) {
+            return null;
+        }
+
+        return match (strtolower(trim((string)($row['winner_level_name'] ?? '')))) {
+            'platinum' => 'F4F7FB',
+            'gold' => 'FFF6DE',
+            'silver' => 'F4F6F8',
+            'bronze' => 'F8EEE7',
+            default => 'F8F4FF',
+        };
+    }
+
+    private function applyBulkStatusAction(string $entryId, string $action): bool
+    {
+        $statusMap = [
+            'non_finalist' => 'Entrant',
+            'finalist' => 'Finalist',
+            'winner_platinum' => 'Winner',
+            'winner_gold' => 'Winner',
+            'winner_silver' => 'Winner',
+            'winner_bronze' => 'Winner',
+        ];
+        $entryPatchMap = [
+            'non_finalist' => ['entry_non_finalist' => 'Yes'],
+            'finalist' => ['entry_non_finalist' => 'No'],
+            'winner_platinum' => ['winner_level' => 1],
+            'winner_gold' => ['winner_level' => 2],
+            'winner_silver' => ['winner_level' => 3],
+            'winner_bronze' => ['winner_level' => 4],
+        ];
+
+        if (!isset($statusMap[$action], $entryPatchMap[$action])) {
+            return false;
+        }
+
+        service('judging')->updateStatus($entryId, $statusMap[$action]);
+        return db_connect()->table('comp_entries')->where('entry_id', $entryId)->update($entryPatchMap[$action]);
     }
 }

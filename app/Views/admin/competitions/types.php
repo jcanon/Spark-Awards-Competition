@@ -48,7 +48,7 @@
                     <?php if ($archived === 1) continue; ?>
                     <tr>
                         <td>
-                            <a class="font-weight-bold" href="<?= site_url('admin/competition-types/edit/' . $id) ?>">
+                            <a href="<?= site_url('admin/competition-types/edit/' . $id) ?>">
                                 <?= esc($name) ?>
                             </a>
                         </td>

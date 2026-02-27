@@ -49,13 +49,12 @@ class UserEntriesModel extends Model
         'design_stage',
         'judges_comments',
         'entry_non_finalist',
-        'shortlist',
         'client_brandname',
     ];
 
     protected $validationRules = [
-        'entry_id' => 'required|max_length[36]',
-        'user_id' => 'required|max_length[36]',
+        'entry_id' => 'required|max_length[35]',
+        'user_id' => 'required|max_length[35]',
         'comp_id' => 'required|integer',
         'entry_status' => 'required|in_list[Draft,Entrant,Finalist,Winner]',
         'winner_level' => 'permit_empty|integer',
@@ -69,6 +68,5 @@ class UserEntriesModel extends Model
         'series' => 'permit_empty|in_list[No,Yes]',
         'return_design' => 'permit_empty|in_list[No,Yes]',
         'entry_non_finalist' => 'permit_empty|in_list[No,Yes]',
-        'shortlist' => 'permit_empty|integer',
     ];
 }

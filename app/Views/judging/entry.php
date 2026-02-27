@@ -55,6 +55,26 @@
                     </div>
                 </div>
             <?php endif; ?>
+
+            <?php if (!empty($videoEmbed['embed_url'])): ?>
+                <div class="card mb-4">
+                    <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Entry Video</h6></div>
+                    <div class="card-body">
+                        <div class="embed-responsive embed-responsive-16by9">
+                            <iframe
+                                class="embed-responsive-item"
+                                src="<?= esc((string)$videoEmbed['embed_url']) ?>"
+                                title="<?= esc((string)$entry['design_name']) ?> video"
+                                allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                                allowfullscreen
+                                loading="lazy"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                            ></iframe>
+                        </div>
+                        <div class="small text-muted mt-2"><?= esc(ucfirst((string)($videoEmbed['provider'] ?? 'video'))) ?> embed</div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="col-12 col-lg-4">

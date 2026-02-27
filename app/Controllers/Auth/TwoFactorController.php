@@ -41,7 +41,7 @@ class TwoFactorController extends BaseController
         $redirect = trim((string)$cfg->redirectUri);
 
         if ($clientId === '' || $secret === '' || $apiHost === '' || $redirect === '') {
-            return redirect()->to('/')->with('error', lang('Entrant.two_factor_not_configured'));
+            return redirect()->to('/')->with('error', 'Two-factor is not configured.');
         }
 
         $state = (string)(session('duo_state') ?? '');
@@ -78,12 +78,12 @@ class TwoFactorController extends BaseController
 
         $authCode = $duoCode !== '' ? $duoCode : $code;
         if ($authCode === '' || $state === '') {
-            return redirect()->to('/auth/2fa')->with('error', lang('Entrant.two_factor_failed'));
+            return redirect()->to('/auth/2fa')->with('error', 'Two-factor verification failed. Please try again.');
         }
 
         $stored = (string)(session('duo_state') ?? '');
         if ($stored === '' || !hash_equals($stored, $state)) {
-            return redirect()->to('/auth/2fa')->with('error', lang('Entrant.two_factor_failed'));
+            return redirect()->to('/auth/2fa')->with('error', 'Two-factor verification failed. Please try again.');
         }
 
         $user = (new UserModel())->find(session('uid'));
@@ -100,7 +100,7 @@ class TwoFactorController extends BaseController
             $result = $client->exchangeAuthorizationCodeFor2faResult($authCode, $username);
 
             if (!$this->isAllow($result)) {
-                return redirect()->to('/auth/2fa')->with('error', lang('Entrant.two_factor_failed'));
+                return redirect()->to('/auth/2fa')->with('error', 'Two-factor verification failed. Please try again.');
             }
 
             session()->remove('duo_state');
@@ -111,9 +111,9 @@ class TwoFactorController extends BaseController
 
             return redirect()->to($dest);
         } catch (DuoException $e) {
-            return redirect()->to('/auth/2fa')->with('error', lang('Entrant.two_factor_failed'));
+            return redirect()->to('/auth/2fa')->with('error', 'Two-factor verification failed. Please try again.');
         } catch (\Throwable $e) {
-            return redirect()->to('/auth/2fa')->with('error', lang('Entrant.two_factor_failed'));
+            return redirect()->to('/auth/2fa')->with('error', 'Two-factor verification failed. Please try again.');
         }
     }
 
@@ -132,7 +132,7 @@ class TwoFactorController extends BaseController
         if (!service('authThrottle')->allowTwoFactorRecovery($ip, $userId)) {
             return redirect()->to('/auth/2fa')->with(
                 'error',
-                lang('Entrant.too_many_recovery_code_attempts')
+                'Too many recovery code attempts. Please wait a few minutes and try again.'
             );
         }
 
@@ -145,7 +145,7 @@ class TwoFactorController extends BaseController
             ]);
             return redirect()->to('/auth/2fa')->with(
                 'error',
-                lang('Entrant.unable_verify_recovery_code')
+                'Unable to verify that recovery code. Please try again or continue with Duo.'
             );
         }
 
@@ -156,9 +156,9 @@ class TwoFactorController extends BaseController
         $dest = session('intended_url') ?: '/admin';
         session()->remove('intended_url');
 
-        $msg = lang('Entrant.recovery_code_accepted');
+        $msg = 'Recovery code accepted.';
         if ($remaining <= 3) {
-            $msg .= ' ' . lang('Entrant.recovery_codes_remaining_generate', [$remaining]);
+            $msg .= ' You have ' . $remaining . ' recovery code(s) remaining. Generate a new set in My Profile.';
         }
 
         return redirect()->to($dest)->with('success', $msg);

@@ -17,7 +17,7 @@
                 <tbody>
                 <?php foreach ($rows as $row): ?>
                     <tr>
-                        <td><a class="font-weight-bold" href="<?= site_url('admin/system-tools/countries/edit/' . rawurlencode((string)$row->ccode)) ?>"><?= esc((string)$row->ccode) ?></a></td>
+                        <td><a href="<?= site_url('admin/system-tools/countries/edit/' . rawurlencode((string)$row->ccode)) ?>"><?= esc((string)$row->ccode) ?></a></td>
                         <td><?= esc((string)$row->country) ?></td>
                         <td>
                             <a class="btn btn-sm btn-primary mr-1" href="<?= site_url('admin/system-tools/countries/edit/' . rawurlencode((string)$row->ccode)) ?>">Edit</a>

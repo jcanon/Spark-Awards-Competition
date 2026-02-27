@@ -54,11 +54,10 @@ class SubmissionsAdminService
         $compYear = (int)($filters['compYear'] ?? date('Y'));
         $compType = (string)($filters['compType'] ?? 'ALL');
         $excludeNonFinalists = (string)($filters['excludeNonFinalists'] ?? 'No');
-        $shortlistEntries = (string)($filters['shortlistEntries'] ?? 'No');
 
         $db = db_connect();
         $builder = $db->table('comp_entries a')
-            ->select('a.*, b.comp_year, b.comp_type_id, b.shortlist_enabled, c.comp_type_name, d.first_name, d.last_name, d.email_address, d.company_name, f.winner_level_name')
+            ->select('a.*, b.comp_year, b.comp_type_id, c.comp_type_name, d.first_name, d.last_name, d.email_address, d.company_name, f.winner_level_name')
             ->join('comp_competitions b', 'a.comp_id = b.comp_id')
             ->join('comp_type c', 'b.comp_type_id = c.comp_type_id')
             ->join('comp_users d', 'a.user_id = d.user_id')
@@ -73,9 +72,6 @@ class SubmissionsAdminService
             // Keep only Finalist/Winner statuses when this toggle is enabled.
             $builder->where("UPPER(TRIM(a.entry_status)) IN ('FINALIST','WINNER')", null, false);
             $this->applyExcludeNonFinalists($builder);
-        }
-        if ($shortlistEntries === 'Yes') {
-            $builder->where('a.shortlist', 1);
         }
         if ($filterBy !== '') {
             $builder->groupStart()
@@ -252,44 +248,35 @@ class SubmissionsAdminService
             return 0;
         }
 
+        $updatePayload = $this->bulkActionUpdatePayload($action);
+        if ($updatePayload === null) {
+            return 0;
+        }
+
         $affected = 0;
 
         foreach ($ids as $entryId) {
-            $builder = db_connect()->table('comp_entries');
-            if ($action === 'shortlist_add') {
-                $builder->where('entry_id', $entryId)->update(['shortlist' => 1]);
-                $affected++;
-            } elseif ($action === 'shortlist_remove') {
-                $builder->where('entry_id', $entryId)->update(['shortlist' => 0]);
-                $affected++;
-            } elseif ($action === 'gallery_show') {
-                $builder->where('entry_id', $entryId)->update(['gallery_hide' => 'No']);
-                $affected++;
-            } elseif ($action === 'gallery_hide') {
-                $builder->where('entry_id', $entryId)->update(['gallery_hide' => 'Yes']);
-                $affected++;
-            } elseif ($action === 'non_finalist') {
-                $builder->where('entry_id', $entryId)->update(['entry_non_finalist' => 'Yes', 'entry_status' => 'Entrant']);
-                $affected++;
-            } elseif ($action === 'finalist') {
-                $builder->where('entry_id', $entryId)->update(['entry_status' => 'Finalist', 'entry_non_finalist' => 'No']);
-                $affected++;
-            } elseif ($action === 'winner_platinum') {
-                $builder->where('entry_id', $entryId)->update(['entry_status' => 'Winner', 'winner_level' => 1]);
-                $affected++;
-            } elseif ($action === 'winner_gold') {
-                $builder->where('entry_id', $entryId)->update(['entry_status' => 'Winner', 'winner_level' => 2]);
-                $affected++;
-            } elseif ($action === 'winner_silver') {
-                $builder->where('entry_id', $entryId)->update(['entry_status' => 'Winner', 'winner_level' => 3]);
-                $affected++;
-            } elseif ($action === 'winner_bronze') {
-                $builder->where('entry_id', $entryId)->update(['entry_status' => 'Winner', 'winner_level' => 4]);
+            if (db_connect()->table('comp_entries')->where('entry_id', $entryId)->update($updatePayload)) {
                 $affected++;
             }
         }
 
         return $affected;
+    }
+
+    private function bulkActionUpdatePayload(string $action): ?array
+    {
+        return match ($action) {
+            'gallery_show' => ['gallery_hide' => 'No'],
+            'gallery_hide' => ['gallery_hide' => 'Yes'],
+            'non_finalist' => ['entry_non_finalist' => 'Yes', 'entry_status' => 'Entrant'],
+            'finalist' => ['entry_status' => 'Finalist', 'entry_non_finalist' => 'No'],
+            'winner_platinum' => ['entry_status' => 'Winner', 'winner_level' => 1],
+            'winner_gold' => ['entry_status' => 'Winner', 'winner_level' => 2],
+            'winner_silver' => ['entry_status' => 'Winner', 'winner_level' => 3],
+            'winner_bronze' => ['entry_status' => 'Winner', 'winner_level' => 4],
+            default => null,
+        };
     }
 
     public function export(array $filters): array
@@ -355,7 +342,7 @@ class SubmissionsAdminService
                 'phase_2_pay_date' => $p2Date,
                 'short_description' => $row['short_description'] ?? '',
                 'full_description' => $row['full_description'] ?? '',
-                'youtube' => ($row['youtube_url'] ?? '') !== '' ? 'https://youtu.be/' . $row['youtube_url'] : '',
+                'video_embed_url' => $this->submissions->normalizeVideoEmbedUrl((string)($row['youtube_url'] ?? '')),
             ];
         }
 
@@ -432,7 +419,7 @@ class SubmissionsAdminService
         $data = random_bytes(16);
         $data[6] = chr((ord($data[6]) & 0x0f) | 0x40);
         $data[8] = chr((ord($data[8]) & 0x3f) | 0x80);
-        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+        return substr(vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4)), 0, 35);
     }
 
     private function copyPhotoPath(string $rawPath, string $destDir, string $newEntryId): string

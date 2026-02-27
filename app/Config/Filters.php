@@ -24,12 +24,10 @@ class Filters extends BaseConfig
         'auth' => \App\Filters\AuthFilter::class,
         'guest' => \App\Filters\GuestFilter::class,
         'role' => \App\Filters\RoleFilter::class,
-        'locale' => \App\Filters\LocaleFilter::class,
     ];
 
     public array $globals = [
         'before' => [
-            'locale',
             'csrf' => ['except' => ['payments/webhook']],
             // 'invalidchars',
         ],

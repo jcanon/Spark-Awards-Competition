@@ -70,7 +70,7 @@
                         <?php foreach ($rows as $row): ?>
                             <tr>
                                 <td>
-                                    <a class="font-weight-bold" href="<?= site_url('admin/design-types/edit/' . (int)$row->design_type_id) ?>">
+                                    <a href="<?= site_url('admin/design-types/edit/' . (int)$row->design_type_id) ?>">
                                         <?= esc((string)$row->design_type_name) ?>
                                     </a>
                                 </td>

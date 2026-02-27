@@ -22,7 +22,7 @@ class EntryPhotoModel extends Model
     ];
 
     protected $validationRules = [
-        'entry_id' => 'required|max_length[36]',
+        'entry_id' => 'required|max_length[35]',
         'entry_photo' => 'required|max_length[200]',
         'entry_photo_caption' => 'permit_empty|max_length[200]',
         'entry_photo_res' => 'required|in_list[High,PDF,Low]',

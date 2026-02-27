@@ -15,7 +15,7 @@ class EntryAnswersModel extends Model
     protected $allowedFields = ['entry_id', 'entry_question_id', 'entry_answer'];
 
     protected $validationRules = [
-        'entry_id' => 'required|max_length[36]',
+        'entry_id' => 'required|max_length[35]',
         'entry_question_id' => 'required|integer',
         'entry_answer' => 'permit_empty|string',
     ];

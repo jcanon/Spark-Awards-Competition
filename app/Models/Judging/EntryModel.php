@@ -17,7 +17,6 @@ class EntryModel extends Model
         'user_id',
         'design_name',
         'entry_status',
-        'shortlist',
         'winner_level',
         'designer_first_name',
         'designer_last_name',

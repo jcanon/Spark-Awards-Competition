@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-helper(['url', 'view_normalize', 'datetime']);
+helper(['url', 'view_normalize', 'datetime', 'entry_status', 'certificate_request']);
 
 $normalizedSettings = view_settings($settings ?? [], $siteTitle ?? null);
 $normalizedUser = view_user(isset($user) && $user instanceof \App\Entities\Accounts\User ? $user : null);

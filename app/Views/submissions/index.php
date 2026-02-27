@@ -6,16 +6,35 @@ $phase1_total = is_countable($phase1) ? count($phase1) : 0;
 $phase2_total = is_countable($phase2) ? count($phase2) : 0;
 $phase3_total = is_countable($phase3) ? count($phase3) : 0;
 $past_total = is_countable($past) ? count($past) : 0;
+$statusPill = static fn ($entry): array => entry_status_pill($entry);
+$isEntryEditLocked = static function ($entry): bool {
+    $status = trim((string)($entry->entry_status ?? ''));
+    $now = date('Y-m-d H:i:s');
+
+    if ($status === 'Draft' || $status === 'Entrant') {
+        $open = trim((string)($entry->jury_phase_1_open ?? ''));
+        $close = trim((string)($entry->jury_phase_1_close ?? ''));
+        return $open !== '' && $close !== '' && $open <= $now && $close > $now;
+    }
+
+    if ($status === 'Finalist') {
+        $open = trim((string)($entry->jury_phase_2_open ?? ''));
+        $close = trim((string)($entry->jury_phase_2_close ?? ''));
+        return $open !== '' && $close !== '' && $open <= $now && $close > $now;
+    }
+
+    return false;
+};
 ?>
 
     <div class="container-fluid">
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800"><?= esc(lang('Entrant.my_submissions')) ?></h1>
+            <h1 class="h3 mb-0 text-gray-800">My Submissions</h1>
         </div>
 
         <p class="mb-3">
-            <?= esc(lang('Entrant.submissions_intro')) ?>
-            <a href="<?= site_url('competitions') ?>"><strong><?= esc(lang('Entrant.nav_competitions')) ?></strong></a> <?= esc(lang('Entrant.submissions_intro_suffix')) ?>
+            To add a new entry submission to your account, go to the
+            <a href="<?= site_url('competitions') ?>"><strong>Competitions</strong></a> page and select an open competition.
         </p>
 
         <hr class="mb-4">
@@ -30,7 +49,7 @@ $past_total = is_countable($past) ? count($past) : 0;
         <!-- Phase 1 Submissions -->
         <div class="card mb-4">
             <div class="card-header">
-                <h6 class="m-0 font-weight-bold text-primary"><?= esc(lang('Entrant.phase1_submissions')) ?> (<?= $phase1_total ?>)</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Phase 1 Submissions (<?= $phase1_total ?>)</h6>
             </div>
             <div class="card-body">
                 <?php if (!empty($phase1)): ?>
@@ -38,12 +57,12 @@ $past_total = is_countable($past) ? count($past) : 0;
                         <table class="table table-bordered table-hover align-middle">
                             <thead>
                             <tr>
-                                <th><?= esc(lang('Entrant.design_name')) ?></th>
-                                <th><?= esc(lang('Entrant.competition')) ?></th>
-                                <th><?= esc(lang('Entrant.status')) ?></th>
-                                <th><?= esc(lang('Entrant.payment_phase_1')) ?></th>
-                                <th class="text-center"><?= esc(lang('Entrant.edit')) ?></th>
-                                <th class="text-center"><?= esc(lang('Entrant.delete')) ?></th>
+                                <th>Design Name</th>
+                                <th>Competition</th>
+                                <th>Status</th>
+                                <th>Payment (Phase 1)</th>
+                                <th class="text-center">Edit</th>
+                                <th class="text-center">Delete</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -56,7 +75,7 @@ $past_total = is_countable($past) ? count($past) : 0;
                                 ?>
                                 <tr>
                                     <td>
-                                        <a class="font-weight-bold" href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>"><?= esc($e->design_name ?? '') ?></a>
+                                        <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>"><?= esc($e->design_name ?? '') ?></a>
                                     </td>
                                     <td><?= esc($compName) ?></td>
                                     <td><?= esc($e->entry_status ?? '') ?></td>
@@ -66,19 +85,24 @@ $past_total = is_countable($past) ? count($past) : 0;
                                                 class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link"
                                                 href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>"
                                                 data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-content') ?>"
-                                                title="<?= esc(lang('Entrant.view_receipt')) ?>"
-                                            ><?= esc(lang('Entrant.paid_view_receipt')) ?></a>
+                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-pdf') ?>"
+                                                title="View Receipt"
+                                            >Paid - View Receipt</a>
                                         <?php else: ?>
-                                            <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1') ?>" title="<?= esc(lang('Entrant.submit_payment_action')) ?>"><?= esc(lang('Entrant.unpaid_submit_payment')) ?></a>
+                                            <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1') ?>" title="Submit Payment">Unpaid - Submit Payment</a>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>" class="btn btn-sm btn-primary shadow-sm" title="<?= esc(lang('Entrant.edit')) ?>"><?= esc(lang('Entrant.edit')) ?></a>
+                                        <?php if (!$isEntryEditLocked($e)): ?>
+                                            <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>" class="btn btn-sm btn-primary shadow-sm" title="Edit">Edit</a>
+                                        <?php else: ?>
+                                            <span class="text-muted">Locked</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <form action="<?= site_url('submissions/delete/' . urlencode($entryId)) ?>" method="post" onsubmit="return confirm('<?= esc(lang('Entrant.confirm_delete_entry'), 'js') ?>');" class="d-inline">
+                                        <form action="<?= site_url('submissions/delete/' . urlencode($entryId)) ?>" method="post" onsubmit="return confirm('Are you sure you want to delete this entry? This cannot be undone.');" class="d-inline">
                                             <?= csrf_field() ?>
-                                            <button class="btn btn-sm btn-danger shadow-sm" type="submit" title="<?= esc(lang('Entrant.delete')) ?>"><?= esc(lang('Entrant.delete')) ?></button>
+                                            <button class="btn btn-sm btn-danger shadow-sm" type="submit" title="Delete">Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -87,7 +111,7 @@ $past_total = is_countable($past) ? count($past) : 0;
                         </table>
                     </div>
                 <?php else: ?>
-                    <p class="mb-0"><?= esc(lang('Entrant.no_phase1')) ?></p>
+                    <p class="mb-0">No open phase 1 submissions found.</p>
                 <?php endif; ?>
             </div>
         </div>
@@ -95,7 +119,7 @@ $past_total = is_countable($past) ? count($past) : 0;
         <!-- Finalist (Phase 2) Submissions -->
         <div class="card mb-4">
             <div class="card-header">
-                <h6 class="m-0 font-weight-bold text-primary"><?= esc(lang('Entrant.finalist_submissions')) ?> (<?= $phase2_total ?>)</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Finalist Submissions (<?= $phase2_total ?>)</h6>
             </div>
             <div class="card-body">
                 <?php if (!empty($phase2)): ?>
@@ -103,11 +127,11 @@ $past_total = is_countable($past) ? count($past) : 0;
                         <table class="table table-bordered table-hover align-middle">
                             <thead>
                             <tr>
-                                <th><?= esc(lang('Entrant.design_name')) ?></th>
-                                <th><?= esc(lang('Entrant.competition')) ?></th>
-                                <th><?= esc(lang('Entrant.status')) ?></th>
-                                <th><?= esc(lang('Entrant.payment_phase_2')) ?></th>
-                                <th class="text-center"><?= esc(lang('Entrant.edit')) ?></th>
+                                <th>Design Name</th>
+                                <th>Competition</th>
+                                <th>Status</th>
+                                <th>Payment (Phase 2)</th>
+                                <th class="text-center">Edit</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -115,29 +139,34 @@ $past_total = is_countable($past) ? count($past) : 0;
                                 <?php
                                 $entryId = (string) ($e->entry_id ?? '');
                                 $compName = trim((string)($e->comp_type_name ?? '') . ' ' . (string)($e->comp_year ?? ''));
-                                $p3 = (string)($e->phase_3_payment ?? 'Unpaid');
-                                $isPaid = strcasecmp($p3, 'Paid') === 0;
+                                $p2 = (string)($e->phase_2_payment ?? 'Unpaid');
+                                $isPaid = strcasecmp($p2, 'Paid') === 0;
                                 ?>
                                 <tr>
                                     <td>
-                                        <a class="font-weight-bold" href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>"><?= esc($e->design_name ?? '') ?></a>
+                                        <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>"><?= esc($e->design_name ?? '') ?></a>
                                     </td>
                                     <td><?= esc($compName) ?></td>
                                     <td><?= esc($e->entry_status ?? '') ?></td>
                                     <td>
                                         <?php if ($isPaid): ?>
                                             <a
-                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link"
+                                                class="btn btn-sm btn-primary shadow-sm"
                                                 href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>"
                                                 data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-content') ?>"
-                                                title="<?= esc(lang('Entrant.view_receipt')) ?>"
-                                            ><?= esc(lang('Entrant.paid_view_receipt')) ?></a>
+                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-pdf') ?>"
+                                                title="View Receipt"
+                                            >Paid - View Receipt</a>
                                         <?php else: ?>
-                                            <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2') ?>" title="<?= esc(lang('Entrant.submit_payment_action')) ?>"><?= esc(lang('Entrant.unpaid_submit_payment')) ?></a>
+                                            <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2') ?>" title="Submit Payment">Unpaid - Submit Payment</a>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>" class="btn btn-sm btn-primary shadow-sm" title="<?= esc(lang('Entrant.edit')) ?>"><?= esc(lang('Entrant.edit')) ?></a>
+                                        <?php if (!$isEntryEditLocked($e)): ?>
+                                            <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>" class="btn btn-sm btn-primary shadow-sm" title="Edit">Edit</a>
+                                        <?php else: ?>
+                                            <span class="text-muted">Locked</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -145,7 +174,7 @@ $past_total = is_countable($past) ? count($past) : 0;
                         </table>
                     </div>
                 <?php else: ?>
-                    <p class="mb-0"><?= esc(lang('Entrant.no_phase2')) ?></p>
+                    <p class="mb-0">No finalist submissions found.</p>
                 <?php endif; ?>
             </div>
         </div>
@@ -153,19 +182,19 @@ $past_total = is_countable($past) ? count($past) : 0;
         <!-- Winning (Phase 3) Submissions -->
         <div class="card mb-4">
             <div class="card-header">
-                <h6 class="m-0 font-weight-bold text-primary"><?= esc(lang('Entrant.winning_submissions')) ?> (<?= $phase3_total ?>)</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Winning Submissions (<?= $phase3_total ?>)</h6>
             </div>
             <div class="card-body">
                 <?php if (!empty($phase3)): ?>
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle">
+                        <table class="table table-bordered table-hover align-middle datatable">
                             <thead>
                             <tr>
-                                <th><?= esc(lang('Entrant.design_name')) ?></th>
-                                <th><?= esc(lang('Entrant.competition')) ?></th>
-                                <th><?= esc(lang('Entrant.status')) ?></th>
-                                <th><?= esc(lang('Entrant.payment_phase_2')) ?></th>
-                                <th class="text-center"><?= esc(lang('Entrant.edit')) ?></th>
+                                <th>Design Name</th>
+                                <th>Competition</th>
+                                <th>Status</th>
+                                <th>Payment Receipts</th>
+                                <th class="text-center">Edit</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -173,39 +202,55 @@ $past_total = is_countable($past) ? count($past) : 0;
                                 <?php
                                 $entryId = (string) ($e->entry_id ?? '');
                                 $compName = trim((string)($e->comp_type_name ?? '') . ' ' . (string)($e->comp_year ?? ''));
+                                $p1 = (string)($e->phase_1_payment ?? 'Unpaid');
                                 $p2 = (string)($e->phase_2_payment ?? 'Unpaid');
-                                $isPaid = strcasecmp($p2, 'Paid') === 0;
-
-                                // Optional: only allow edit up to 30 days after jury_phase_2_close
-                                $juryClose = (string)($e->jury_phase_2_close ?? '');
-                                $allowEdit = false;
-                                if ($juryClose !== '') {
-                                    $allowEdit = (time() - strtotime($juryClose)) <= (30 * 24 * 3600);
-                                }
+                                $isPhase1Paid = strcasecmp($p1, 'Paid') === 0;
+                                $isPhase2Paid = strcasecmp($p2, 'Paid') === 0;
+                                [$statusLabel, $statusClass, $statusIcon] = $statusPill($e);
                                 ?>
                                 <tr>
                                     <td>
-                                        <a class="font-weight-bold" href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>"><?= esc($e->design_name ?? '') ?></a>
+                                        <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>"><?= esc($e->design_name ?? '') ?></a>
                                     </td>
                                     <td><?= esc($compName) ?></td>
-                                    <td><?= esc($e->entry_status ?? '') ?></td>
                                     <td>
-                                        <?php if ($isPaid): ?>
+                                        <span class="status-pill <?= esc($statusClass) ?>">
+                                            <?php if ($statusIcon !== ''): ?>
+                                                <i class="<?= esc($statusIcon) ?> medal-icon" aria-hidden="true"></i>
+                                            <?php endif; ?>
+                                            <?= esc($statusLabel) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($isPhase1Paid): ?>
+                                            <a
+                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link mb-1"
+                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>"
+                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-content') ?>"
+                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-pdf') ?>"
+                                                title="View Receipt"
+                                            >Phase 1 - Paid Receipt</a>
+                                        <?php else: ?>
+                                            <div class="small text-muted mb-1">Phase 1 - Unpaid</div>
+                                        <?php endif; ?>
+
+                                        <?php if ($isPhase2Paid): ?>
                                             <a
                                                 class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link"
-                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/3/receipt') ?>"
-                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/3/receipt-content') ?>"
-                                                title="<?= esc(lang('Entrant.view_receipt')) ?>"
-                                            ><?= esc(lang('Entrant.paid_view_receipt')) ?></a>
+                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>"
+                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-content') ?>"
+                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-pdf') ?>"
+                                                title="View Receipt"
+                                            >Phase 2 - Paid Receipt</a>
                                         <?php else: ?>
-                                            <a class="btn btn-sm btn-danger shadow-sm"  href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/3') ?>" title="<?= esc(lang('Entrant.submit_payment_action')) ?>"><?= esc(lang('Entrant.unpaid_submit_payment')) ?></a>
+                                            <a class="btn btn-sm btn-danger shadow-sm"  href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2') ?>" title="Submit Payment">Phase 2 - Unpaid, Submit Payment</a>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <?php if ($allowEdit): ?>
-                                            <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>" class="btn btn-sm btn-primary shadow-sm" title="<?= esc(lang('Entrant.edit')) ?>"><?= esc(lang('Entrant.edit')) ?></a>
+                                        <?php if (!$isEntryEditLocked($e)): ?>
+                                            <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>" class="btn btn-sm btn-primary shadow-sm" title="Edit">Edit</a>
                                         <?php else: ?>
-                                            <span class="text-muted"><?= esc(lang('Entrant.closed')) ?></span>
+                                            <span class="text-muted">Locked</span>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -214,7 +259,7 @@ $past_total = is_countable($past) ? count($past) : 0;
                         </table>
                     </div>
                 <?php else: ?>
-                    <p class="mb-0"><?= esc(lang('Entrant.no_phase3')) ?></p>
+                    <p class="mb-0">No winning submissions found.</p>
                 <?php endif; ?>
             </div>
         </div>
@@ -222,17 +267,19 @@ $past_total = is_countable($past) ? count($past) : 0;
         <!-- Past Submissions -->
         <div class="card mb-4">
             <div class="card-header">
-                <h6 class="m-0 font-weight-bold text-primary"><?= esc(lang('Entrant.past_submissions')) ?> (<?= $past_total ?>)</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Past Submissions (<?= $past_total ?>)</h6>
             </div>
             <div class="card-body">
                 <?php if (!empty($past)): ?>
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle">
+                        <table class="table table-bordered table-hover align-middle datatable">
                             <thead>
                             <tr>
-                                <th><?= esc(lang('Entrant.design_name')) ?></th>
-                                <th><?= esc(lang('Entrant.competition')) ?></th>
-                                <th><?= esc(lang('Entrant.status')) ?></th>
+                                <th>Design Name</th>
+                                <th>Competition</th>
+                                <th>Status</th>
+                                <th>Payment Receipts</th>
+                                <th class="text-center">Edit</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -240,24 +287,68 @@ $past_total = is_countable($past) ? count($past) : 0;
                                 <?php
                                 $entryId = (string) ($e->entry_id ?? '');
                                 $compName = trim((string)($e->comp_type_name ?? '') . ' ' . (string)($e->comp_year ?? ''));
+                                $p1 = (string)($e->phase_1_payment ?? 'Unpaid');
+                                $p2 = (string)($e->phase_2_payment ?? 'Unpaid');
+                                $isPhase1Paid = strcasecmp($p1, 'Paid') === 0;
+                                $isPhase2Paid = strcasecmp($p2, 'Paid') === 0;
+                                [$statusLabel, $statusClass, $statusIcon] = $statusPill($e);
                                 ?>
                                 <tr>
                                     <td>
                                         <?php if ($entryId !== ''): ?>
-                                            <a class="font-weight-bold" href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>"><?= esc($e->design_name ?? '') ?></a>
+                                            <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>"><?= esc($e->design_name ?? '') ?></a>
                                         <?php else: ?>
                                             <?= esc($e->design_name ?? '') ?>
                                         <?php endif; ?>
                                     </td>
                                     <td><?= esc($compName) ?></td>
-                                    <td><?= esc($e->entry_status ?? '') ?></td>
+                                    <td>
+                                        <span class="status-pill <?= esc($statusClass) ?>">
+                                            <?php if ($statusIcon !== ''): ?>
+                                                <i class="<?= esc($statusIcon) ?> medal-icon" aria-hidden="true"></i>
+                                            <?php endif; ?>
+                                            <?= esc($statusLabel) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($isPhase1Paid): ?>
+                                            <a
+                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link mb-1"
+                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>"
+                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-content') ?>"
+                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt-pdf') ?>"
+                                                title="View Receipt"
+                                            >Phase 1 - Paid Receipt</a>
+                                        <?php else: ?>
+                                            <div class="small text-muted mb-1">Phase 1 - Unpaid</div>
+                                        <?php endif; ?>
+
+                                        <?php if ($isPhase2Paid): ?>
+                                            <a
+                                                class="btn btn-sm btn-primary shadow-sm js-receipt-modal-link"
+                                                href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>"
+                                                data-receipt-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-content') ?>"
+                                                data-receipt-pdf-url="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt-pdf') ?>"
+                                                title="View Receipt"
+                                            >Phase 2 - Paid Receipt</a>
+                                        <?php else: ?>
+                                            <div class="small text-muted">Phase 2 - Unpaid</div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if (!$isEntryEditLocked($e)): ?>
+                                            <a href="<?= site_url('submissions/update/' . urlencode($entryId)) ?>" class="btn btn-sm btn-primary shadow-sm" title="Edit">Edit</a>
+                                        <?php else: ?>
+                                            <span class="text-muted">Locked</span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
                 <?php else: ?>
-                    <p class="mb-0"><?= esc(lang('Entrant.no_past')) ?></p>
+                    <p class="mb-0">No past submissions found.</p>
                 <?php endif; ?>
             </div>
         </div>
@@ -267,7 +358,7 @@ $past_total = is_countable($past) ? count($past) : 0;
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="receiptModalLabel"><?= esc(lang('Entrant.payment_receipt')) ?></h5>
+                    <h5 class="modal-title" id="receiptModalLabel">Payment Receipt</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -275,72 +366,13 @@ $past_total = is_countable($past) ? count($past) : 0;
                 <div class="modal-body" id="receiptModalBody">
                     <div class="text-muted">Loading receipt...</div>
                 </div>
+                <div class="modal-footer">
+                    <a id="receiptModalPdfBtn" class="btn btn-sm btn-primary" href="#" target="_blank" rel="noopener">Save as PDF</a>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        (function () {
-            var modalEl = document.getElementById('receiptModal');
-            var modalBody = document.getElementById('receiptModalBody');
-            var links = document.querySelectorAll('.js-receipt-modal-link');
-
-            var showModal = function (element) {
-                if (window.bootstrap && window.bootstrap.Modal) {
-                    if (typeof window.bootstrap.Modal.getOrCreateInstance === 'function') {
-                        window.bootstrap.Modal.getOrCreateInstance(element).show();
-                        return;
-                    }
-                    try {
-                        (new window.bootstrap.Modal(element)).show();
-                        return;
-                    } catch (e) {
-                        // fall through
-                    }
-                }
-                if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
-                    window.jQuery(element).modal('show');
-                }
-            };
-
-            var escapeHtml = function (value) {
-                var div = document.createElement('div');
-                div.textContent = value;
-                return div.innerHTML;
-            };
-
-            if (!modalEl || !modalBody || links.length === 0) {
-                return;
-            }
-
-            links.forEach(function (link) {
-                link.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    var url = this.getAttribute('data-receipt-url') || '';
-                    if (!url) {
-                        window.location.href = this.getAttribute('href') || '';
-                        return;
-                    }
-
-                    modalBody.innerHTML = '<div class="text-muted">Loading receipt...</div>';
-                    showModal(modalEl);
-
-                    fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
-                        .then(function (response) {
-                            if (!response.ok) {
-                                throw new Error('Unable to load receipt.');
-                            }
-                            return response.text();
-                        })
-                        .then(function (html) {
-                            modalBody.innerHTML = html;
-                        })
-                        .catch(function (err) {
-                            modalBody.innerHTML = '<div class="alert alert-danger mb-0">' + escapeHtml(err.message || 'Unable to load receipt.') + '</div>';
-                        });
-                });
-            });
-        })();
-    </script>
+    <script src="/js/pages/submissions-index.js"></script>
 
 <?= $this->endSection() ?>

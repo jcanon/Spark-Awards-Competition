@@ -26,7 +26,7 @@ class ForgotPasswordController extends BaseController
     {
         $email = trim((string)$this->request->getPost('forgot_email'));
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return redirect()->back()->withInput()->with('error', lang('Entrant.invalid_email_try_again'));
+            return redirect()->back()->withInput()->with('error', 'Invalid email address. Please try again.');
         }
         $ip = (string)$this->request->getIPAddress();
         if (!service('authThrottle')->allowForgot($ip, $email)) {
@@ -36,7 +36,7 @@ class ForgotPasswordController extends BaseController
             ]);
             return redirect()->back()->withInput()->with(
                 'error',
-                lang('Entrant.too_many_reset_requests')
+                'Too many reset requests. Please wait a few minutes and try again.'
             );
         }
 
@@ -51,7 +51,7 @@ class ForgotPasswordController extends BaseController
     {
         $uid = $this->checkToken($token);
         if (!$uid) {
-            return redirect()->to(site_url('auth/forgot'))->with('error', lang('Entrant.invalid_or_expired_link'));
+            return redirect()->to(site_url('auth/forgot'))->with('error', 'Invalid or expired link');
         }
 
         return view('auth/reset', [
@@ -65,7 +65,7 @@ class ForgotPasswordController extends BaseController
     {
         $token = (string)($this->request->getGet('token') ?? '');
         if ($token === '') {
-            return redirect()->to(site_url('auth/forgot'))->with('error', lang('Entrant.invalid_or_expired_link'));
+            return redirect()->to(site_url('auth/forgot'))->with('error', 'Invalid or expired link');
         }
 
         return $this->showReset($token);
@@ -82,14 +82,14 @@ class ForgotPasswordController extends BaseController
             ]);
             return redirect()->back()->withInput()->with(
                 'error',
-                lang('Entrant.too_many_reset_attempts')
+                'Too many reset attempts. Please wait a few minutes and try again.'
             );
         }
 
         $uid = $this->checkToken($token);
         $token = trim($token);
         if (!$uid) {
-            return redirect()->to(site_url('auth/forgot'))->with('error', lang('Entrant.invalid_or_expired_link'));
+            return redirect()->to(site_url('auth/forgot'))->with('error', 'Invalid or expired link');
         }
 
         $plain = (string)$this->request->getPost('password');
@@ -102,9 +102,9 @@ class ForgotPasswordController extends BaseController
         if ($pwStatus !== 'ok' || $confirmStatus !== 'ok') {
             $errorMsg = $auth->passwordErrorMessage($pwStatus);
             if ($confirmStatus === 'blank') {
-                $errorMsg = lang('Entrant.password_confirmation_blank');
+                $errorMsg = 'Password confirmation cannot be blank';
             } elseif ($confirmStatus === 'nomatch') {
-                $errorMsg = lang('Entrant.passwords_do_not_match');
+                $errorMsg = 'Passwords do not match';
             }
             return redirect()->back()->withInput()->with('error', $errorMsg);
         }
@@ -113,16 +113,16 @@ class ForgotPasswordController extends BaseController
         if ($setStatus === 'reused') {
             return redirect()->back()->withInput()->with(
                 'error',
-                lang('Entrant.password_reuse_not_allowed')
+                'You cannot reuse a previously used password. Please choose a new password.'
             );
         }
         if ($setStatus !== 'ok') {
-            return redirect()->back()->withInput()->with('error', lang('Entrant.unable_reset_password'));
+            return redirect()->back()->withInput()->with('error', 'Unable to reset password right now. Please try again.');
         }
 
         $this->consumeResetToken($token);
 
-        return redirect()->to(site_url('auth/login'))->with('success', lang('Entrant.password_reset_success'));
+        return redirect()->to(site_url('auth/login'))->with('success', 'Your password has been successfully reset');
     }
 
     private function checkToken(string $token): ?string

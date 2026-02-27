@@ -5,9 +5,9 @@
         <div class="copyright text-center my-auto">
             <p><span>Copyright <?= date('Y') ?> Spark Design Awards&trade; All rights reserved.</span></p>
             <a href="https://www.sparkawards.com/privacy-policy/" title="Privacy Policy" target="_blank" rel="noopener">Privacy Policy</a>
-            |
+            &nbsp;|&nbsp;
             <a href="https://www.sparkawards.com/terms-conditions/" title="Terms & Conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a>
-            |
+            &nbsp;|&nbsp;
             <a href="https://www.jcanon.org/" title="Jessie Canon | JCanon.org" target="_blank" rel="noopener">Web Development</a>
         </div>
     </div>
@@ -24,15 +24,15 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="logoutModalLabel"><?= esc(lang('Entrant.logout_modal_title')) ?></h5>
-                <button class="close" type="button" data-dismiss="modal" aria-label="<?= esc(lang('Entrant.logout_modal_cancel')) ?>">
+                <h5 class="modal-title" id="logoutModalLabel">Ready to leave?</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Cancel">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body"><?= esc(lang('Entrant.logout_modal_body')) ?></div>
+            <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" type="button" data-dismiss="modal"><?= esc(lang('Entrant.logout_modal_cancel')) ?></button>
-                <a class="btn btn-primary" href="<?= site_url('auth/logout') ?>"><?= esc(lang('Entrant.nav_logout')) ?></a>
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                <a class="btn btn-primary" href="<?= site_url('auth/logout') ?>">Logout</a>
             </div>
         </div>
     </div>
@@ -45,34 +45,7 @@
 <script src="/vendor/chart.js/Chart.min.js"></script>
 <script src="/vendor/datatables/jquery.dataTables.min.js"></script>
 <script src="/vendor/datatables/dataTables.bootstrap4.min.js"></script>
-
-<script>
-    (function () {
-        $('.datatable').each(function () {
-            var $table = $(this);
-            if ($.fn.DataTable.isDataTable(this)) {
-                return;
-            }
-
-            var order = [];
-            var orderAttr = $table.attr('data-order');
-            if (orderAttr) {
-                try {
-                    order = JSON.parse(orderAttr);
-                } catch (e) {
-                    order = [];
-                }
-            }
-
-            $table.DataTable({
-                pageLength: 100,
-                lengthMenu: [[25, 50, 100, 500, 1000], [25, 50, 100, 500, 1000]],
-                order: order,
-                responsive: false
-            });
-        });
-    })();
-</script>
+<script src="/js/private-datatable-init.js"></script>
 
 </body>
 </html>
