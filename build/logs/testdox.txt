@@ -1,30 +1,6 @@
-Auth Password Reset Flow
- [x] Reset token is single use after consumption
- [x] Expired reset token is rejected
-
-Auth Policy
- [x] Policy clamps expiry and history bounds
- [x] Policy reads enforcement toggle
-
-Auth Service Security
- [x] Password strength rules
- [x] Password expiry logic
-
-Example Database
- [x] Model find all
- [x] Soft delete leaves row
-
-Example Session
- [x] Session simple
-
-Health
- [x] Is defined app path
- [x] Base url has been set
-
-Profile Service Policy
- [x] Non admin cannot assign elevated roles
- [x] Admin can assign elevated roles
-
-Recovery Code Service
- [x] Generate and consume recovery code
+Admin Bulk Endpoints
+ [x] Submissions bulk requires action
+ [x] Submissions bulk unknown action returns updated zero
+ [x] Score results bulk requires selection
+ [x] Score results bulk unknown action returns updated zero
 

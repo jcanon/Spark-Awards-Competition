@@ -4805,7 +4805,7 @@ input[type="button"].btn-block {
     border-bottom: 1px solid #e3e6f0;
 }
 
-.card-header h6 {
+.card-header h6, .card-header strong {
     color: #F5CD38 !important;
 }
 

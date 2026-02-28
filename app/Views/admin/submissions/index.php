@@ -86,10 +86,13 @@
                                 <a class="btn btn-sm btn-primary mr-1" href="<?= site_url('admin/submissions/edit/' . rawurlencode((string)$row['entry_id'])) ?>">Edit</a>
                                 <a class="btn btn-sm btn-info mr-1" href="<?= site_url('admin/submissions/copy/' . rawurlencode((string)$row['entry_id'])) ?>">Copy</a>
                                 <?php if ($canDelete): ?>
-                                    <form action="<?= site_url('admin/submissions/delete/' . rawurlencode((string)$row['entry_id'])) ?>" method="post" class="d-inline" onsubmit="return confirm('Delete this submission?');">
-                                        <?= csrf_field() ?>
-                                        <button class="btn btn-sm btn-danger" type="submit">Delete</button>
-                                    </form>
+                                    <button class="btn btn-sm btn-danger"
+                                            type="submit"
+                                            formaction="<?= site_url('admin/submissions/delete/' . rawurlencode((string)$row['entry_id'])) ?>"
+                                            formmethod="post"
+                                            onclick="return confirm('Delete this submission?');">
+                                        Delete
+                                    </button>
                                 <?php endif; ?>
                             </td>
                         </tr>
