@@ -193,14 +193,41 @@ class CompetitionService
 
     // ---------- reads (Entities) ----------
 
-    public function getAllCompetitions(): array
+    public function getAllCompetitions(?int $year = null): array
     {
-        return (new CompetitionModel())
+        $model = (new CompetitionModel())
             ->select('comp_competitions.*, b.comp_type_name, (SELECT COUNT(*) FROM comp_entries e WHERE e.comp_id = comp_competitions.comp_id) AS submissions_count')
             ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
             ->orderBy('comp_competitions.comp_year', 'DESC')
-            ->orderBy('b.comp_type_name', 'ASC')
-            ->findAll(); // array<Competition> with joined fields accessible
+            ->orderBy('b.comp_type_name', 'ASC');
+
+        if ($year !== null) {
+            $model->where('comp_competitions.comp_year', $year);
+        }
+
+        return $model->findAll(); // array<Competition> with joined fields accessible
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function getCompetitionYears(): array
+    {
+        $rows = (new CompetitionModel())
+            ->select('comp_year')
+            ->groupBy('comp_year')
+            ->orderBy('comp_year', 'DESC')
+            ->findAll();
+
+        $years = [];
+        foreach ($rows as $row) {
+            $year = (int)($row->comp_year ?? 0);
+            if ($year > 0) {
+                $years[] = $year;
+            }
+        }
+
+        return array_values(array_unique($years));
     }
 
     public function getCompetitionByID(int $compId)

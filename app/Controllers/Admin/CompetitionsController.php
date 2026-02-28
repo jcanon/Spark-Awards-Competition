@@ -10,8 +10,26 @@ class CompetitionsController extends BaseController
 {
     public function index()
     {
+        $svc = service('competitions');
+        $currentYear = (int)date('Y');
+        $rawYear = strtoupper(trim((string)$this->request->getGet('compYear')));
+        $selectedYear = $rawYear === '' ? (string)$currentYear : $rawYear;
+        $filterYear = ($selectedYear === 'ALL') ? null : (int)$selectedYear;
+        if ($filterYear !== null && $filterYear <= 0) {
+            $filterYear = $currentYear;
+            $selectedYear = (string)$currentYear;
+        }
+
+        $years = $svc->getCompetitionYears();
+        if (!in_array($currentYear, $years, true)) {
+            $years[] = $currentYear;
+            rsort($years, SORT_NUMERIC);
+        }
+
         return view('admin/competitions/index', [
-            'rows' => service('competitions')->getAllCompetitions(),
+            'rows' => $svc->getAllCompetitions($filterYear),
+            'years' => $years,
+            'selectedYear' => $selectedYear,
             'canDelete' => $this->canDelete(),
         ]);
     }

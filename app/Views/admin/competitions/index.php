@@ -12,6 +12,27 @@
 
     <?= view('partials/flash') ?>
 
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" action="<?= site_url('admin/competitions') ?>" class="form-row align-items-end">
+                <div class="col-md-3 mb-2">
+                    <label for="compYear" class="mb-1">Competition Year</label>
+                    <select id="compYear" name="compYear" class="form-control">
+                        <option value="ALL" <?= (string)$selectedYear === 'ALL' ? 'selected' : '' ?>>All Years</option>
+                        <?php foreach ($years as $year): ?>
+                            <option value="<?= (int)$year ?>" <?= (string)$selectedYear === (string)$year ? 'selected' : '' ?>>
+                                <?= (int)$year ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body table-responsive">
             <table class="table table-bordered table-hover datatable" data-order='[[1,"desc"],[0,"asc"]]'>
