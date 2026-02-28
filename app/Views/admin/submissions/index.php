@@ -71,7 +71,13 @@
                         <tr>
                             <td><input type="checkbox" name="entry_ids[]" value="<?= esc((string)$row['entry_id']) ?>"></td>
                             <td><a href="<?= site_url('admin/submissions/edit/' . rawurlencode((string)$row['entry_id'])) ?>"><?= esc((string)$row['design_name']) ?></a></td>
-                            <td><?= esc($designer) ?></td>
+                            <td>
+                                <?php if ((string)($row['user_id'] ?? '') !== ''): ?>
+                                    <a href="<?= site_url('admin/users/edit/' . rawurlencode((string)$row['user_id'])) ?>"><?= esc($designer) ?></a>
+                                <?php else: ?>
+                                    <?= esc($designer) ?>
+                                <?php endif; ?>
+                            </td>
                             <td><?= esc((string)$row['comp_type_name']) ?></td>
                             <td>
                                 <span class="status-pill <?= esc($statusClass) ?>">

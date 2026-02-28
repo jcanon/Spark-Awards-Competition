@@ -26,7 +26,12 @@
                     </div>
                     <div class="col-md-6 form-group">
                         <label>Entrant <span class="text-danger">*</span></label>
-                        <input id="entrant_search" type="text" class="form-control" placeholder="Type name or email (minimum 2 chars)" autocomplete="off" data-user-search-url="<?= esc(site_url('admin/submissions/user-search')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-user" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="entrant_search" type="text" class="form-control" placeholder="Type name or email (minimum 2 chars)" autocomplete="off" data-user-search-url="<?= esc(site_url('admin/submissions/user-search')) ?>">
+                        </div>
                         <input id="entrant_user_id" type="hidden" name="user_id" required>
                         <select id="entrant_results" class="form-control mt-2 d-none" size="6"></select>
                         <small id="entrant_selected" class="form-text text-muted">No entrant selected.</small>

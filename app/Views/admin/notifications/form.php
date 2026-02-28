@@ -24,32 +24,36 @@
                         'attrs' => ['maxlength' => 150],
                     ]) ?>
                     <?php $audience = (string)old('audience', (string)($row['audience'] ?? 'all')); ?>
-                    <?= view('partials/forms/select', [
-                        'colClass' => 'col-md-3 form-group',
-                        'label' => 'Audience',
-                        'name' => 'audience',
-                        'required' => true,
-                        'options' => [
-                            ['value' => 'all', 'label' => 'All Users', 'selected' => $audience === 'all'],
-                            ['value' => 'admin', 'label' => 'Admins', 'selected' => $audience === 'admin'],
-                            ['value' => 'editor', 'label' => 'Editors', 'selected' => $audience === 'editor'],
-                            ['value' => 'judge', 'label' => 'Judges', 'selected' => $audience === 'judge'],
-                            ['value' => 'user', 'label' => 'Entrants', 'selected' => $audience === 'user'],
-                        ],
-                    ]) ?>
+                    <div class="col-md-3 form-group">
+                        <label for="audience">Audience <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-users" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="audience" name="audience" class="form-control" required>
+                                <option value="all" <?= $audience === 'all' ? 'selected' : '' ?>>All Users</option>
+                                <option value="admin" <?= $audience === 'admin' ? 'selected' : '' ?>>Admins</option>
+                                <option value="editor" <?= $audience === 'editor' ? 'selected' : '' ?>>Editors</option>
+                                <option value="judge" <?= $audience === 'judge' ? 'selected' : '' ?>>Judges</option>
+                                <option value="user" <?= $audience === 'user' ? 'selected' : '' ?>>Entrants</option>
+                            </select>
+                        </div>
+                    </div>
                     <?php $level = (string)old('level', (string)($row['level'] ?? 'info')); ?>
-                    <?= view('partials/forms/select', [
-                        'colClass' => 'col-md-3 form-group',
-                        'label' => 'Level',
-                        'name' => 'level',
-                        'required' => true,
-                        'options' => [
-                            ['value' => 'info', 'label' => 'Info', 'selected' => $level === 'info'],
-                            ['value' => 'success', 'label' => 'Success', 'selected' => $level === 'success'],
-                            ['value' => 'warning', 'label' => 'Warning', 'selected' => $level === 'warning'],
-                            ['value' => 'danger', 'label' => 'Danger', 'selected' => $level === 'danger'],
-                        ],
-                    ]) ?>
+                    <div class="col-md-3 form-group">
+                        <label for="level">Level <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-layer-group" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="level" name="level" class="form-control" required>
+                                <option value="info" <?= $level === 'info' ? 'selected' : '' ?>>Info</option>
+                                <option value="success" <?= $level === 'success' ? 'selected' : '' ?>>Success</option>
+                                <option value="warning" <?= $level === 'warning' ? 'selected' : '' ?>>Warning</option>
+                                <option value="danger" <?= $level === 'danger' ? 'selected' : '' ?>>Danger</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row">
@@ -64,13 +68,21 @@
                 </div>
 
                 <div class="row">
-                    <?= view('partials/forms/input', [
-                        'colClass' => 'col-md-4 form-group',
-                        'label' => 'Link URL (optional)',
-                        'name' => 'link_url',
-                        'value' => (string)old('link_url', (string)($row['link_url'] ?? '')),
-                        'attrs' => ['maxlength' => 255],
-                    ]) ?>
+                    <div class="col-md-4 form-group">
+                        <label for="link_url">Link URL (optional)</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-link" aria-hidden="true"></i></span>
+                            </div>
+                            <input
+                                id="link_url"
+                                name="link_url"
+                                class="form-control"
+                                maxlength="255"
+                                value="<?= esc((string)old('link_url', (string)($row['link_url'] ?? ''))) ?>"
+                            >
+                        </div>
+                    </div>
                     <?= view('partials/forms/input', [
                         'colClass' => 'col-md-4 form-group',
                         'label' => 'Link Text (optional)',
@@ -78,13 +90,21 @@
                         'value' => (string)old('link_text', (string)($row['link_text'] ?? '')),
                         'attrs' => ['maxlength' => 60],
                     ]) ?>
-                    <?= view('partials/forms/input', [
-                        'colClass' => 'col-md-2 form-group',
-                        'label' => 'Sort Order',
-                        'name' => 'sort_order',
-                        'type' => 'number',
-                        'value' => (string)old('sort_order', (string)($row['sort_order'] ?? '0')),
-                    ]) ?>
+                    <div class="col-md-2 form-group">
+                        <label for="sort_order">Sort Order</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-sort-numeric-down" aria-hidden="true"></i></span>
+                            </div>
+                            <input
+                                id="sort_order"
+                                name="sort_order"
+                                type="number"
+                                class="form-control"
+                                value="<?= esc((string)old('sort_order', (string)($row['sort_order'] ?? '0'))) ?>"
+                            >
+                        </div>
+                    </div>
                     <div class="col-md-2 form-group d-flex align-items-center">
                         <?php $active = (string)old('is_active', isset($row['is_active']) ? ((int)$row['is_active'] === 1 ? '1' : '0') : '1'); ?>
                         <div class="form-check mt-3">

@@ -55,12 +55,17 @@ if (strcasecmp($entryStatus, 'Winner') === 0 && $winnerLevel !== '') {
                 <div class="row">
                     <div class="col-md-3 form-group">
                         <label for="request_status">Request Status</label>
-                        <select id="request_status" name="request_status" class="form-control" required>
-                            <?php $status = $v('request_status', 'Pending'); ?>
-                            <?php foreach ($statusOptions as $opt): ?>
-                                <option value="<?= esc($opt) ?>" <?= $status === $opt ? 'selected' : '' ?>><?= esc($opt) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-clipboard-check" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="request_status" name="request_status" class="form-control" required>
+                                <?php $status = $v('request_status', 'Pending'); ?>
+                                <?php foreach ($statusOptions as $opt): ?>
+                                    <option value="<?= esc($opt) ?>" <?= $status === $opt ? 'selected' : '' ?>><?= esc($opt) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
                     <div class="col-md-3 form-group">
                         <label for="certificate_quantity">Certificate Quantity</label>
@@ -69,10 +74,15 @@ if (strcasecmp($entryStatus, 'Winner') === 0 && $winnerLevel !== '') {
                     <div class="col-md-3 form-group">
                         <label for="shipping_method">Shipping Method</label>
                         <?php $ship = $v('shipping_method', 'least_expensive'); ?>
-                        <select id="shipping_method" name="shipping_method" class="form-control">
-                            <option value="least_expensive" <?= $ship === 'least_expensive' ? 'selected' : '' ?>>Least Expensive</option>
-                            <option value="express" <?= $ship === 'express' ? 'selected' : '' ?>>Express</option>
-                        </select>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-shipping-fast" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="shipping_method" name="shipping_method" class="form-control">
+                                <option value="least_expensive" <?= $ship === 'least_expensive' ? 'selected' : '' ?>>Least Expensive</option>
+                                <option value="express" <?= $ship === 'express' ? 'selected' : '' ?>>Express</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="col-md-3 form-group">
                         <label for="lamination_requested">Lamination</label>
@@ -107,15 +117,30 @@ if (strcasecmp($entryStatus, 'Winner') === 0 && $winnerLevel !== '') {
                 <div class="row">
                     <div class="col-md-4 form-group">
                         <label for="contact_person">Contact Person</label>
-                        <input id="contact_person" name="contact_person" class="form-control" maxlength="120" value="<?= esc($v('contact_person')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-user" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="contact_person" name="contact_person" class="form-control" maxlength="120" value="<?= esc($v('contact_person')) ?>">
+                        </div>
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="contact_phone">Contact Phone</label>
-                        <input id="contact_phone" name="contact_phone" class="form-control" maxlength="25" value="<?= esc($v('contact_phone')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="contact_phone" name="contact_phone" class="form-control" maxlength="25" value="<?= esc($v('contact_phone')) ?>">
+                        </div>
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="contact_email">Contact Email</label>
-                        <input id="contact_email" name="contact_email" class="form-control" maxlength="120" value="<?= esc($v('contact_email')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="contact_email" name="contact_email" class="form-control" maxlength="120" value="<?= esc($v('contact_email')) ?>">
+                        </div>
                     </div>
                 </div>
 
@@ -152,7 +177,12 @@ if (strcasecmp($entryStatus, 'Winner') === 0 && $winnerLevel !== '') {
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="shipping_country">Country</label>
-                        <input id="shipping_country" name="shipping_country" class="form-control" maxlength="80" value="<?= esc($v('shipping_country')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-flag" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="shipping_country" name="shipping_country" class="form-control" maxlength="80" value="<?= esc($v('shipping_country')) ?>">
+                        </div>
                     </div>
                 </div>
 

@@ -35,12 +35,22 @@
                 <div class="row">
                     <div class="col-md-4 form-group">
                         <label for="email_address">Email <span class="text-danger">*</span></label>
-                        <input id="email_address" type="email" name="email_address" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('email_address')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="email_address" type="email" name="email_address" class="form-control" maxlength="100" required value="<?= esc($oldOrRow('email_address')) ?>">
+                        </div>
                         <div class="invalid-feedback">A valid, unique email address is required.</div>
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="admin_user_password">New Password</label>
-                        <input id="admin_user_password" type="password" name="password" class="form-control" maxlength="128">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="admin_user_password" type="password" name="password" class="form-control" maxlength="128">
+                        </div>
                         <div id="adminUserPasswordRules" class="small mt-2 d-none">
                             <div data-rule="length" class="text-danger">At least 8 characters</div>
                             <div data-rule="upper" class="text-danger">At least 1 uppercase letter</div>
@@ -52,7 +62,12 @@
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="admin_user_confirm_password">Confirm Password</label>
-                        <input id="admin_user_confirm_password" type="password" name="confirm_password" class="form-control" maxlength="128">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="admin_user_confirm_password" type="password" name="confirm_password" class="form-control" maxlength="128">
+                        </div>
                         <div id="adminUserConfirmStatus" class="small mt-1 d-none"></div>
                     </div>
                 </div>
@@ -61,33 +76,75 @@
                     <div class="col-md-3 form-group">
                         <label>Admin</label>
                         <?php if (!empty($canManageElevatedRoles)): ?>
-                            <select id="is_admin" name="is_admin" class="form-control">
-                                <option value="No" <?= ($row['is_admin'] ?? 'No') === 'No' ? 'selected' : '' ?>>No</option>
-                                <option value="Yes" <?= ($row['is_admin'] ?? 'No') === 'Yes' ? 'selected' : '' ?>>Yes</option>
-                            </select>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+                                </div>
+                                <select id="is_admin" name="is_admin" class="form-control">
+                                    <option value="No" <?= ($row['is_admin'] ?? 'No') === 'No' ? 'selected' : '' ?>>No</option>
+                                    <option value="Yes" <?= ($row['is_admin'] ?? 'No') === 'Yes' ? 'selected' : '' ?>>Yes</option>
+                                </select>
+                            </div>
                         <?php else: ?>
                             <input type="hidden" name="is_admin" value="No">
-                            <select id="is_admin" class="form-control" disabled>
-                                <option value="No" selected>No</option>
-                            </select>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+                                </div>
+                                <select id="is_admin" class="form-control" disabled>
+                                    <option value="No" selected>No</option>
+                                </select>
+                            </div>
                         <?php endif; ?>
                     </div>
                     <div class="col-md-3 form-group">
                         <label>Editor</label>
                         <?php if (!empty($canManageElevatedRoles)): ?>
-                            <select id="is_editor" name="is_editor" class="form-control">
-                                <option value="No" <?= ($row['is_editor'] ?? 'No') === 'No' ? 'selected' : '' ?>>No</option>
-                                <option value="Yes" <?= ($row['is_editor'] ?? 'No') === 'Yes' ? 'selected' : '' ?>>Yes</option>
-                            </select>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-user-edit" aria-hidden="true"></i></span>
+                                </div>
+                                <select id="is_editor" name="is_editor" class="form-control">
+                                    <option value="No" <?= ($row['is_editor'] ?? 'No') === 'No' ? 'selected' : '' ?>>No</option>
+                                    <option value="Yes" <?= ($row['is_editor'] ?? 'No') === 'Yes' ? 'selected' : '' ?>>Yes</option>
+                                </select>
+                            </div>
                         <?php else: ?>
                             <input type="hidden" name="is_editor" value="No">
-                            <select id="is_editor" class="form-control" disabled>
-                                <option value="No" selected>No</option>
-                            </select>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-user-edit" aria-hidden="true"></i></span>
+                                </div>
+                                <select id="is_editor" class="form-control" disabled>
+                                    <option value="No" selected>No</option>
+                                </select>
+                            </div>
                         <?php endif; ?>
                     </div>
-                    <div class="col-md-3 form-group"><label>Judge</label><select name="is_judge" class="form-control"><option value="No" <?= ($row['is_judge'] ?? 'No') === 'No' ? 'selected' : '' ?>>No</option><option value="Yes" <?= ($row['is_judge'] ?? 'No') === 'Yes' ? 'selected' : '' ?>>Yes</option></select></div>
-                    <div class="col-md-3 form-group"><label>Account Active</label><select name="account_active" class="form-control"><option value="Yes" <?= ($row['account_active'] ?? 'Yes') === 'Yes' ? 'selected' : '' ?>>Yes</option><option value="No" <?= ($row['account_active'] ?? 'Yes') === 'No' ? 'selected' : '' ?>>No</option></select></div>
+                    <div class="col-md-3 form-group">
+                        <label>Judge</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-balance-scale" aria-hidden="true"></i></span>
+                            </div>
+                            <select name="is_judge" class="form-control">
+                                <option value="No" <?= ($row['is_judge'] ?? 'No') === 'No' ? 'selected' : '' ?>>No</option>
+                                <option value="Yes" <?= ($row['is_judge'] ?? 'No') === 'Yes' ? 'selected' : '' ?>>Yes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3 form-group">
+                        <label>Account Active</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-user-check" aria-hidden="true"></i></span>
+                            </div>
+                            <select name="account_active" class="form-control">
+                                <option value="Yes" <?= ($row['account_active'] ?? 'Yes') === 'Yes' ? 'selected' : '' ?>>Yes</option>
+                                <option value="No" <?= ($row['account_active'] ?? 'Yes') === 'No' ? 'selected' : '' ?>>No</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <?php if (empty($canManageElevatedRoles)): ?>
                     <div class="row">
@@ -121,23 +178,49 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4 form-group"><label for="website">Website</label><input id="website" type="text" name="website" class="form-control" maxlength="100" value="<?= esc($oldOrRow('website')) ?>"></div>
                     <div class="col-md-4 form-group">
-                        <label for="phone">Phone <span class="text-danger">*</span></label>
-                        <input id="phone" type="text" name="phone" class="form-control" maxlength="25" required value="<?= esc($oldOrRow('phone')) ?>">
+                        <label for="website">Website</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-globe" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="website" type="text" name="website" class="form-control" maxlength="100" value="<?= esc($oldOrRow('website')) ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label for="phone">Telephone <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="phone" type="text" name="phone" class="form-control" maxlength="25" required value="<?= esc($oldOrRow('phone')) ?>">
+                        </div>
                         <div class="invalid-feedback">Telephone is required.</div>
                     </div>
-                    <div class="col-md-4 form-group"><label for="mobile">Mobile</label><input id="mobile" type="text" name="mobile" class="form-control" maxlength="25" value="<?= esc($oldOrRow('mobile')) ?>"></div>
+                    <div class="col-md-4 form-group">
+                        <label for="mobile">Mobile</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-mobile-alt" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="mobile" type="text" name="mobile" class="form-control" maxlength="25" value="<?= esc($oldOrRow('mobile')) ?>">
+                        </div>
+                    </div>
                 </div>
                 <div class="row">
                     <div class="col-md-4 form-group">
                         <label for="user_type_id">User Type <span class="text-danger">*</span></label>
-                        <select id="user_type_id" name="user_type_id" class="form-control" required>
-                            <option value=""></option>
-                            <?php foreach ($userTypes as $ut): ?>
-                                <option value="<?= (int)$ut['user_type_id'] ?>" <?= $oldOrRow('user_type_id') === (string)$ut['user_type_id'] ? 'selected' : '' ?>><?= esc($ut['user_type_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-users" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="user_type_id" name="user_type_id" class="form-control" required>
+                                <option value=""></option>
+                                <?php foreach ($userTypes as $ut): ?>
+                                    <option value="<?= (int)$ut['user_type_id'] ?>" <?= $oldOrRow('user_type_id') === (string)$ut['user_type_id'] ? 'selected' : '' ?>><?= esc($ut['user_type_name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         <div class="invalid-feedback">Entrant type is required.</div>
                     </div>
                     <div class="col-md-4 form-group">
@@ -182,12 +265,17 @@
                 <div class="row">
                     <div class="col-md-4 form-group">
                         <label for="country">Country <span class="text-danger">*</span></label>
-                        <select id="country" name="country" class="form-control" required>
-                            <option value=""></option>
-                            <?php foreach ($countries as $ct): ?>
-                                <option value="<?= esc($ct['ccode']) ?>" <?= $oldOrRow('country') === (string)$ct['ccode'] ? 'selected' : '' ?>><?= esc($ct['country']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-flag" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="country" name="country" class="form-control" required>
+                                <option value=""></option>
+                                <?php foreach ($countries as $ct): ?>
+                                    <option value="<?= esc($ct['ccode']) ?>" <?= $oldOrRow('country') === (string)$ct['ccode'] ? 'selected' : '' ?>><?= esc($ct['country']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         <div class="invalid-feedback">Country is required.</div>
                     </div>
                     <div class="col-md-4 form-group">

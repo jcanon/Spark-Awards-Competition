@@ -22,14 +22,22 @@
                         'required' => true,
                         'attrs' => ['data-filter' => 'alpha2', 'maxlength' => 2, 'minlength' => 2],
                     ]) ?>
-                    <?= view('partials/forms/input', [
-                        'colClass' => 'col-md-9 form-group',
-                        'label' => 'Country Name',
-                        'name' => 'country',
-                        'value' => (string)(old('country') ?? ($row?->country ?? '')),
-                        'required' => true,
-                        'attrs' => ['maxlength' => 200],
-                    ]) ?>
+                    <div class="col-md-9 form-group">
+                        <label for="country">Country Name <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-flag" aria-hidden="true"></i></span>
+                            </div>
+                            <input
+                                id="country"
+                                name="country"
+                                class="form-control"
+                                maxlength="200"
+                                required
+                                value="<?= esc((string)(old('country') ?? ($row?->country ?? ''))) ?>"
+                            >
+                        </div>
+                    </div>
                 </div>
         <?= view('partials/ui/card-end') ?>
 

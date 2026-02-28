@@ -169,17 +169,22 @@ $deletePhotoIds = [];
                                     <?= esc($isEdit ? ($ph ? 'Replace' : 'Upload') : 'Upload') ?>
                                     <span class="text-muted">(JPG <= 1 MB)</span>
                                 </label>
-                                <input
-                                    type="file"
-                                    class="form-control"
-                                    id="low_photo_<?= $i ?>"
-                                    name="low_photo_<?= $i ?>"
-                                    data-photo-slot="<?= $i ?>"
-                                    data-photo-required="<?= $i <= 3 ? '1' : '0' ?>"
-                                    data-photo-has-existing="<?= ($isEdit && $ph) ? '1' : '0' ?>"
-                                    accept=".jpg,.jpeg,image/jpeg"
-                                    <?= (!$isEdit && $i <= 3) ? 'required' : '' ?>
-                                >
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-image" aria-hidden="true"></i></span>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        class="form-control"
+                                        id="low_photo_<?= $i ?>"
+                                        name="low_photo_<?= $i ?>"
+                                        data-photo-slot="<?= $i ?>"
+                                        data-photo-required="<?= $i <= 3 ? '1' : '0' ?>"
+                                        data-photo-has-existing="<?= ($isEdit && $ph) ? '1' : '0' ?>"
+                                        accept=".jpg,.jpeg,image/jpeg"
+                                        <?= (!$isEdit && $i <= 3) ? 'required' : '' ?>
+                                    >
+                                </div>
                             </div>
 
                             <div class="<?= $isEdit ? 'col-md-4' : 'col-md-6' ?>">
@@ -239,7 +244,12 @@ $deletePhotoIds = [];
                             <i class="fas fa-question-circle" aria-hidden="true"></i>
                         </button>
                     </label>
-                    <input id="youtube_url" name="youtube_url" type="text" class="form-control" maxlength="255" value="<?= old('youtube_url') ?? ($videoEmbedUrl ?? '') ?>">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-video" aria-hidden="true"></i></span>
+                        </div>
+                        <input id="youtube_url" name="youtube_url" type="text" class="form-control" maxlength="255" value="<?= old('youtube_url') ?? ($videoEmbedUrl ?? '') ?>">
+                    </div>
                     <small class="text-muted">Enter one video URL only. Accepted providers: YouTube or Vimeo.</small><br>
                     <small class="text-muted">Examples: <strong>https://www.youtube.com/embed/VIDEO_ID</strong> or <strong>https://player.vimeo.com/video/123456789</strong></small>
                 </div>
@@ -280,11 +290,21 @@ $deletePhotoIds = [];
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="designer_email_address">Email Address <span class="text-danger">*</span></label>
-                        <input id="designer_email_address" name="designer_email_address" type="email" class="form-control" maxlength="100" required value="<?= old('designer_email_address') ?? ($entry->designer_email_address ?? $user->email_address ?? '') ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="designer_email_address" name="designer_email_address" type="email" class="form-control" maxlength="100" required value="<?= old('designer_email_address') ?? ($entry->designer_email_address ?? $user->email_address ?? '') ?>">
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="designer_phone">Telephone <span class="text-danger">*</span></label>
-                        <input id="designer_phone" name="designer_phone" type="text" class="form-control" maxlength="25" required value="<?= old('designer_phone') ?? ($entry->designer_phone ?? $user->phone ?? '') ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="designer_phone" name="designer_phone" type="text" class="form-control" maxlength="25" required value="<?= old('designer_phone') ?? ($entry->designer_phone ?? $user->phone ?? '') ?>">
+                        </div>
                     </div>
                 </div>
                 <div class="row g-3">
@@ -370,4 +390,3 @@ $deletePhotoIds = [];
 <script src="/js/pages/submissions-form.js"></script>
 
 <?= $this->endSection() ?>
-

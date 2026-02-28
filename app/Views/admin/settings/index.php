@@ -15,16 +15,56 @@
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6 form-group"><label>Site URL <span class="text-danger">*</span></label><input class="form-control" name="url" maxlength="100" required value="<?= esc((string)($row?->url ?? '')) ?>"></div>
+                    <div class="col-md-6 form-group">
+                        <label>Site URL <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-link" aria-hidden="true"></i></span>
+                            </div>
+                            <input class="form-control" name="url" maxlength="100" required value="<?= esc((string)($row?->url ?? '')) ?>">
+                        </div>
+                    </div>
                     <div class="col-md-6 form-group"><label>Site Title <span class="text-danger">*</span></label><input class="form-control" name="title" maxlength="200" required value="<?= esc((string)($row?->title ?? '')) ?>"></div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 form-group"><label>Primary Email <span class="text-danger">*</span></label><input type="email" class="form-control" name="email" maxlength="100" required value="<?= esc((string)($row?->email ?? '')) ?>"></div>
-                    <div class="col-md-6 form-group"><label>Email Server <span class="text-danger">*</span></label><input class="form-control" name="email_server" maxlength="200" required value="<?= esc((string)($row?->email_server ?? '')) ?>"></div>
+                    <div class="col-md-6 form-group">
+                        <label>Primary Email <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                            </div>
+                            <input type="email" class="form-control" name="email" maxlength="100" required value="<?= esc((string)($row?->email ?? '')) ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>Email Server <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-server" aria-hidden="true"></i></span>
+                            </div>
+                            <input class="form-control" name="email_server" maxlength="200" required value="<?= esc((string)($row?->email_server ?? '')) ?>">
+                        </div>
+                    </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 form-group"><label>Email Username <span class="text-danger">*</span></label><input class="form-control" name="email_username" maxlength="200" required value="<?= esc((string)($row?->email_username ?? '')) ?>"></div>
-                    <div class="col-md-6 form-group"><label>Email Password <span class="text-danger">*</span></label><input type="password" class="form-control" name="email_password" maxlength="200" required value="<?= esc((string)($row?->email_password ?? '')) ?>"></div>
+                    <div class="col-md-6 form-group">
+                        <label>Email Username <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-user" aria-hidden="true"></i></span>
+                            </div>
+                            <input class="form-control" name="email_username" maxlength="200" required value="<?= esc((string)($row?->email_username ?? '')) ?>">
+                        </div>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>Email Password <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                            </div>
+                            <input type="password" class="form-control" name="email_password" maxlength="200" required value="<?= esc((string)($row?->email_password ?? '')) ?>">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

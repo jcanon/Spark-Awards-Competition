@@ -15,12 +15,22 @@
                             <?= csrf_field() ?>
                             <div class="form-group">
                                 <label for="login_email_address">Email Address</label>
-                                <input id="login_email_address" name="email" type="email" maxlength="100" class="form-control" value="<?= esc(old('email')) ?>" required>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                                    </div>
+                                    <input id="login_email_address" name="email" type="email" maxlength="100" class="form-control" value="<?= esc(old('email')) ?>" required>
+                                </div>
                                 <div class="invalid-feedback">Please enter a valid email address.</div>
                             </div>
                             <div class="form-group">
                                 <label for="login_password">Password</label>
-                                <input id="login_password" name="password" type="password" maxlength="128" class="form-control" autocomplete="current-password" required>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                                    </div>
+                                    <input id="login_password" name="password" type="password" maxlength="128" class="form-control" autocomplete="current-password" required>
+                                </div>
                                 <div class="invalid-feedback">Password is required.</div>
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Login</button>
@@ -41,12 +51,22 @@
                             <?= csrf_field() ?>
                             <div class="form-group">
                                 <label for="reg_email">Email Address</label>
-                                <input id="reg_email" name="email" type="email" maxlength="100" class="form-control" required>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                                    </div>
+                                    <input id="reg_email" name="email" type="email" maxlength="100" class="form-control" required>
+                                </div>
                                 <div class="invalid-feedback">Please enter a valid email address.</div>
                             </div>
                             <div class="form-group">
                                 <label for="reg_password">Password</label>
-                                <input id="reg_password" name="password" type="password" maxlength="128" class="form-control" autocomplete="new-password" required>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                                    </div>
+                                    <input id="reg_password" name="password" type="password" maxlength="128" class="form-control" autocomplete="new-password" required>
+                                </div>
                                 <div class="invalid-feedback">Please enter a password that meets all requirements.</div>
                                 <div id="signupPasswordRules" class="small mt-2 d-none">
                                     <div data-rule="length" class="text-danger">At least 8 characters</div>
@@ -59,7 +79,12 @@
                             </div>
                             <div class="form-group">
                                 <label for="reg_confirm_password">Confirm Password</label>
-                                <input id="reg_confirm_password" name="confirm_password" type="password" maxlength="128" class="form-control" autocomplete="new-password" required>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                                    </div>
+                                    <input id="reg_confirm_password" name="confirm_password" type="password" maxlength="128" class="form-control" autocomplete="new-password" required>
+                                </div>
                                 <div class="invalid-feedback">Confirm Password</div>
                                 <div id="signupConfirmStatus" class="small mt-1 d-none"></div>
                             </div>

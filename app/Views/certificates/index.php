@@ -37,7 +37,8 @@
                         [$status, $statusClass, $medalIconClass] = entry_status_pill($row);
                         $judgingClosedAt = trim((string)($row['jury_phase_2_close'] ?? ''));
                         $isAvailable = $judgingClosedAt !== '' && $judgingClosedAt <= date('Y-m-d H:i:s');
-                        [$requestLabel, $requestPillClass, $requestKey] = certificate_request_status_pill((string)($row['request_status'] ?? ''), false);
+                        $requestStatus = trim((string)($row['request_status'] ?? ''));
+                        [$requestLabel, $requestPillClass, $requestKey] = certificate_request_status_pill($requestStatus, false);
                         $isPendingRequest = $requestKey === 'pending';
                     ?>
                     <tr>

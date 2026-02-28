@@ -88,10 +88,15 @@
                     </div>
                     <div class="col-md-4 form-group mb-0">
                         <label class="form-label" for="gallery_hide">Hide From Gallery</label>
-                        <select id="gallery_hide" name="gallery_hide" class="form-control">
-                            <option value="No" <?= (($row['gallery_hide'] ?? 'No') === 'No') ? 'selected' : '' ?>>No</option>
-                            <option value="Yes" <?= (($row['gallery_hide'] ?? 'No') === 'Yes') ? 'selected' : '' ?>>Yes</option>
-                        </select>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-eye-slash" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="gallery_hide" name="gallery_hide" class="form-control">
+                                <option value="No" <?= (($row['gallery_hide'] ?? 'No') === 'No') ? 'selected' : '' ?>>No</option>
+                                <option value="Yes" <?= (($row['gallery_hide'] ?? 'No') === 'Yes') ? 'selected' : '' ?>>Yes</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -113,22 +118,32 @@
                     </div>
                     <div class="col-md-4 form-group">
                         <label class="form-label" for="winner_level">Winner Award Level</label>
-                        <select id="winner_level" name="winner_level" class="form-control">
-                            <option value="0">Select Winner Level</option>
-                            <?php foreach ($winnerLevels as $level): ?>
-                                <?php $levelId = (string)((int)($level['winner_level_id'] ?? 0)); ?>
-                                <option value="<?= esc($levelId) ?>" <?= $selectedWinnerLevelId === $levelId ? 'selected' : '' ?>>
-                                    <?= esc($level['winner_level_name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-medal" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="winner_level" name="winner_level" class="form-control">
+                                <option value="0">Select Winner Level</option>
+                                <?php foreach ($winnerLevels as $level): ?>
+                                    <?php $levelId = (string)((int)($level['winner_level_id'] ?? 0)); ?>
+                                    <option value="<?= esc($levelId) ?>" <?= $selectedWinnerLevelId === $levelId ? 'selected' : '' ?>>
+                                        <?= esc($level['winner_level_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
                     <div class="col-md-4 form-group mb-0">
                         <label class="form-label" for="entry_non_finalist">Exclude Non-Finalist</label>
-                        <select id="entry_non_finalist" name="entry_non_finalist" class="form-control">
-                            <option value="No" <?= (($row['entry_non_finalist'] ?? 'No') === 'No') ? 'selected' : '' ?>>No</option>
-                            <option value="Yes" <?= (($row['entry_non_finalist'] ?? 'No') === 'Yes') ? 'selected' : '' ?>>Yes</option>
-                        </select>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-user-slash" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="entry_non_finalist" name="entry_non_finalist" class="form-control">
+                                <option value="No" <?= (($row['entry_non_finalist'] ?? 'No') === 'No') ? 'selected' : '' ?>>No</option>
+                                <option value="Yes" <?= (($row['entry_non_finalist'] ?? 'No') === 'Yes') ? 'selected' : '' ?>>Yes</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="row">
@@ -270,16 +285,21 @@
 
                             <div class="col-md-5 col-sm-8">
                                 <label class="form-label mb-1"><?= $photo ? 'Replace File' : 'Upload File' ?> <span class="text-muted">(JPG, max 1 MB)</span></label>
-                                <input
-                                    type="file"
-                                    id="low_photo_<?= $i ?>"
-                                    name="low_photo_<?= $i ?>"
-                                    class="form-control<?= isset($formErrors['low_photo_' . $i]) ? ' is-invalid' : '' ?>"
-                                    data-photo-slot="<?= $i ?>"
-                                    data-photo-required="<?= $i <= 3 ? '1' : '0' ?>"
-                                    data-photo-has-existing="<?= $photo ? '1' : '0' ?>"
-                                    accept=".jpg,.jpeg,image/jpeg"
-                                >
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-image" aria-hidden="true"></i></span>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        id="low_photo_<?= $i ?>"
+                                        name="low_photo_<?= $i ?>"
+                                        class="form-control<?= isset($formErrors['low_photo_' . $i]) ? ' is-invalid' : '' ?>"
+                                        data-photo-slot="<?= $i ?>"
+                                        data-photo-required="<?= $i <= 3 ? '1' : '0' ?>"
+                                        data-photo-has-existing="<?= $photo ? '1' : '0' ?>"
+                                        accept=".jpg,.jpeg,image/jpeg"
+                                    >
+                                </div>
                                 <div class="invalid-feedback"><?= esc((string)($formErrors['low_photo_' . $i] ?? ('Photo ' . $i . ' is required.'))) ?></div>
                             </div>
 
@@ -339,7 +359,12 @@
                     </div>
                     <div class="col-md-3 form-group">
                         <label class="form-label">Certificate PDF</label>
-                        <input type="file" name="certificate_pdf" class="form-control" accept=".pdf,application/pdf">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-file-pdf" aria-hidden="true"></i></span>
+                            </div>
+                            <input type="file" name="certificate_pdf" class="form-control" accept=".pdf,application/pdf">
+                        </div>
                         <input type="hidden" name="certificate_thumb_data" id="certificate_thumb_data" value="">
                         <div id="certificate-thumb-status" class="small text-muted mt-1"></div>
                         <?php if ($certificate && !empty($certificate['entry_certificate'])): ?>
@@ -387,7 +412,12 @@
                     <div class="col-md-3 form-group">
                         <label class="form-label">Winner Badge</label>
                         <?php if ((string)session('role') === 'admin'): ?>
-                            <input type="file" name="winner_badge" class="form-control" accept="image/*,.jpg,.jpeg,.png,.tif,.tiff">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-image" aria-hidden="true"></i></span>
+                                </div>
+                                <input type="file" name="winner_badge" class="form-control" accept="image/*,.jpg,.jpeg,.png,.tif,.tiff">
+                            </div>
                         <?php else: ?>
                             <div class="small text-muted mt-2">Only admins can upload a Winner Badge.</div>
                         <?php endif; ?>
@@ -448,7 +478,12 @@
                             <i class="fas fa-question-circle" aria-hidden="true"></i>
                         </button>
                     </label>
-                    <input id="youtube_url" name="youtube_url" class="form-control" maxlength="255" value="<?= esc((string)(old('youtube_url') ?? ($videoEmbedUrl ?? ''))) ?>">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-video" aria-hidden="true"></i></span>
+                        </div>
+                        <input id="youtube_url" name="youtube_url" class="form-control" maxlength="255" value="<?= esc((string)(old('youtube_url') ?? ($videoEmbedUrl ?? ''))) ?>">
+                    </div>
                     <small class="text-muted">Enter one video URL only. Accepted providers: YouTube or Vimeo.</small><br>
                     <small class="text-muted">Examples: <strong>https://www.youtube.com/embed/VIDEO_ID</strong> or <strong>https://player.vimeo.com/video/123456789</strong></small>
                 </div>
@@ -487,12 +522,22 @@
                     </div>
                     <div class="col-md-3 form-group">
                         <label class="form-label" for="designer_email_address">Email Address <span class="text-danger">*</span></label>
-                        <input id="designer_email_address" name="designer_email_address" type="email" class="form-control" maxlength="100" required value="<?= esc((string)($row['designer_email_address'] ?? '')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="designer_email_address" name="designer_email_address" type="email" class="form-control" maxlength="100" required value="<?= esc((string)($row['designer_email_address'] ?? '')) ?>">
+                        </div>
                         <div class="invalid-feedback">A valid email address is required.</div>
                     </div>
                     <div class="col-md-3 form-group">
                         <label class="form-label" for="designer_phone">Telephone <span class="text-danger">*</span></label>
-                        <input id="designer_phone" name="designer_phone" class="form-control" maxlength="25" required value="<?= esc((string)($row['designer_phone'] ?? '')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="designer_phone" name="designer_phone" class="form-control" maxlength="25" required value="<?= esc((string)($row['designer_phone'] ?? '')) ?>">
+                        </div>
                         <div class="invalid-feedback">Telephone is required.</div>
                     </div>
                 </div>

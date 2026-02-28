@@ -2,12 +2,23 @@
 
 namespace Config;
 
+use App\Libraries\Log\Handlers\EmailAlertHandler;
 use CodeIgniter\Config\BaseConfig;
 use CodeIgniter\Log\Handlers\FileHandler;
 use CodeIgniter\Log\Handlers\HandlerInterface;
 
 class Logger extends BaseConfig
 {
+    public function __construct()
+    {
+        parent::__construct();
+
+        $email = trim((string)getenv('ERROR_ALERT_EMAIL'));
+        if ($email !== '' && isset($this->handlers[EmailAlertHandler::class])) {
+            $this->handlers[EmailAlertHandler::class]['toEmail'] = $email;
+        }
+    }
+
     /**
      * --------------------------------------------------------------------------
      * Error Logging Threshold
@@ -147,5 +158,19 @@ class Logger extends BaseConfig
         //     */
         //     'messageType' => 0,
         // ],
+
+        /*
+         * --------------------------------------------------------------------
+         * Email Alert Handler (production error paging)
+         * --------------------------------------------------------------------
+         */
+        EmailAlertHandler::class => [
+            'handles' => ['critical', 'alert', 'emergency'],
+            'enabled' => true,
+            'productionOnly' => true,
+            'toEmail' => 'jessiecanon@gmail.com',
+            'appName' => 'Spark Awards',
+            'throttleSeconds' => 600,
+        ],
     ];
 }

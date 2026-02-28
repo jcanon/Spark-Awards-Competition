@@ -21,8 +21,18 @@ $tools = [
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">System Tools</h1>
-        <a class="btn btn-sm btn-secondary" href="<?= site_url('admin') ?>">Back to Dashboard</a>
+        <div class="d-flex align-items-center">
+            <?php if ((string) session('role') === 'admin'): ?>
+                <form method="post" action="<?= site_url('admin/system-tools/test-error-alert') ?>" class="mr-2" onsubmit="return confirm('Send a test critical error alert email now?');">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-sm btn-warning">Send Test Error Alert</button>
+                </form>
+            <?php endif; ?>
+            <a class="btn btn-sm btn-secondary" href="<?= site_url('admin') ?>">Back to Dashboard</a>
+        </div>
     </div>
+
+    <?= view('partials/flash') ?>
 
     <div class="row">
         <?php foreach ($tools as $tool): ?>

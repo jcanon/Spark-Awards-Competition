@@ -59,10 +59,15 @@ $val = static function (string $field, string $default = '') use ($request, $pre
                     <div class="col-md-6 form-group">
                         <label for="shipping_method">Shipping Method <span class="text-danger">*</span></label>
                         <?php $ship = $val('shipping_method', 'least_expensive'); ?>
-                        <select id="shipping_method" name="shipping_method" class="form-control" required>
-                            <option value="least_expensive" <?= $ship === 'least_expensive' ? 'selected' : '' ?>>Least Expensive</option>
-                            <option value="express" <?= $ship === 'express' ? 'selected' : '' ?>>Express (more expensive)</option>
-                        </select>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-shipping-fast" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="shipping_method" name="shipping_method" class="form-control" required>
+                                <option value="least_expensive" <?= $ship === 'least_expensive' ? 'selected' : '' ?>>Least Expensive</option>
+                                <option value="express" <?= $ship === 'express' ? 'selected' : '' ?>>Express (more expensive)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -97,7 +102,12 @@ $val = static function (string $field, string $default = '') use ($request, $pre
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="contact_phone">Contact Phone / Mobile <span class="text-danger">*</span></label>
-                        <input id="contact_phone" name="contact_phone" class="form-control" maxlength="25" required value="<?= esc($val('contact_phone')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="contact_phone" name="contact_phone" class="form-control" maxlength="25" required value="<?= esc($val('contact_phone')) ?>">
+                        </div>
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="contact_email">
@@ -113,7 +123,12 @@ $val = static function (string $field, string $default = '') use ($request, $pre
                                 <i class="fas fa-question-circle" aria-hidden="true"></i>
                             </button>
                         </label>
-                        <input id="contact_email" name="contact_email" type="email" class="form-control" maxlength="120" required value="<?= esc($val('contact_email')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="contact_email" name="contact_email" type="email" class="form-control" maxlength="120" required value="<?= esc($val('contact_email')) ?>">
+                        </div>
                     </div>
                 </div>
 
@@ -150,7 +165,12 @@ $val = static function (string $field, string $default = '') use ($request, $pre
                     </div>
                     <div class="col-md-4 form-group">
                         <label for="shipping_country">Country <span class="text-danger">*</span></label>
-                        <input id="shipping_country" name="shipping_country" class="form-control" maxlength="80" required value="<?= esc($val('shipping_country')) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-flag" aria-hidden="true"></i></span>
+                            </div>
+                            <input id="shipping_country" name="shipping_country" class="form-control" maxlength="80" required value="<?= esc($val('shipping_country')) ?>">
+                        </div>
                     </div>
                     <div class="col-md-4 form-group">
                         <?php $lam = $val('lamination_requested', '0') === '1'; ?>

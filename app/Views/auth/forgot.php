@@ -18,7 +18,12 @@
                         <?= csrf_field() ?>
                         <div class="form-group">
                             <label for="forgot_email">Email Address</label>
-                            <input id="forgot_email" name="forgot_email" type="email" maxlength="100" class="form-control" value="<?= esc(old('forgot_email')) ?>" required>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                                </div>
+                                <input id="forgot_email" name="forgot_email" type="email" maxlength="100" class="form-control" value="<?= esc(old('forgot_email')) ?>" required>
+                            </div>
                             <div class="invalid-feedback">Please enter a valid email address.</div>
                         </div>
                         <button type="submit" class="btn btn-primary">Send Request</button>

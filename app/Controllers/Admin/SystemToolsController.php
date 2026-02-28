@@ -162,4 +162,37 @@ class SystemToolsController extends BaseController
         }
         return $this->response->download($path, null)->setFileName(basename($path));
     }
+
+    public function testErrorAlert()
+    {
+        $request = service('request');
+        $requestUrl = '';
+        if ($request !== null && method_exists($request, 'getUri')) {
+            $uri = $request->getUri();
+            $requestUrl = $uri ? (string)$uri : '';
+        }
+
+        $payload = [
+            'test_id' => bin2hex(random_bytes(8)),
+            'environment' => ENVIRONMENT,
+            'user_id' => (string)(session('user_id') ?? ''),
+            'role' => (string)(session('role') ?? ''),
+            'method' => $request !== null && method_exists($request, 'getMethod') ? strtoupper((string)$request->getMethod()) : '',
+            'url' => $requestUrl,
+            'ip' => $request !== null && method_exists($request, 'getIPAddress') ? (string)$request->getIPAddress() : '',
+            'timestamp' => date('c'),
+        ];
+
+        log_message('critical', 'Manual test error alert trigger: {payload}', [
+            'payload' => json_encode($payload, JSON_UNESCAPED_SLASHES),
+        ]);
+
+        return redirect()->back()->with(
+            'success',
+            'Test error alert logged (ID: ' . $payload['test_id'] . '). '
+            . (ENVIRONMENT === 'production'
+                ? 'If email is configured, you should receive it shortly.'
+                : 'Email alerts are production-only in current config.')
+        );
+    }
 }

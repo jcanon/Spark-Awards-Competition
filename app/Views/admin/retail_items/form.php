@@ -34,27 +34,41 @@
                             ['value' => '2', 'label' => '2', 'selected' => $phaseVal === '2'],
                         ],
                     ]) ?>
-                    <?= view('partials/forms/input', [
-                        'colClass' => 'col-md-3 form-group',
-                        'label' => 'Price (USD)',
-                        'name' => 'item_price',
-                        'type' => 'number',
-                        'value' => (string)(old('item_price') ?? ($row?->item_price ?? '0')),
-                        'required' => true,
-                        'help' => 'Whole dollars only (e.g. 100).',
-                        'attrs' => ['data-filter' => 'digits', 'min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]+'],
-                    ]) ?>
+                    <div class="col-md-3 form-group">
+                        <label for="item_price">Price <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">$</span>
+                            </div>
+                            <input
+                                id="item_price"
+                                class="form-control"
+                                type="number"
+                                name="item_price"
+                                value="<?= esc((string)(old('item_price') ?? ($row?->item_price ?? '0'))) ?>"
+                                required
+                                data-filter="digits"
+                                min="0"
+                                step="1"
+                                inputmode="numeric"
+                                pattern="[0-9]+"
+                            >
+                        </div>
+                        <small class="text-muted">Whole dollars only (e.g. 100).</small>
+                    </div>
                     <?php $activeVal = (string)(old('active') ?? ($row?->active ?? 'Y')); ?>
-                    <?= view('partials/forms/select', [
-                        'colClass' => 'col-md-2 form-group',
-                        'label' => 'Active',
-                        'name' => 'active',
-                        'required' => true,
-                        'options' => [
-                            ['value' => 'Y', 'label' => 'Yes', 'selected' => $activeVal === 'Y'],
-                            ['value' => 'N', 'label' => 'No', 'selected' => $activeVal === 'N'],
-                        ],
-                    ]) ?>
+                    <div class="col-md-2 form-group">
+                        <label for="active">Active <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-toggle-on" aria-hidden="true"></i></span>
+                            </div>
+                            <select id="active" name="active" class="form-control" required>
+                                <option value="Y" <?= $activeVal === 'Y' ? 'selected' : '' ?>>Yes</option>
+                                <option value="N" <?= $activeVal === 'N' ? 'selected' : '' ?>>No</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row">

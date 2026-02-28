@@ -189,6 +189,7 @@ $routes->group('admin', ['filter' => 'auth:admin,editor,2fa'], static function (
     $routes->get('system-tools/diagnostics', 'Admin\SystemToolsController::diagnostics', ['filter' => 'auth:admin,2fa']);
     $routes->post('system-tools/diagnostics/generate', 'Admin\SystemToolsController::diagnosticsGenerate', ['filter' => 'auth:admin,2fa']);
     $routes->get('system-tools/diagnostics/download/(:segment)', 'Admin\SystemToolsController::diagnosticsDownload/$1', ['filter' => 'auth:admin,2fa']);
+    $routes->post('system-tools/test-error-alert', 'Admin\SystemToolsController::testErrorAlert', ['filter' => 'auth:admin,2fa']);
     $routes->get('logs', 'Admin\LogsController::index', ['filter' => 'auth:admin,2fa']);
     $routes->post('logs/purge', 'Admin\LogsController::purge', ['filter' => 'auth:admin,2fa']);
     $routes->get('trash', 'Admin\TrashController::index', ['filter' => 'auth:admin,2fa']);

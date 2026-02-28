@@ -60,7 +60,12 @@ $isProfileComplete = method_exists($user, 'isProfileCompleted')
                         <?= csrf_field() ?>
                         <div class="form-group mr-2 mb-2">
                             <label for="recovery_current_password" class="sr-only">Current Password</label>
-                            <input type="password" id="recovery_current_password" name="recovery_current_password" class="form-control" placeholder="Current password" maxlength="128" autocomplete="current-password" required>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                                </div>
+                                <input type="password" id="recovery_current_password" name="recovery_current_password" class="form-control" placeholder="Current password" maxlength="128" autocomplete="current-password" required>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-outline-primary mb-2">
                             <?= !empty($hasRecoveryCodes) ? 'Regenerate Recovery Codes' : 'Generate Recovery Codes' ?>
@@ -80,17 +85,32 @@ $isProfileComplete = method_exists($user, 'isProfileCompleted')
                 <div class="card-body row g-3">
                     <div class="col-md-3">
                         <label for="email_address" class="form-label">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="email_address" name="email_address" required maxlength="100" value="<?= esc((string)(old('email_address') ?? ($user->email_address ?? ''))) ?>">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                            </div>
+                            <input type="email" class="form-control" id="email_address" name="email_address" required maxlength="100" value="<?= esc((string)(old('email_address') ?? ($user->email_address ?? ''))) ?>">
+                        </div>
                         <div class="invalid-feedback">A valid, unique email address is required.</div>
                     </div>
                     <div class="col-md-3">
                         <label for="current_password" class="form-label">Current Password</label>
-                        <input type="password" class="form-control" id="current_password" name="current_password" maxlength="128" autocomplete="current-password">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                            </div>
+                            <input type="password" class="form-control" id="current_password" name="current_password" maxlength="128" autocomplete="current-password">
+                        </div>
                         <div class="invalid-feedback">Current password is required to change your password.</div>
                     </div>
                     <div class="col-md-3">
                         <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" minlength="8" autocomplete="new-password">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                            </div>
+                            <input type="password" class="form-control" id="password" name="password" minlength="8" autocomplete="new-password">
+                        </div>
                         <div class="invalid-feedback">Please enter a password that meets all requirements.</div>
                         <div id="profilePasswordRules" class="small mt-2 d-none">
                             <div data-rule="length" class="text-muted">At least 8 characters</div>
@@ -103,7 +123,12 @@ $isProfileComplete = method_exists($user, 'isProfileCompleted')
                     </div>
                     <div class="col-md-3">
                         <label for="confirm_password" class="form-label">Confirm Password</label>
-                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" autocomplete="new-password">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                            </div>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" autocomplete="new-password">
+                        </div>
                         <div class="invalid-feedback">Please confirm your password.</div>
                         <div id="profileConfirmStatus" class="small mt-1 d-none"></div>
                     </div>
@@ -135,16 +160,31 @@ $isProfileComplete = method_exists($user, 'isProfileCompleted')
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label for="website" class="form-label">Website</label>
-                            <input type="url" class="form-control" id="website" name="website" maxlength="100" value="<?= old('website') ?? ($user->website ?? '') ?>">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-globe" aria-hidden="true"></i></span>
+                                </div>
+                                <input type="url" class="form-control" id="website" name="website" maxlength="100" value="<?= old('website') ?? ($user->website ?? '') ?>">
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label for="phone" class="form-label">Telephone <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="phone" name="phone" required maxlength="25" value="<?= old('phone') ?? ($user->phone ?? '') ?>">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                                </div>
+                                <input type="text" class="form-control" id="phone" name="phone" required maxlength="25" value="<?= old('phone') ?? ($user->phone ?? '') ?>">
+                            </div>
                             <div class="invalid-feedback">Telephone is required.</div>
                         </div>
                         <div class="col-md-4">
                             <label for="mobile" class="form-label">Mobile</label>
-                            <input type="text" class="form-control" id="mobile" name="mobile" maxlength="25" value="<?= old('mobile') ?? ($user->mobile ?? '') ?>">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-mobile-alt" aria-hidden="true"></i></span>
+                                </div>
+                                <input type="text" class="form-control" id="mobile" name="mobile" maxlength="25" value="<?= old('mobile') ?? ($user->mobile ?? '') ?>">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -225,16 +265,21 @@ $isProfileComplete = method_exists($user, 'isProfileCompleted')
 
                         <div class="col-md-4">
                             <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
-                            <select id="country" name="country" class="form-control" required>
-                                <option value=""></option>
-                                <option value="None" <?= (old('country') == 'None' ? 'selected' : '') ?>>Not Listed</option>
-                                <option value="US" <?= (old('country') == 'US' ? 'selected' : (($user->country ?? '') === 'US' ? 'selected' : '')) ?>>United States</option>
-                                <?php foreach ($dropdowns['countries'] as $ct): ?>
-                                    <option value="<?= $ct['ccode'] ?>" <?= (old('country') == $ct['ccode'] ? 'selected' : (($user->country ?? '') == $ct['ccode'] ? 'selected' : '')) ?>>
-                                        <?= esc($ct['country']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-flag" aria-hidden="true"></i></span>
+                                </div>
+                                <select id="country" name="country" class="form-control" required>
+                                    <option value=""></option>
+                                    <option value="None" <?= (old('country') == 'None' ? 'selected' : '') ?>>Not Listed</option>
+                                    <option value="US" <?= (old('country') == 'US' ? 'selected' : (($user->country ?? '') === 'US' ? 'selected' : '')) ?>>United States</option>
+                                    <?php foreach ($dropdowns['countries'] as $ct): ?>
+                                        <option value="<?= $ct['ccode'] ?>" <?= (old('country') == $ct['ccode'] ? 'selected' : (($user->country ?? '') == $ct['ccode'] ? 'selected' : '')) ?>>
+                                            <?= esc($ct['country']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                             <div class="invalid-feedback">Country is required.</div>
                         </div>
                     </div>

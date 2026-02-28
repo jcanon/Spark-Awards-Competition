@@ -196,7 +196,7 @@ $isEntryEditLocked = static function ($entry): bool {
                                 $p2 = (string)($e->phase_2_payment ?? 'Unpaid');
                                 $isPhase1Paid = strcasecmp($p1, 'Paid') === 0;
                                 $isPhase2Paid = strcasecmp($p2, 'Paid') === 0;
-                                [$statusLabel, $statusClass, $statusIcon] = $statusPill($e);
+                                [$statusLabel, $statusClass, $statusIcon] = entry_status_pill($e);
                                 ?>
                                 <tr>
                                     <td>
@@ -278,7 +278,7 @@ $isEntryEditLocked = static function ($entry): bool {
                                 $p2 = (string)($e->phase_2_payment ?? 'Unpaid');
                                 $isPhase1Paid = strcasecmp($p1, 'Paid') === 0;
                                 $isPhase2Paid = strcasecmp($p2, 'Paid') === 0;
-                                [$statusLabel, $statusClass, $statusIcon] = $statusPill($e);
+                                [$statusLabel, $statusClass, $statusIcon] = entry_status_pill($e);
                                 ?>
                                 <tr>
                                     <td>

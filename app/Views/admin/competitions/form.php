@@ -97,8 +97,8 @@ $datetimeValue = static function (string $field) use ($row): string {
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 form-group"><label>Phase 1 Open <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" name="comp_phase_1_open" required value="<?= esc($datetimeValue('comp_phase_1_open')) ?>"></div>
-                    <div class="col-md-3 form-group"><label>Regular Reg Open <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" name="comp_regular_reg_open" required value="<?= esc($datetimeValue('comp_regular_reg_open')) ?>"></div>
-                    <div class="col-md-3 form-group"><label>Late Reg Open <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" name="comp_late_reg_open" required value="<?= esc($datetimeValue('comp_late_reg_open')) ?>"></div>
+                    <div class="col-md-3 form-group"><label>Regular Registration Open <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" name="comp_regular_reg_open" required value="<?= esc($datetimeValue('comp_regular_reg_open')) ?>"></div>
+                    <div class="col-md-3 form-group"><label>Late Registration Open <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" name="comp_late_reg_open" required value="<?= esc($datetimeValue('comp_late_reg_open')) ?>"></div>
                     <div class="col-md-3 form-group"><label>Phase 1 Close <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" name="comp_phase_1_close" required value="<?= esc($datetimeValue('comp_phase_1_close')) ?>"></div>
                 </div>
                 <div class="row">
@@ -136,8 +136,18 @@ $datetimeValue = static function (string $field) use ($row): string {
                         }
                         ?>
                         <div class="col-md-3 form-group">
-                            <label><?= esc(ucwords(str_replace('_', ' ', $field))) ?> <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="<?= esc($field) ?>" value="<?= esc($displayValue) ?>" required>
+                            <?php
+                            $label = ucwords(str_replace('_', ' ', $field));
+                            $label = preg_replace('/\bPro\b/', 'Professional', $label) ?? $label;
+                            $label = preg_replace('/\bReg\b/', 'Registration', $label) ?? $label;
+                            ?>
+                            <label><?= esc($label) ?> <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">$</span>
+                                </div>
+                                <input type="text" class="form-control" name="<?= esc($field) ?>" value="<?= esc($displayValue) ?>" required>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 </div>

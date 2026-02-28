@@ -94,11 +94,16 @@
 
                             <div class="form-group">
                                 <label for="entry_score">Score</label>
-                                <select class="form-control" id="entry_score" name="entry_score" required>
-                                    <option value="0" <?= ((string)($myScore['entry_score'] ?? '') === '0') ? 'selected' : '' ?>>0 - Poor</option>
-                                    <option value="1" <?= ((string)($myScore['entry_score'] ?? '') === '1') ? 'selected' : '' ?>>1 - Good</option>
-                                    <option value="2" <?= ((string)($myScore['entry_score'] ?? '') === '2') ? 'selected' : '' ?>>2 - Great</option>
-                                </select>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-star" aria-hidden="true"></i></span>
+                                    </div>
+                                    <select class="form-control" id="entry_score" name="entry_score" required>
+                                        <option value="0" <?= ((string)($myScore['entry_score'] ?? '') === '0') ? 'selected' : '' ?>>0 - Poor</option>
+                                        <option value="1" <?= ((string)($myScore['entry_score'] ?? '') === '1') ? 'selected' : '' ?>>1 - Good</option>
+                                        <option value="2" <?= ((string)($myScore['entry_score'] ?? '') === '2') ? 'selected' : '' ?>>2 - Great</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -161,4 +166,3 @@
 <script src="/js/pages/judging-entry.js"></script>
 
 <?= $this->endSection() ?>
-
