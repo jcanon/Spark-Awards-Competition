@@ -66,6 +66,37 @@
                         </div>
                     </div>
                 </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label>Site Maintenance</label>
+                        <div class="custom-control custom-switch mt-2">
+                            <input type="hidden" name="site_maintenance" value="0">
+                            <input
+                                type="checkbox"
+                                class="custom-control-input"
+                                id="site_maintenance"
+                                name="site_maintenance"
+                                value="1"
+                                <?= ((int)($row?->site_maintenance ?? 0) === 1) ? 'checked' : '' ?>
+                            >
+                            <label class="custom-control-label" for="site_maintenance">Enable maintenance mode</label>
+                        </div>
+                        <small class="form-text text-muted">When enabled, only administrators can log in.</small>
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label for="site_maintenance_message">Site Maintenance Message</label>
+                        <textarea
+                            class="form-control"
+                            id="site_maintenance_message"
+                            name="site_maintenance_message"
+                            rows="4"
+                            maxlength="2000"
+                            placeholder="We are currently performing scheduled maintenance. Please try again shortly."
+                        ><?= esc((string)($row?->site_maintenance_message ?? '')) ?></textarea>
+                        <small class="form-text text-muted">Shown on the login page when maintenance mode is enabled.</small>
+                    </div>
+                </div>
             </div>
         </div>
 

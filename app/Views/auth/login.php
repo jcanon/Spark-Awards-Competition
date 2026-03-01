@@ -10,6 +10,11 @@
                         <h1 class="h4 mb-3">Login to Spark</h1>
                         <p>Welcome to the <strong>Spark Awards Competitions</strong>.</p>
                         <p class="text-muted">Login below to access your design submissions, submit payments and see your submissions results.</p>
+                        <?php if (($siteMaintenanceEnabled ?? false) === true): ?>
+                            <div class="alert alert-warning" role="alert">
+                                <?= nl2br(esc((string)($siteMaintenanceMessage ?? ''))) ?>
+                            </div>
+                        <?php endif; ?>
 
                         <form id="loginForm" action="<?= site_url('auth/login') ?>" method="post" class="needs-validation" novalidate>
                             <?= csrf_field() ?>

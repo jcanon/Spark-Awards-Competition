@@ -11,7 +11,16 @@ class SettingsModel extends Model
     protected $primaryKey = 'id';
     protected $returnType = 'array';
     protected $useTimestamps = false;
-    protected $allowedFields = ['url', 'email_server', 'email_username', 'email_password', 'email', 'title'];
+    protected $allowedFields = [
+        'url',
+        'email_server',
+        'email_username',
+        'email_password',
+        'email',
+        'title',
+        'site_maintenance',
+        'site_maintenance_message',
+    ];
 
     public function getSettings(): ?Setting
     {

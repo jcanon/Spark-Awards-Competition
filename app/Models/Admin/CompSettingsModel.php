@@ -19,6 +19,8 @@ class CompSettingsModel extends Model
         'email_password',
         'email',
         'title',
+        'site_maintenance',
+        'site_maintenance_message',
     ];
 
     protected $validationRules = [
@@ -28,5 +30,7 @@ class CompSettingsModel extends Model
         'email_password' => 'permit_empty|max_length[100]',
         'email' => 'permit_empty|valid_email|max_length[100]',
         'title' => 'permit_empty|max_length[200]',
+        'site_maintenance' => 'permit_empty|in_list[0,1]',
+        'site_maintenance_message' => 'permit_empty|max_length[2000]',
     ];
 }

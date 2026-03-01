@@ -38,6 +38,8 @@ class AdminSettingsService
             'email_password' => (string)($data['email_password'] ?? ($current->email_password ?? '')),
             'email' => (string)($data['email'] ?? ($current->email ?? '')),
             'title' => (string)($data['title'] ?? ($current->title ?? '')),
+            'site_maintenance' => (int)($data['site_maintenance'] ?? ($current->site_maintenance ?? 0)) === 1 ? 1 : 0,
+            'site_maintenance_message' => trim((string)($data['site_maintenance_message'] ?? ($current->site_maintenance_message ?? ''))),
         ];
 
         if ($current) {

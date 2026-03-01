@@ -24,6 +24,8 @@ class SettingsController extends BaseController
             'email_server' => 'permit_empty|max_length[200]',
             'email_username' => 'permit_empty|max_length[200]',
             'email_password' => 'permit_empty|max_length[200]',
+            'site_maintenance' => 'required|in_list[0,1]',
+            'site_maintenance_message' => 'permit_empty|max_length[2000]',
         ];
 
         if (!$this->validate($rules)) {

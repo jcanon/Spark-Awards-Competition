@@ -15,6 +15,12 @@ class LoginController extends BaseController
             return redirect()->to('/home');
         }
 
+        $siteMaintenanceEnabled = (int)service('settings')->get('site_maintenance', 0) === 1;
+        $siteMaintenanceMessage = trim((string)service('settings')->get('site_maintenance_message', ''));
+        if ($siteMaintenanceMessage === '') {
+            $siteMaintenanceMessage = 'We are currently performing a scheduled maintenance of the competition website.';
+        }
+
         return view('auth/login', [
             'title' => 'Login',
             'user' => service('userctx')->current(), // keep context available
@@ -22,6 +28,8 @@ class LoginController extends BaseController
             'sent' => (bool)$this->request->getGet('sent'),
             'captchaErr' => $this->request->getGet('captchaError') === '1',
             'siteKey' => service('captcha')->siteKey(),
+            'siteMaintenanceEnabled' => $siteMaintenanceEnabled,
+            'siteMaintenanceMessage' => $siteMaintenanceMessage,
         ]);
     }
 
@@ -60,6 +68,16 @@ class LoginController extends BaseController
                 'ip' => $ip,
             ]);
             return redirect()->back()->withInput()->with('error', 'Your username or password is incorrect. Please try again.');
+        }
+
+        if ((int)service('settings')->get('site_maintenance', 0) === 1 && (string)session('role') !== 'admin') {
+            $siteMaintenanceMessage = trim((string)service('settings')->get('site_maintenance_message', ''));
+            if ($siteMaintenanceMessage === '') {
+                $siteMaintenanceMessage = 'We are currently performing a scheduled maintenance of the competition website.';
+            }
+
+            service('auth')->logout();
+            return redirect()->back()->withInput()->with('error', $siteMaintenanceMessage);
         }
 
         if ((bool)session('password_reset_required')) {

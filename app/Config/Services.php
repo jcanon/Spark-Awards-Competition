@@ -53,8 +53,10 @@ class Services extends BaseService
         $cfg['fromName'] = $settings->getTitle();
         $cfg['protocol'] = 'smtp';
         $cfg['SMTPHost'] = $smtpHost;
+        $cfg['SMTPPort'] = 587;
         $cfg['SMTPUser'] = $smtpUser;
         $cfg['SMTPPass'] = $smtpPass;
+        $cfg['SMTPCrypto'] = 'tls';
         if ($smtpPort !== null) {
             $cfg['SMTPPort'] = $smtpPort;
         }
