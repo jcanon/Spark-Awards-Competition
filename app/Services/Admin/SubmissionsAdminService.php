@@ -281,20 +281,20 @@ class SubmissionsAdminService
         $entryIds = array_values(array_unique(array_map(static fn (array $r): string => (string)($r['entry_id'] ?? ''), $rows)));
         $paymentDates = [];
         if ($entryIds !== []) {
-            $payments = db_connect()->table('comp_entry_payments')
+            $paymentsQuery = db_connect()->table('comp_entry_payments')
                 ->select('entry_id, payment_phase, payment_date')
                 ->whereIn('entry_id', $entryIds)
                 ->whereIn('payment_phase', [1, 2])
                 ->where('payment_date IS NOT NULL', null, false)
-                ->where('payment_date !=', '')
-                ->get()
-                ->getResultArray();
+                ->get();
+            $payments = $paymentsQuery ? $paymentsQuery->getResultArray() : [];
 
             foreach ($payments as $payment) {
                 $entryId = (string)($payment['entry_id'] ?? '');
                 $phase = (int)($payment['payment_phase'] ?? 0);
                 $date = (string)($payment['payment_date'] ?? '');
-                if ($entryId === '' || !in_array($phase, [1, 2], true) || $date === '') {
+                $dateTs = strtotime($date);
+                if ($entryId === '' || !in_array($phase, [1, 2], true) || $date === '' || $dateTs === false) {
                     continue;
                 }
 
@@ -307,7 +307,8 @@ class SubmissionsAdminService
 
                 // Keep latest datetime if multiple rows exist for a phase.
                 $current = (string)$paymentDates[$entryId][$phase];
-                if ($current === '' || strtotime($date) > strtotime($current)) {
+                $currentTs = strtotime($current);
+                if ($current === '' || $currentTs === false || $dateTs > $currentTs) {
                     $paymentDates[$entryId][$phase] = $date;
                 }
             }
