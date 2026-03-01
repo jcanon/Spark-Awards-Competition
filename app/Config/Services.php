@@ -52,6 +52,7 @@ class Services extends BaseService
         $cfg['fromEmail'] = $primaryEmail;
         $cfg['fromName'] = $settings->getTitle();
         $cfg['protocol'] = 'smtp';
+        $cfg['mailType'] = 'html';
         $cfg['SMTPHost'] = $smtpHost;
         $cfg['SMTPPort'] = 587;
         $cfg['SMTPUser'] = $smtpUser;
