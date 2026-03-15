@@ -6,6 +6,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\Entries\CertificateRequestModel;
+use Throwable;
 
 class CertificateRequestsController extends BaseController
 {
@@ -112,12 +113,11 @@ class CertificateRequestsController extends BaseController
             return redirect()->back()->with('error', 'Invalid request status.');
         }
 
-        $row = (new CertificateRequestModel())
-            ->where('certificate_request_id', $certificateRequestId)
-            ->first();
+        $row = $this->findRequestRow($certificateRequestId);
         if (!$row) {
             return redirect()->back()->with('error', 'Certificate request not found.');
         }
+        $oldStatus = trim((string)($row['request_status'] ?? ''));
 
         $ok = (new CertificateRequestModel())->update($certificateRequestId, [
             'request_status' => $status,
@@ -128,6 +128,11 @@ class CertificateRequestsController extends BaseController
 
         if (!$ok) {
             return redirect()->back()->with('error', 'Unable to update request status.');
+        }
+
+        if (strcasecmp($oldStatus, $status) !== 0) {
+            $updatedRow = $this->findRequestRow($certificateRequestId) ?? $row;
+            $this->sendContactStatusChangedNotification($updatedRow, $status);
         }
 
         return redirect()->to($this->buildListUrlFromInput())->with('success', 'Request status updated.');
@@ -157,6 +162,7 @@ class CertificateRequestsController extends BaseController
         if (!$row) {
             return redirect()->to('admin/certificate-requests')->with('error', 'Certificate request not found.');
         }
+        $oldStatus = trim((string)($row['request_status'] ?? ''));
 
         $rules = [
             'request_status' => 'required',
@@ -218,7 +224,53 @@ class CertificateRequestsController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Unable to update certificate request.');
         }
 
+        if (strcasecmp($oldStatus, $status) !== 0) {
+            $updatedRow = $this->findRequestRow($certificateRequestId) ?? array_merge($row, $payload);
+            $this->sendContactStatusChangedNotification($updatedRow, $status);
+        }
+
         return redirect()->to($this->buildListUrlFromInput())->with('success', 'Certificate request updated.');
+    }
+
+    private function sendContactStatusChangedNotification(array $row, string $newStatus): void
+    {
+        $contactEmail = trim((string)($row['contact_email'] ?? ''));
+        if ($contactEmail === '' || !filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $contactName = trim((string)($row['contact_person'] ?? ''));
+        $certificateRequestId = (int)($row['certificate_request_id'] ?? 0);
+        $entryId = trim((string)($row['entry_id'] ?? ''));
+        $entryName = trim((string)($row['design_name'] ?? ''));
+        $compLabel = trim((string)($row['comp_year'] ?? '') . ' ' . (string)($row['comp_type_name'] ?? ''));
+        $quantity = (int)($row['certificate_quantity'] ?? 0);
+        $requestedAt = format_datetime_ui((string)($row['requested_at'] ?? ''), '-');
+        $ordersUrl = site_url('certificates');
+
+        try {
+            $email = service('email');
+            $subject = 'Certificate Request Status Updated (Order #' . $certificateRequestId . ')';
+            $message = '<p>Hello ' . esc($contactName !== '' ? $contactName : 'there') . ',</p>'
+                . '<p>Your certificate request status has changed to <strong>' . esc($newStatus) . '</strong>.</p>'
+                . '<p><strong>Order #:</strong> ' . $certificateRequestId . '<br>'
+                . '<strong>Entry ID:</strong> ' . esc($entryId) . '<br>'
+                . '<strong>Design Name:</strong> ' . esc($entryName) . '<br>'
+                . '<strong>Competition:</strong> ' . esc($compLabel) . '<br>'
+                . '<strong>Requested:</strong> ' . esc((string)$requestedAt) . '<br>'
+                . '<strong>Quantity:</strong> ' . $quantity . '<br>'
+                . '<strong>Current Status:</strong> ' . esc($newStatus) . '</p>'
+                . '<p>You can view your certificate requests at <a href="' . esc($ordersUrl) . '">' . esc($ordersUrl) . '</a>.</p>';
+
+            $email->setTo($contactEmail)
+                ->setSubject($subject)
+                ->setMessage($message);
+            $email->send(false);
+        } catch (Throwable $e) {
+            log_message('error', 'Certificate request status email failed: {message}', [
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function findRequestRow(int $certificateRequestId): ?array

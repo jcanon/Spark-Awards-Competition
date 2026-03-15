@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\Entries\CertificateRequestModel;
+use Throwable;
 
 class CertificatesController extends BaseController
 {
@@ -151,10 +152,104 @@ class CertificatesController extends BaseController
         } else {
             $payload['request_status'] = 'Pending';
             $payload['requested_at'] = date('Y-m-d H:i:s');
-            $model->insert($payload, false);
+            $newId = $model->insert($payload);
+            if ($newId !== false) {
+                $this->sendCertificateRequestReceivedNotification($entry, $payload, (int)$newId);
+                $this->sendNewCertificateRequestNotification($entry, $payload, (int)$newId);
+            }
         }
 
         return redirect()->to('/certificates')->with('success', 'Certificate request saved.');
+    }
+
+    private function sendNewCertificateRequestNotification(array $entry, array $requestPayload, int $certificateRequestId): void
+    {
+        $toEmail = $this->resolveAdminNotificationEmail();
+        if ($toEmail === '') {
+            return;
+        }
+
+        try {
+            $email = service('email');
+            $editUrl = site_url('admin/certificate-requests/edit/' . $certificateRequestId);
+            $entryName = trim((string)($entry['design_name'] ?? ''));
+            $compLabel = trim((string)($entry['comp_year'] ?? '') . ' ' . (string)($entry['comp_type_name'] ?? ''));
+            $contactName = trim((string)($requestPayload['contact_person'] ?? ''));
+            $contactEmail = trim((string)($requestPayload['contact_email'] ?? ''));
+            $subject = 'New Certificate Request: Entry ' . (string)($entry['entry_id'] ?? '');
+            $message = '<p>A new certificate request has been submitted.</p>'
+                . '<p><strong>Entry ID:</strong> ' . esc((string)($entry['entry_id'] ?? '')) . '<br>'
+                . '<strong>Design Name:</strong> ' . esc($entryName) . '<br>'
+                . '<strong>Competition:</strong> ' . esc($compLabel) . '<br>'
+                . '<strong>Quantity:</strong> ' . (int)($requestPayload['certificate_quantity'] ?? 0) . '<br>'
+                . '<strong>Contact Name:</strong> ' . esc($contactName) . '<br>'
+                . '<strong>Contact Email:</strong> <a href="mailto:' . esc($contactEmail) . '">' . esc($contactEmail) . '</a></p>'
+                . '<p><a href="' . esc($editUrl) . '">View Request in Admin</a></p>';
+
+            $email->setTo($toEmail)
+                ->setSubject($subject)
+                ->setMessage($message);
+            $email->send(false);
+        } catch (Throwable $e) {
+            log_message('error', 'Certificate request admin notification failed: {message}', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function sendCertificateRequestReceivedNotification(array $entry, array $requestPayload, int $certificateRequestId): void
+    {
+        $contactEmail = trim((string)($requestPayload['contact_email'] ?? ''));
+        if ($contactEmail === '' || !filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $contactName = trim((string)($requestPayload['contact_person'] ?? ''));
+        $entryName = trim((string)($entry['design_name'] ?? ''));
+        $entryId = trim((string)($entry['entry_id'] ?? ''));
+        $compLabel = trim((string)($entry['comp_year'] ?? '') . ' ' . (string)($entry['comp_type_name'] ?? ''));
+        $quantity = (int)($requestPayload['certificate_quantity'] ?? 0);
+        $status = trim((string)($requestPayload['request_status'] ?? 'Pending'));
+        $ordersUrl = site_url('certificates');
+
+        try {
+            $email = service('email');
+            $subject = 'Certificate Request Received (Order #' . $certificateRequestId . ')';
+            $message = '<p>Hello ' . esc($contactName !== '' ? $contactName : 'there') . ',</p>'
+                . '<p>We received your Spark Awards certificate request. Our team will email you with payment details shortly.</p>'
+                . '<p><strong>Order #:</strong> ' . $certificateRequestId . '<br>'
+                . '<strong>Entry ID:</strong> ' . esc($entryId) . '<br>'
+                . '<strong>Design Name:</strong> ' . esc($entryName) . '<br>'
+                . '<strong>Competition:</strong> ' . esc($compLabel) . '<br>'
+                . '<strong>Quantity:</strong> ' . $quantity . '<br>'
+                . '<strong>Current Status:</strong> ' . esc($status) . '</p>'
+                . '<p>You will also receive an email whenever this order status changes.</p>'
+                . '<p>You can review your certificate requests at <a href="' . esc($ordersUrl) . '">' . esc($ordersUrl) . '</a>.</p>';
+
+            $email->setTo($contactEmail)
+                ->setSubject($subject)
+                ->setMessage($message);
+            $email->send(false);
+        } catch (Throwable $e) {
+            log_message('error', 'Certificate request received email failed: {message}', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function resolveAdminNotificationEmail(): string
+    {
+        $email = trim((string)env('ADMIN_NOTIFICATION_EMAIL', ''));
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $email;
+        }
+
+        $fallback = trim((string)getenv('ERROR_ALERT_EMAIL'));
+        if ($fallback !== '' && filter_var($fallback, FILTER_VALIDATE_EMAIL)) {
+            return $fallback;
+        }
+
+        return '';
     }
 
     private function ownedEntry(string $entryId): ?array

@@ -101,6 +101,12 @@ class PaymentsController extends BaseController
         $cancelUrl = site_url('payments/entry/' . $entryId . '/phase/' . $phase);
         $payment = service('payments')->getPaymentDetails($entryId, (string)$phase);
         $invoice = $payment ? (string)$payment->payment_id : '';
+        $emailAddress = trim((string) (db_connect()->table('comp_entries e')
+            ->select('u.email_address')
+            ->join('comp_users u', 'u.user_id = e.user_id')
+            ->where('e.entry_id', $entryId)
+            ->get()
+            ->getRowArray()['email_address'] ?? ''));
 
         try {
             $token = $gateway->createAcceptHostedToken([
@@ -109,6 +115,7 @@ class PaymentsController extends BaseController
                 'cancelUrl' => $cancelUrl,
                 'invoice' => $invoice,
                 'description' => 'Spark Awards Entry Payment',
+                'customerEmail' => $emailAddress,
             ]);
         } catch (\Throwable $e) {
             log_message(

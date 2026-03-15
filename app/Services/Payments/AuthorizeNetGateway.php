@@ -110,6 +110,13 @@ final class AuthorizeNetGateway
                 $txn->setOrder($order);
             }
 
+            $customerEmail = trim((string)($options['customerEmail'] ?? ''));
+            if ($customerEmail !== '' && filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
+                $customer = new AnetAPI\CustomerDataType();
+                $customer->setEmail($customerEmail);
+                $txn->setCustomer($customer);
+            }
+
             // Return/cancel options
             $settingReturn = new AnetAPI\SettingType();
             $settingReturn->setSettingName('hostedPaymentReturnOptions');
@@ -133,12 +140,20 @@ final class AuthorizeNetGateway
                 'captcha' => false,
             ], JSON_UNESCAPED_SLASHES));
 
+            $settingCustomer = new AnetAPI\SettingType();
+            $settingCustomer->setSettingName('hostedPaymentCustomerOptions');
+            $settingCustomer->setSettingValue(json_encode([
+                'showEmail' => false,
+                'requiredEmail' => false,
+            ], JSON_UNESCAPED_SLASHES));
+
             $req = new AnetAPI\GetHostedPaymentPageRequest();
             $req->setMerchantAuthentication($this->auth());
             $req->setTransactionRequest($txn);
             $req->addToHostedPaymentSettings($settingReturn);
             $req->addToHostedPaymentSettings($settingButton);
             $req->addToHostedPaymentSettings($settingSecurity);
+            $req->addToHostedPaymentSettings($settingCustomer);
 
             $controller = new AnetController\GetHostedPaymentPageController($req);
             $resp = $controller->executeWithApiResponse($this->envConst());
