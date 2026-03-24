@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Models\Judging\EntryPhotoModel;
 use App\Services\JudgingService;
 use App\Services\SubmissionsService;
 
@@ -61,9 +62,11 @@ class JudgingController extends BaseController
 
         $entryIds = array_values(array_map(static fn (array $row): string => (string)($row['entry_id'] ?? ''), $entries));
         $scoreMap = $this->judging->judgingScoresByEntryIds($entryIds, $phase);
+        $previewPhotos = $this->getPreviewPhotoIdsByEntry($entryIds);
         foreach ($entries as &$entryRow) {
             $entryId = (string)($entryRow['entry_id'] ?? '');
             $entryRow['_my_score'] = array_key_exists($entryId, $scoreMap) ? $scoreMap[$entryId] : null;
+            $entryRow['_preview_photo_id'] = $previewPhotos[$entryId] ?? null;
         }
         unset($entryRow);
 
@@ -304,6 +307,33 @@ class JudgingController extends BaseController
     {
         $status = ucfirst(strtolower(trim($status)));
         return in_array($status, ['Entrant', 'Finalist', 'Winner'], true) ? $status : 'Entrant';
+    }
+
+    private function getPreviewPhotoIdsByEntry(array $entryIds): array
+    {
+        $ids = array_values(array_filter(array_map(static fn ($id): string => trim((string)$id), $entryIds)));
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = (new EntryPhotoModel())
+            ->asArray()
+            ->select('entry_id, entry_photo_id, entry_photo_order')
+            ->where('entry_photo_res', 'Low')
+            ->whereIn('entry_id', $ids)
+            ->orderBy('entry_photo_order', 'ASC')
+            ->findAll();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $entryId = (string)($row['entry_id'] ?? '');
+            if ($entryId === '' || isset($map[$entryId])) {
+                continue;
+            }
+            $map[$entryId] = (int)($row['entry_photo_id'] ?? 0);
+        }
+
+        return $map;
     }
 
     private function resolveJudgingRedirectAfterCurrent(

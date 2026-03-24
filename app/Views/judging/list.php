@@ -45,6 +45,7 @@
                 <thead>
                 <tr>
                     <th>#</th>
+                    <th>Entry Photo</th>
                     <th>Entry Name</th>
                     <th>Status</th>
                     <th>Score</th>
@@ -64,6 +65,26 @@
                     ?>
                     <tr class="<?= esc($rowClass) ?>">
                         <td><?= $i + 1 ?></td>
+                        <td class="judging-preview-cell">
+                            <?php if (!empty($row['_preview_photo_id'])): ?>
+                                <button
+                                    type="button"
+                                    class="btn p-0 border-0 bg-transparent js-judging-photo-link judging-preview-btn"
+                                    data-photo-url="<?= esc(site_url('media/photo/' . (int)$row['_preview_photo_id'])) ?>"
+                                    data-photo-title="<?= esc((string)$row['design_name']) ?> - Preview"
+                                    aria-label="Open entry preview image"
+                                >
+                                    <img
+                                        src="<?= esc(site_url('media/photo/' . (int)$row['_preview_photo_id'])) ?>"
+                                        class="judging-preview-thumb"
+                                        alt="Entry preview image"
+                                        loading="lazy"
+                                    >
+                                </button>
+                            <?php else: ?>
+                                <span class="text-muted small">No image</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <a href="<?= site_url('judging/entry/' . rawurlencode((string)$row['entry_id']) . '/status/' . rawurlencode($status) . '?phase=' . rawurlencode((string)$phase) . '&comp=' . (int)($row['comp_id'] ?? $compId) . ($fullList ? '&all=1' : '') . '&view=' . rawurlencode($currentView)) ?>">
                                 <?= esc((string)$row['design_name']) ?>
@@ -85,5 +106,30 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="judgingPhotoModal" tabindex="-1" role="dialog" aria-labelledby="judgingPhotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="judgingPhotoModalLabel">Entry Photo</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="judgingPhotoModalImage" src="" alt="" class="img-fluid rounded border spark-max-h-75vh">
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="judgingPhotoPrevBtn">Previous</button>
+                <div class="small text-muted" id="judgingPhotoCounter"></div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="judgingPhotoNextBtn">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/utils/modal.js"></script>
+<script src="/js/utils/photo-preview-modal.js"></script>
+<script src="/js/pages/judging-entry.js"></script>
 
 <?= $this->endSection() ?>

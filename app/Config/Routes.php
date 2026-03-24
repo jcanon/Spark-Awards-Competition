@@ -44,6 +44,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('store', 'SubmissionsController::store');
         $routes->get('update/(:segment)', 'SubmissionsController::update/$1');
         $routes->post('update/(:segment)', 'SubmissionsController::updatePost/$1');
+        $routes->get('preview/(:segment)', 'SubmissionsController::preview/$1');
         $routes->post('delete/(:segment)', 'SubmissionsController::delete/$1');
         $routes->post('photo/delete/(:num)', 'SubmissionsController::deletePhoto/$1');
     });

@@ -22,6 +22,9 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class SubmissionsController extends BaseController
 {
     private const VIDEO_URL_ERROR = 'Video URL must be a valid YouTube or Vimeo URL (for example: https://www.youtube.com/embed/VIDEO_ID or https://player.vimeo.com/video/VIDEO_ID).';
+    private const SHORT_DESCRIPTION_MAX_WORDS = 250;
+    private const FULL_DESCRIPTION_MAX_WORDS = 1000;
+    private const PHOTO_MAX_SIZE_KB = 10240;
 
     private SubmissionsAdminService $adminSubs;
 
@@ -203,12 +206,12 @@ class SubmissionsController extends BaseController
             'designer_last_name' => 'required|max_length[100]',
             'designer_phone' => 'required|max_length[25]',
             'designer_email_address' => 'required|valid_email|max_length[100]',
-            'short_description' => 'required|max_length[600]',
-            'full_description' => 'required|max_length[2400]',
+            'short_description' => 'required|max_length[2500]',
+            'full_description' => 'required|max_length[10000]',
             'youtube_url' => 'permit_empty|max_length[255]',
         ];
         for ($i = 1; $i <= 10; $i++) {
-            $rules['low_photo_' . $i] = 'if_exist|max_size[low_photo_' . $i . ',1024]|ext_in[low_photo_' . $i . ',jpg,jpeg]|mime_in[low_photo_' . $i . ',image/jpeg]';
+            $rules['low_photo_' . $i] = 'if_exist|max_size[low_photo_' . $i . ',' . self::PHOTO_MAX_SIZE_KB . ']|ext_in[low_photo_' . $i . ',jpg,jpeg]|mime_in[low_photo_' . $i . ',image/jpeg]';
         }
         $rules['certificate_pdf'] = 'if_exist|max_size[certificate_pdf,5120]|ext_in[certificate_pdf,pdf]|mime_in[certificate_pdf,application/pdf]';
         $rules['winner_badge'] = 'if_exist|max_size[winner_badge,5120]|is_image[winner_badge]';
@@ -225,6 +228,14 @@ class SubmissionsController extends BaseController
                 ->withInput()
                 ->with('error', 'Submission validation failed. Please review the highlighted fields.')
                 ->with('errors', $this->validator ? $this->validator->getErrors() : []);
+        }
+
+        $contentErrors = $this->validateEntrantContentRules((array)$this->request->getPost());
+        if ($contentErrors !== []) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Submission validation failed. Please review the highlighted fields.')
+                ->with('errors', $contentErrors);
         }
 
         $videoUrl = (string)$this->request->getPost('youtube_url');
@@ -601,6 +612,33 @@ class SubmissionsController extends BaseController
         $writer->save('php://output');
 
         return (string)ob_get_clean();
+    }
+
+    private function wordCount(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return 0;
+        }
+        preg_match_all('/[^\s]+/u', $value, $matches);
+        return count($matches[0] ?? []);
+    }
+
+    private function validateEntrantContentRules(array $form): array
+    {
+        $errors = [];
+
+        $short = (string)($form['short_description'] ?? '');
+        if ($this->wordCount($short) > self::SHORT_DESCRIPTION_MAX_WORDS) {
+            $errors['short_description'] = 'Short Description must be ' . self::SHORT_DESCRIPTION_MAX_WORDS . ' words or fewer.';
+        }
+
+        $full = (string)($form['full_description'] ?? '');
+        if ($this->wordCount($full) > self::FULL_DESCRIPTION_MAX_WORDS) {
+            $errors['full_description'] = 'Full Description must be ' . self::FULL_DESCRIPTION_MAX_WORDS . ' words or fewer.';
+        }
+
+        return $errors;
     }
 
     private function processImages(string $entryId, int $compId, string $resLabel, int $from, int $to): ?array

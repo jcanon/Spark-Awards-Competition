@@ -258,7 +258,7 @@
         <div class="card mb-4">
             <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Design Photos</h6></div>
             <div class="card-body">
-                <p class="text-muted mb-3"><em>Upload at least three (max 1 MB each) JPG images. At least one image should be free of overlays and ideally on a white background.</em></p>
+                <p class="text-muted mb-3"><em>Upload at least three (max 10 MB each) JPG images. At least one image should be free of overlays and ideally on a white background.</em></p>
 
                 <?php for ($i = 1; $i <= 10; $i++): ?>
                     <?php $photo = $lowPhotosByOrder[$i] ?? null; ?>
@@ -284,7 +284,7 @@
                             </div>
 
                             <div class="col-md-5 col-sm-8">
-                                <label class="form-label mb-1"><?= $photo ? 'Replace File' : 'Upload File' ?> <span class="text-muted">(JPG, max 1 MB)</span></label>
+                                <label class="form-label mb-1"><?= $photo ? 'Replace File' : 'Upload File' ?> <span class="text-muted">(JPG, max 10 MB)</span></label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fas fa-image" aria-hidden="true"></i></span>
@@ -454,14 +454,14 @@
             <div class="card-body">
                 <div class="form-group">
                     <label class="form-label" for="short_description">Short Description <span class="text-danger">*</span></label>
-                    <div class="text-muted small mb-1">50 words maximum. Simple and clear language, please.</div>
-                    <textarea id="short_description" name="short_description" class="form-control" rows="3" maxlength="600" required><?= esc((string)($row['short_description'] ?? '')) ?></textarea>
+                    <div class="text-muted small mb-1">250 words maximum. Simple and clear language, please.</div>
+                    <textarea id="short_description" name="short_description" class="form-control" rows="3" maxlength="2500" required><?= esc((string)($row['short_description'] ?? '')) ?></textarea>
                     <div class="invalid-feedback">Short description is required.</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="full_description">Full Description <span class="text-danger">*</span></label>
-                    <div class="text-muted small mb-1">200 words maximum. Simple and clear language, please.</div>
-                    <textarea id="full_description" name="full_description" class="form-control" rows="5" maxlength="2400" required><?= esc((string)($row['full_description'] ?? '')) ?></textarea>
+                    <div class="text-muted small mb-1">1000 words maximum. Simple and clear language, please.</div>
+                    <textarea id="full_description" name="full_description" class="form-control" rows="5" maxlength="10000" required><?= esc((string)($row['full_description'] ?? '')) ?></textarea>
                     <div class="invalid-feedback">Full description is required.</div>
                 </div>
                 <div class="form-group mb-0">

@@ -5,11 +5,11 @@
     var messages = {
         videoUrlError: 'Video URL must be a valid YouTube or Vimeo URL (for example: https://www.youtube.com/embed/VIDEO_ID or https://player.vimeo.com/video/VIDEO_ID).',
         answerTooLong: 'Each answer must be 50 words or fewer.',
-        shortTooLong: 'Short Description must be 50 words or fewer.',
-        fullTooLong: 'Full Description must be 200 words or fewer.',
+        shortTooLong: 'Short Description must be 250 words or fewer.',
+        fullTooLong: 'Full Description must be 1000 words or fewer.',
         requiredPhotoTpl: 'Photo {slot} is required. Please upload a JPG image.',
         onlyJpg: 'Only JPG files are allowed.',
-        maxImageSize: 'Each image must be 1 MB or less.',
+        maxImageSize: 'Each image must be 10 MB or less.',
         defaultPhotoTitle: 'Photo'
     };
 
@@ -97,10 +97,10 @@
             var youtubeEl = document.getElementById('youtube_url');
 
             if (shortEl) {
-                shortEl.setCustomValidity(wordCount(shortEl.value) > 50 ? messages.shortTooLong : '');
+                shortEl.setCustomValidity(wordCount(shortEl.value) > 250 ? messages.shortTooLong : '');
             }
             if (fullEl) {
-                fullEl.setCustomValidity(wordCount(fullEl.value) > 200 ? messages.fullTooLong : '');
+                fullEl.setCustomValidity(wordCount(fullEl.value) > 1000 ? messages.fullTooLong : '');
             }
             if (youtubeEl) {
                 youtubeEl.setCustomValidity(isValidVideoEmbedUrl(youtubeEl.value) ? '' : messages.videoUrlError);
@@ -137,13 +137,13 @@
 
     if (shortDesc) {
         shortDesc.addEventListener('input', function () {
-            this.setCustomValidity(wordCount(this.value) > 50 ? messages.shortTooLong : '');
+            this.setCustomValidity(wordCount(this.value) > 250 ? messages.shortTooLong : '');
         });
     }
 
     if (fullDesc) {
         fullDesc.addEventListener('input', function () {
-            this.setCustomValidity(wordCount(this.value) > 200 ? messages.fullTooLong : '');
+            this.setCustomValidity(wordCount(this.value) > 1000 ? messages.fullTooLong : '');
         });
     }
 
@@ -170,7 +170,7 @@
         });
     }
 
-    var maxBytes = 1 * 1024 * 1024;
+    var maxBytes = 10 * 1024 * 1024;
     var readOnlyInput = document.querySelector('input[name="is_read_only"]');
     var isReadOnly = !!readOnlyInput && readOnlyInput.value === '1';
 

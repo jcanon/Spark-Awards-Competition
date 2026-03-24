@@ -137,7 +137,7 @@ $deletePhotoIds = [];
                 </h6>
             </div>
             <div class="card-body">
-                <p class="text-muted mb-3"><em>Upload at least three (max 1 MB each) JPG images. At least one image should be free of overlays and ideally on a white background.</em></p>
+                <p class="text-muted mb-3"><em>Upload at least three (max 10 MB each) JPG images. At least one image should be free of overlays and ideally on a white background.</em></p>
 
                 <?php for ($i = 1; $i <= 10; $i++): ?>
                     <?php $ph = $byOrder[$i] ?? null; ?>
@@ -167,7 +167,7 @@ $deletePhotoIds = [];
                             <div class="<?= $isEdit ? 'col-md-5 col-sm-8' : 'col-md-6' ?>">
                                 <label class="form-label mb-1" for="low_photo_<?= $i ?>">
                                     <?= esc($isEdit ? ($ph ? 'Replace' : 'Upload') : 'Upload') ?>
-                                    <span class="text-muted">(JPG <= 1 MB)</span>
+                                    <span class="text-muted">(JPG <= 10 MB)</span>
                                 </label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
@@ -222,12 +222,12 @@ $deletePhotoIds = [];
             <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label" for="short_description">Short Description <span class="text-danger">*</span></label>
-                    <div class="text-muted small mb-1">50 words maximum. Simple and clear language, please.</div>
+                    <div class="text-muted small mb-1">250 words maximum. Simple and clear language, please.</div>
                     <textarea id="short_description" name="short_description" class="form-control" rows="3" required><?= old('short_description') ?? ($entry->short_description ?? '') ?></textarea>
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="full_description">Full Description <span class="text-danger">*</span></label>
-                    <div class="text-muted small mb-1">200 words maximum. Simple and clear language, please.</div>
+                    <div class="text-muted small mb-1">1000 words maximum. Simple and clear language, please.</div>
                     <textarea id="full_description" name="full_description" class="form-control" rows="4" required><?= old('full_description') ?? ($entry->full_description ?? '') ?></textarea>
                 </div>
                 <div class="mb-0">
@@ -323,12 +323,14 @@ $deletePhotoIds = [];
         <div class="d-flex gap-2">
             <?php if ($isEdit && !$isReadOnly): ?>
                 <button type="submit" class="btn btn-primary mr-2">Save Changes</button>
+                <button type="submit" name="savePreview" value="1" class="btn btn-info mr-2">Save &amp; Preview</button>
                 <?php if (strtoupper((string)($entry->phase_1_payment ?? 'Unpaid')) !== 'PAID'): ?>
                     <button type="submit" name="submitPayment" value="1" class="btn btn-primary mr-2">Save & Proceed to Cart</button>
                 <?php endif; ?>
                 <a href="<?= site_url('/submissions') ?>" class="btn btn-light">Cancel</a>
             <?php elseif (!$isEdit): ?>
                 <button type="submit" name="saveDraft" value="1" class="btn btn-secondary mr-3">Save as Draft</button>
+                <button type="submit" name="savePreview" value="1" class="btn btn-info mr-3">Save &amp; Preview</button>
                 <button type="submit" name="submitPayment" value="1" class="btn btn-primary mr-3">Save & Proceed to Cart</button>
                 <a href="<?= site_url('/submissions') ?>" class="btn btn-primary">Cancel</a>
             <?php else: ?>

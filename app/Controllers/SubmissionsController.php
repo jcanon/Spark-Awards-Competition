@@ -11,6 +11,9 @@ use Config\Services;
 class SubmissionsController extends BaseController
 {
     private const VIDEO_URL_ERROR = 'Video URL must be a valid YouTube or Vimeo URL (for example: https://www.youtube.com/embed/VIDEO_ID or https://player.vimeo.com/video/VIDEO_ID).';
+    private const SHORT_DESCRIPTION_MAX_WORDS = 250;
+    private const FULL_DESCRIPTION_MAX_WORDS = 1000;
+    private const PHOTO_MAX_SIZE_KB = 10240;
 
     private function wordCount(string $value): int
     {
@@ -27,13 +30,13 @@ class SubmissionsController extends BaseController
         $errors = [];
 
         $short = (string) ($form['short_description'] ?? '');
-        if ($this->wordCount($short) > 50) {
-            $errors['short_description'] = 'Short Description must be 50 words or fewer.';
+        if ($this->wordCount($short) > self::SHORT_DESCRIPTION_MAX_WORDS) {
+            $errors['short_description'] = 'Short Description must be ' . self::SHORT_DESCRIPTION_MAX_WORDS . ' words or fewer.';
         }
 
         $full = (string) ($form['full_description'] ?? '');
-        if ($this->wordCount($full) > 200) {
-            $errors['full_description'] = 'Full Description must be 200 words or fewer.';
+        if ($this->wordCount($full) > self::FULL_DESCRIPTION_MAX_WORDS) {
+            $errors['full_description'] = 'Full Description must be ' . self::FULL_DESCRIPTION_MAX_WORDS . ' words or fewer.';
         }
 
         $videoUrl = (string) ($form['youtube_url'] ?? '');
@@ -72,7 +75,7 @@ class SubmissionsController extends BaseController
                 $uploadRule = 'uploaded[low_photo_' . $i . ']';
             }
             $rules["low_photo_{$i}"] = $uploadRule
-                . '|max_size[low_photo_' . $i . ',1024]'
+                . '|max_size[low_photo_' . $i . ',' . self::PHOTO_MAX_SIZE_KB . ']'
                 . '|ext_in[low_photo_' . $i . ',jpg,jpeg]'
                 . '|mime_in[low_photo_' . $i . ',image/jpeg]';
         }
@@ -175,6 +178,10 @@ class SubmissionsController extends BaseController
         $photoErrors = $this->processImages($entryId, $compId, 'Low', 1, 10, true);
         if ($photoErrors !== null) {
             return redirect()->back()->withInput()->with('errors', $photoErrors);
+        }
+
+        if ($this->request->getPost('savePreview')) {
+            return redirect()->to('/submissions/preview/' . rawurlencode($entryId));
         }
 
         if ($this->request->getPost('submitPayment')) {
@@ -301,6 +308,10 @@ class SubmissionsController extends BaseController
             return redirect()->back()->withInput()->with('errors', $photoErrors);
         }
 
+        if ($this->request->getPost('savePreview')) {
+            return redirect()->to('/submissions/preview/' . rawurlencode($entryId));
+        }
+
         $phase1Paid = strtoupper((string)($entry->phase_1_payment ?? 'Unpaid')) === 'PAID';
         if ($this->request->getPost('submitPayment') && ! $phase1Paid) {
             return redirect()->to('/payments/entry/' . rawurlencode($entryId) . '/phase/1')->with('success', 'Submission updated. Proceed to payment.');
@@ -369,6 +380,38 @@ class SubmissionsController extends BaseController
     }
 
     // ---------- helpers ----------
+
+    public function preview(string $entryId)
+    {
+        if (! session('uid')) {
+            return redirect()->to('/auth/login');
+        }
+
+        $svc = new SubmissionsService();
+        $entry = $svc->getEntryByID($entryId);
+        if (! $entry) {
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
+        }
+
+        $competition = (new CompetitionModel())
+            ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
+            ->where('comp_id', (int) $entry->comp_id)
+            ->first();
+
+        $photos = (new EntryPhotoModel())
+            ->asArray()
+            ->where('entry_id', $entryId)
+            ->where('entry_photo_res', 'Low')
+            ->orderBy('entry_photo_order', 'ASC')
+            ->findAll();
+
+        return view('submissions/preview', [
+            'entry' => $entry,
+            'competition' => $competition,
+            'photos' => $photos,
+            'videoEmbed' => $svc->getVideoEmbedData((string) ($entry->youtube_url ?? '')),
+        ]);
+    }
 
     private function processImages(string $entryId, int $compId, string $resLabel, int $from, int $to, bool $requireAtLeastThree): ?array
     {
@@ -466,7 +509,7 @@ class SubmissionsController extends BaseController
         }
 
         if ($requireAtLeastThree && $saved < 3) {
-            return ['photos' => 'Please upload at least three JPG images (1 MB max each).'];
+            return ['photos' => 'Please upload at least three JPG images (10 MB max each).'];
         }
 
         return null;

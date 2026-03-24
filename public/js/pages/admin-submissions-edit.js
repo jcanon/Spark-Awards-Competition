@@ -8,6 +8,10 @@
     }
 
     var videoUrlError = 'Video URL must be a valid YouTube or Vimeo URL (for example: https://www.youtube.com/embed/VIDEO_ID or https://player.vimeo.com/video/VIDEO_ID).';
+    var shortDescriptionError = 'Short Description must be 250 words or fewer.';
+    var fullDescriptionError = 'Full Description must be 1000 words or fewer.';
+    var maxPhotoBytes = 10 * 1024 * 1024;
+    var maxPhotoSizeError = 'Each image must be 10 MB or less.';
 
     var isValidVideoEmbedUrl = function (value) {
         if (spark.videoEmbedUrl && typeof spark.videoEmbedUrl.isValid === 'function') {
@@ -35,12 +39,25 @@
         return name.endsWith('.jpg') || name.endsWith('.jpeg');
     };
 
+    var wordCount = function (text) {
+        var normalized = (text || '').trim();
+        if (!normalized) {
+            return 0;
+        }
+        return normalized.split(/\s+/).length;
+    };
+
     var syncRequiredPhotoValidity = function () {
         photoInputs.forEach(function (input) {
             var required = input.getAttribute('data-photo-required') === '1';
             var hasUpload = !!(input.files && input.files.length > 0);
             if (hasUpload && !isJpgFile(input.files[0].name || '')) {
                 input.setCustomValidity('Only valid JPG images are allowed.');
+                input.classList.add('is-invalid');
+                return;
+            }
+            if (hasUpload && input.files[0].size > maxPhotoBytes) {
+                input.setCustomValidity(maxPhotoSizeError);
                 input.classList.add('is-invalid');
                 return;
             }
@@ -62,6 +79,16 @@
     };
 
     form.addEventListener('submit', function (event) {
+        var shortDescription = document.getElementById('short_description');
+        var fullDescription = document.getElementById('full_description');
+
+        if (shortDescription) {
+            shortDescription.setCustomValidity(wordCount(shortDescription.value) > 250 ? shortDescriptionError : '');
+        }
+        if (fullDescription) {
+            fullDescription.setCustomValidity(wordCount(fullDescription.value) > 1000 ? fullDescriptionError : '');
+        }
+
         syncRequiredPhotoValidity();
 
         var youtubeEl = document.getElementById('youtube_url');
@@ -89,6 +116,20 @@
     if (youtube) {
         youtube.addEventListener('input', function () {
             this.setCustomValidity(isValidVideoEmbedUrl(this.value) ? '' : videoUrlError);
+        });
+    }
+
+    var shortDescription = document.getElementById('short_description');
+    if (shortDescription) {
+        shortDescription.addEventListener('input', function () {
+            this.setCustomValidity(wordCount(this.value) > 250 ? shortDescriptionError : '');
+        });
+    }
+
+    var fullDescription = document.getElementById('full_description');
+    if (fullDescription) {
+        fullDescription.addEventListener('input', function () {
+            this.setCustomValidity(wordCount(this.value) > 1000 ? fullDescriptionError : '');
         });
     }
 
