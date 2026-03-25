@@ -73,6 +73,8 @@
                         'type' => 'datetime-local',
                         'value' => $startDateValue,
                         'required' => true,
+                        'help' => '',
+                        'attrs' => [],
                     ]) ?>
                     <?= view('partials/forms/input', [
                         'colClass' => 'col-md-4 form-group',
@@ -81,6 +83,8 @@
                         'type' => 'datetime-local',
                         'value' => $endDateValue,
                         'required' => true,
+                        'help' => '',
+                        'attrs' => [],
                     ]) ?>
                 </div>
         <?= view('partials/ui/card-end') ?>
