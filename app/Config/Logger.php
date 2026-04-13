@@ -171,6 +171,9 @@ class Logger extends BaseConfig
             'toEmail' => 'jessiecanon@gmail.com',
             'appName' => 'Spark Awards',
             'throttleSeconds' => 600,
+            'ignoreMessagePatterns' => [
+                '/The URI you submitted has disallowed characters/i',
+            ],
         ],
     ];
 }

@@ -16,6 +16,10 @@ class EmailAlertHandler extends BaseHandler
     private string $appName;
     private int $throttleSeconds;
     private string $throttleFile;
+    /**
+     * @var list<string>
+     */
+    private array $ignoreMessagePatterns;
 
     /**
      * @param array{
@@ -25,7 +29,8 @@ class EmailAlertHandler extends BaseHandler
      *   toEmail?: string,
      *   appName?: string,
      *   throttleSeconds?: int,
-     *   throttleFile?: string
+     *   throttleFile?: string,
+     *   ignoreMessagePatterns?: list<string>
      * } $config
      */
     public function __construct(array $config)
@@ -38,6 +43,8 @@ class EmailAlertHandler extends BaseHandler
         $this->appName = trim((string)($config['appName'] ?? 'Application'));
         $this->throttleSeconds = max(60, (int)($config['throttleSeconds'] ?? 600));
         $this->throttleFile = (string)($config['throttleFile'] ?? (rtrim(WRITEPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'error-alert-throttle.json'));
+        $patterns = $config['ignoreMessagePatterns'] ?? [];
+        $this->ignoreMessagePatterns = is_array($patterns) ? array_values(array_filter(array_map(static fn ($pattern): string => trim((string)$pattern), $patterns), static fn (string $pattern): bool => $pattern !== '')) : [];
     }
 
     /**
@@ -58,6 +65,10 @@ class EmailAlertHandler extends BaseHandler
 
         $level = strtolower(trim((string)$level));
         $message = trim((string)$message);
+        if ($this->shouldIgnoreMessage($message)) {
+            return true;
+        }
+
         $context = $this->buildContext();
         $fingerprint = hash('sha256', $level . '|' . $this->normalizeMessage($message) . '|' . ($context['url'] ?? ''));
 
@@ -138,6 +149,21 @@ class EmailAlertHandler extends BaseHandler
         return mb_substr($message, 0, 1000);
     }
 
+    private function shouldIgnoreMessage(string $message): bool
+    {
+        if ($message === '' || $this->ignoreMessagePatterns === []) {
+            return false;
+        }
+
+        foreach ($this->ignoreMessagePatterns as $pattern) {
+            if (@preg_match($pattern, $message) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @param array<string, string> $context
      */
@@ -201,4 +227,3 @@ class EmailAlertHandler extends BaseHandler
         return true;
     }
 }
-
