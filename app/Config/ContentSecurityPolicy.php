@@ -31,6 +31,7 @@ class ContentSecurityPolicy extends BaseConfig
     private array $authorizeNetScriptHosts = [
         'https://js.authorize.net',
         'https://jstest.authorize.net',
+        'https://verify.authorize.net',
     ];
 
     /**

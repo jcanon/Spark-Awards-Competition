@@ -16,8 +16,6 @@
                     <h6 class="m-0 font-weight-bold text-primary">Payment Details</h6>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted mb-4">Your card details are tokenized by Authorize.Net in the browser. The card number and security code are not posted through this site.</p>
-
                     <form
                         id="anetPaymentForm"
                         method="post"
@@ -254,6 +252,18 @@
                 <div class="card-body">
                     <p class="small mb-2">State / province / region and postal code can be left blank if they do not apply to the billing address.</p>
                     <p class="small text-muted mb-0">If the bank or gateway declines the charge, the returned error message will be shown on this page.</p>
+                </div>
+            </div>
+
+            <div class="card shadow mt-4">
+                <div class="card-header bg-white">
+                    <h6 class="m-0 font-weight-bold text-primary">Secure Checkout</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="AuthorizeNetSeal">
+                        <script type="text/javascript" language="javascript">var ANS_customer_id="f6a2e288-9285-4782-aa07-4d868a85115f";</script>
+                        <script type="text/javascript" language="javascript" src="//verify.authorize.net:443/anetseal/seal.js"></script>
+                    </div>
                 </div>
             </div>
         </div>
