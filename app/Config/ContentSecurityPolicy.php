@@ -28,6 +28,14 @@ class ContentSecurityPolicy extends BaseConfig
     /**
      * @var list<string>
      */
+    private array $authorizeNetScriptHosts = [
+        'https://js.authorize.net',
+        'https://jstest.authorize.net',
+    ];
+
+    /**
+     * @var list<string>
+     */
     private array $googleHosts = [
         'https://www.google.com',
         'https://www.gstatic.com',
@@ -208,7 +216,8 @@ class ContentSecurityPolicy extends BaseConfig
 
         $this->scriptSrc = array_merge(
             ['self', "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
-            $this->googleHosts
+            $this->googleHosts,
+            $this->authorizeNetScriptHosts
         );
 
         $this->styleSrc = ['self', 'https://fonts.googleapis.com', "'unsafe-inline'"];
@@ -216,7 +225,12 @@ class ContentSecurityPolicy extends BaseConfig
 
         // Covers iframes and workers that can be created by third-party scripts.
         $this->childSrc = array_merge(['self'], $this->googleHosts, $this->mediaEmbedHosts);
-        $this->connectSrc = array_merge(['self'], $this->googleHosts);
+        $this->connectSrc = array_merge(
+            ['self'],
+            $this->googleHosts,
+            $this->authorizeNetHosts,
+            $this->authorizeNetScriptHosts
+        );
         $this->fontSrc = ['self', 'https://fonts.gstatic.com', 'data:'];
 
         // Required for checkout POST to Authorize.Net hosted payment page.

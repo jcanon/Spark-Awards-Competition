@@ -61,6 +61,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('entry/(:segment)/phase/(:num)/addons', 'PaymentsController::setAddons/$1/$2');
         $routes->post('entry/(:segment)/phase/(:num)/total', 'PaymentsController::setTotal/$1/$2');
         $routes->get('entry/(:segment)/phase/(:num)/checkout', 'PaymentsController::checkout/$1/$2');
+        $routes->post('entry/(:segment)/phase/(:num)/checkout', 'PaymentsController::processCheckout/$1/$2');
         $routes->get('entry/(:segment)/phase/(:num)/receipt', 'PaymentsController::receipt/$1/$2');
         $routes->get('entry/(:segment)/phase/(:num)/receipt-content', 'PaymentsController::receiptContent/$1/$2');
         $routes->get('entry/(:segment)/phase/(:num)/receipt-pdf', 'PaymentsController::receiptPdf/$1/$2');

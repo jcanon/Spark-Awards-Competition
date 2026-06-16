@@ -68,8 +68,8 @@
 
             <div class="card border-left-success">
                 <div class="card-body">
-                    <p class="small text-muted">Proceed to secure payment checkout.</p>
-                    <a class="btn btn-success btn-block" href="<?= site_url('payments/entry/' . rawurlencode($entryId) . '/phase/' . (int)$phase . '/checkout') ?>">Proceed to Payment</a>
+                    <p class="small text-muted mb-2">Enter your card details on this site and submit your payment without leaving the checkout page.</p>
+                    <a class="btn btn-success btn-block" href="<?= site_url('payments/entry/' . rawurlencode($entryId) . '/phase/' . (int)$phase . '/checkout') ?>">Enter Payment Details</a>
                 </div>
             </div>
         </div>

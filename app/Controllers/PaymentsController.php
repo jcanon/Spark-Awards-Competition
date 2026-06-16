@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Models\Payments\EntryPaymentModel;
 use App\Services\Payments\AuthorizeNetGateway;
+use Config\AuthorizeNet as AuthorizeNetConfig;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -96,50 +97,9 @@ class PaymentsController extends BaseController
                 ->with('success', 'No payment due. Entry marked as paid.');
         }
 
-        $gateway = new AuthorizeNetGateway();
-        $returnUrl = site_url('payments/entry/' . $entryId . '/phase/' . $phase . '/receipt');
-        $cancelUrl = site_url('payments/entry/' . $entryId . '/phase/' . $phase);
-        $payment = service('payments')->getPaymentDetails($entryId, (string)$phase);
-        $invoice = $payment ? (string)$payment->payment_id : '';
-        $emailAddress = trim((string) (db_connect()->table('comp_entries e')
-            ->select('u.email_address')
-            ->join('comp_users u', 'u.user_id = e.user_id')
-            ->where('e.entry_id', $entryId)
-            ->get()
-            ->getRowArray()['email_address'] ?? ''));
-
-        try {
-            $token = $gateway->createAcceptHostedToken([
-                'amountCents' => (int)round($total * 100),
-                'returnUrl' => $returnUrl,
-                'cancelUrl' => $cancelUrl,
-                'invoice' => $invoice,
-                'description' => 'Spark Awards Entry Payment',
-                'customerEmail' => $emailAddress,
-            ]);
-        } catch (\Throwable $e) {
-            log_message(
-                'critical',
-                'Checkout gateway init failed: {class}: {message} at {file}:{line}',
-                [
-                    'class' => $e::class,
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ]
-            );
-            $token = null;
-        }
-
-        if (!$token) {
-            $errorMessage = 'Unable to initialize payment gateway.';
-            if (ENVIRONMENT !== 'production') {
-                $gatewayDetail = $gateway->lastError();
-                if (is_string($gatewayDetail) && $gatewayDetail !== '') {
-                    $errorMessage .= ' ' . $gatewayDetail;
-                }
-            }
-
+        $anet = config(AuthorizeNetConfig::class);
+        if ($anet->apiLoginId() === '' || $anet->clientKey() === '') {
+            $errorMessage = 'Payment checkout is not configured. Set the Authorize.Net API login ID and client key.';
             return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}")
                 ->with('error', $errorMessage);
         }
@@ -148,9 +108,147 @@ class PaymentsController extends BaseController
             'entryId' => $entryId,
             'phase' => $phase,
             'cart' => $cart,
-            'token' => $token,
-            'hostedAction' => $gateway->hostedPaymentUrl(),
+            'apiLoginId' => $anet->apiLoginId(),
+            'clientKey' => $anet->clientKey(),
+            'acceptJsUrl' => $anet->acceptJsUrl(),
+            'countries' => service('profiles')->getCountries(),
         ]);
+    }
+
+    public function processCheckout(string $entryId, int $phase)
+    {
+        if (!$this->canAccessEntry($entryId)) {
+            return redirect()->to('/submissions')->with('error', 'Entry not found.');
+        }
+
+        $phase = $this->normalizePhase($phase);
+        service('payments')->ensurePaymentRow($entryId, $phase);
+        $cart = service('payments')->calculateTotalsForEntry($entryId, $phase);
+        $total = (float)($cart['total'] ?? 0);
+
+        if ($total <= 0) {
+            service('payments')->userSuccessPaid($entryId, (string)$phase, 'NO-CHARGE-' . date('YmdHis'));
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/receipt")
+                ->with('success', 'No payment due. Entry marked as paid.');
+        }
+
+        $dataDescriptor = trim((string)$this->request->getPost('data_descriptor'));
+        $dataValue = trim((string)$this->request->getPost('data_value'));
+        $allowedCountries = $this->allowedBillingCountries();
+        $billing = [
+            'firstName' => trim((string)$this->request->getPost('billing_first_name')),
+            'lastName' => trim((string)$this->request->getPost('billing_last_name')),
+            'address' => trim((string)$this->request->getPost('billing_address')),
+            'city' => trim((string)$this->request->getPost('billing_city')),
+            'state' => trim((string)$this->request->getPost('billing_state')),
+            'zip' => preg_replace('/[^A-Za-z0-9\- ]/', '', trim((string)$this->request->getPost('billing_zip'))) ?? '',
+            'phone' => preg_replace('/[^0-9()+\-.\s]/', '', trim((string)$this->request->getPost('billing_phone'))) ?? '',
+            'email' => trim((string)$this->request->getPost('billing_email')),
+            'country' => trim((string)$this->request->getPost('billing_country')),
+        ];
+
+        if ($dataDescriptor === '' || $dataValue === '') {
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/checkout")
+                ->withInput()
+                ->with('error', 'Payment tokenization failed. Please enter your card details again.');
+        }
+
+        foreach (['firstName', 'lastName', 'address', 'city', 'phone', 'email', 'country'] as $field) {
+            if ($billing[$field] === '') {
+                return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/checkout")
+                    ->withInput()
+                    ->with('error', 'Please complete all required billing fields.');
+            }
+        }
+
+        if (!filter_var($billing['email'], FILTER_VALIDATE_EMAIL)) {
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/checkout")
+                ->withInput()
+                ->with('error', 'Please enter a valid billing email address.');
+        }
+
+        if (!isset($allowedCountries[$billing['country']])) {
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/checkout")
+                ->withInput()
+                ->with('error', 'Please select a valid billing country.');
+        }
+
+        $payment = service('payments')->getPaymentDetails($entryId, (string)$phase);
+        if (!$payment) {
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}")
+                ->with('error', 'Unable to load the pending payment record.');
+        }
+
+        $gateway = new AuthorizeNetGateway();
+
+        try {
+            $response = $gateway->chargeCard(
+                $dataValue,
+                (int)round($total * 100),
+                [
+                    'invoice' => (string)$payment->payment_id,
+                    'description' => 'Spark Awards Entry Payment',
+                    'customerEmail' => $billing['email'],
+                    'billTo' => $this->buildBillingPayload($billing),
+                ],
+                $dataDescriptor
+            );
+        } catch (\Throwable $e) {
+            log_message(
+                'critical',
+                'Checkout charge failed: {class}: {message} at {file}:{line}',
+                [
+                    'class' => $e::class,
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]
+            );
+            $response = null;
+        }
+
+        $result = $this->extractAuthorizeNetChargeResult($response, $gateway);
+        if (!$result['ok']) {
+            log_message('warning', 'Authorize.Net charge declined for entry {entryId} phase {phase}: {message}', [
+                'entryId' => $entryId,
+                'phase' => (string)$phase,
+                'message' => $result['message'],
+            ]);
+
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/checkout")
+                ->withInput()
+                ->with('error', $result['message']);
+        }
+
+        $transId = $result['transId'];
+        $details = $gateway->getTransactionDetails($transId);
+        $receiptReference = $transId;
+        if ($details) {
+            $formatted = $this->formatAuthorizeNetReceiptReference($details, $transId, $entryId, [
+                'payment_id' => (string)$payment->payment_id,
+                'payment_total' => (string)$payment->payment_total,
+            ], $billing);
+            if ($formatted !== '') {
+                $receiptReference = $formatted;
+            }
+        }
+
+        try {
+            service('payments')->userSuccessPaid($entryId, (string)$phase, $receiptReference);
+        } catch (\Throwable $e) {
+            log_message('critical', 'Payment captured but local finalization failed for entry {entryId} phase {phase}. Transaction {transId}. Error: {message}', [
+                'entryId' => $entryId,
+                'phase' => (string)$phase,
+                'transId' => $transId,
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/receipt")
+                ->with('error', 'Your card was charged, but we could not finish updating the submission automatically. We have logged the transaction and will reconcile it using transaction ID ' . $transId . '.');
+        }
+
+        return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/receipt")
+            ->with('success', 'Payment completed successfully.');
     }
 
     public function receipt(string $entryId, int $phase)
@@ -341,6 +439,101 @@ class PaymentsController extends BaseController
         return in_array($phase, [1, 2, 3], true) ? $phase : 1;
     }
 
+    private function allowedBillingCountries(): array
+    {
+        $allowed = [];
+        foreach (service('profiles')->getCountries() as $country) {
+            $name = trim((string)($country['country'] ?? ''));
+            if ($name !== '') {
+                $allowed[$name] = true;
+            }
+        }
+
+        return $allowed;
+    }
+
+    private function buildBillingPayload(array $billing): array
+    {
+        return [
+            'firstName' => (string)($billing['firstName'] ?? ''),
+            'lastName' => (string)($billing['lastName'] ?? ''),
+            'address' => (string)($billing['address'] ?? ''),
+            'city' => (string)($billing['city'] ?? ''),
+            'state' => (string)($billing['state'] ?? ''),
+            'zip' => (string)($billing['zip'] ?? ''),
+            'country' => (string)($billing['country'] ?? 'USA'),
+            'phone' => (string)($billing['phone'] ?? ''),
+        ];
+    }
+
+    private function extractAuthorizeNetChargeResult($response, AuthorizeNetGateway $gateway): array
+    {
+        $fallbackError = trim((string)$gateway->lastError());
+        if (!$response) {
+            return [
+                'ok' => false,
+                'transId' => '',
+                'message' => $fallbackError !== '' ? $fallbackError : 'Unable to process the payment right now.',
+            ];
+        }
+
+        $transaction = $response->getTransactionResponse();
+        if ($transaction) {
+            $responseCode = (string)$transaction->getResponseCode();
+            $transId = trim((string)$transaction->getTransId());
+            if ($responseCode === '1' && $transId !== '') {
+                return [
+                    'ok' => true,
+                    'transId' => $transId,
+                    'message' => '',
+                ];
+            }
+
+            $transactionMessages = $this->collectAuthorizeNetMessages($transaction->getErrors(), 'getErrorText', 'getErrorCode');
+            if ($transactionMessages !== '') {
+                return ['ok' => false, 'transId' => $transId, 'message' => $transactionMessages];
+            }
+        }
+
+        $messages = $response->getMessages();
+        if ($messages) {
+            $messageText = $this->collectAuthorizeNetMessages($messages->getMessage(), 'getText', 'getCode');
+            if ($messageText !== '') {
+                return ['ok' => false, 'transId' => '', 'message' => $messageText];
+            }
+        }
+
+        return [
+            'ok' => false,
+            'transId' => '',
+            'message' => $fallbackError !== '' ? $fallbackError : 'The payment was declined or could not be processed.',
+        ];
+    }
+
+    private function collectAuthorizeNetMessages($messages, string $textMethod, string $codeMethod): string
+    {
+        if (!is_array($messages)) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($messages as $message) {
+            if (!is_object($message) || !method_exists($message, $textMethod)) {
+                continue;
+            }
+
+            $text = trim((string)$message->{$textMethod}());
+            if ($text === '') {
+                continue;
+            }
+
+            $code = method_exists($message, $codeMethod) ? trim((string)$message->{$codeMethod}()) : '';
+            $parts[] = $code !== '' ? $code . ': ' . $text : $text;
+        }
+
+        return implode(' ', array_values(array_unique($parts)));
+    }
+
     private function resolveLegacyReceiptTemplate(string $rawReceipt, array $payment, string $entryId): string
     {
         if ($rawReceipt === '' || strpos($rawReceipt, '#') === false) {
@@ -500,7 +693,7 @@ class PaymentsController extends BaseController
         return strpos($receipt, '<') === false && strpos($receipt, "\n") === false;
     }
 
-    private function formatAuthorizeNetReceiptReference(array $details, string $fallbackTransId, string $entryId, array $payment): string
+    private function formatAuthorizeNetReceiptReference(array $details, string $fallbackTransId, string $entryId, array $payment, ?array $billingOverride = null): string
     {
         $txId = trim((string)($details['transaction_id'] ?? ''));
         if ($txId === '') {
@@ -520,10 +713,22 @@ class PaymentsController extends BaseController
         $designName = trim((string)($ctx['design_name'] ?? 'Spark Awards Entry Payment'));
         $invoice = trim((string)($details['invoice'] ?? (string)($payment['payment_id'] ?? '')));
         $fullName = trim((string)($ctx['first_name'] ?? '') . ' ' . (string)($ctx['last_name'] ?? ''));
+        $street = '';
         $cityState = trim((string)($ctx['city'] ?? '') . ((string)($ctx['state'] ?? '') !== '' ? ', ' . (string)$ctx['state'] : ''));
         $country = trim((string)($ctx['country'] ?? ''));
         $zip = trim((string)($ctx['zipcode'] ?? ''));
         $email = trim((string)($ctx['email_address'] ?? ''));
+        $phone = '';
+
+        if (is_array($billingOverride) && $billingOverride !== []) {
+            $fullName = trim((string)($billingOverride['firstName'] ?? '') . ' ' . (string)($billingOverride['lastName'] ?? ''));
+            $street = trim((string)($billingOverride['address'] ?? ''));
+            $cityState = trim((string)($billingOverride['city'] ?? '') . ((string)($billingOverride['state'] ?? '') !== '' ? ', ' . (string)$billingOverride['state'] : ''));
+            $country = trim((string)($billingOverride['country'] ?? ''));
+            $zip = trim((string)($billingOverride['zip'] ?? ''));
+            $email = trim((string)($billingOverride['email'] ?? ''));
+            $phone = trim((string)($billingOverride['phone'] ?? ''));
+        }
         $total = number_format((float)($payment['payment_total'] ?? 0), 2);
         $settingsEmail = trim((string)service('settings')->get('email', 'sparknewsnow@sparkawards.com'));
         if ($settingsEmail === '') {
@@ -563,8 +768,8 @@ class PaymentsController extends BaseController
         if ($fullName !== '') {
             $parts[] = $line($fullName);
         }
-        if ($country !== '') {
-            $parts[] = $line($country);
+        if ($street !== '') {
+            $parts[] = $line($street);
         }
         if ($cityState !== '') {
             $parts[] = $line($cityState);
@@ -572,8 +777,14 @@ class PaymentsController extends BaseController
         if ($zip !== '') {
             $parts[] = $line($zip);
         }
+        if ($country !== '') {
+            $parts[] = $line($country);
+        }
         if ($email !== '') {
             $parts[] = $line($email);
+        }
+        if ($phone !== '') {
+            $parts[] = $line($phone);
         }
         $parts[] = '';
         $parts[] = $line('Total: ' . $total);

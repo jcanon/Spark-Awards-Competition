@@ -54,14 +54,23 @@ final class AuthorizeNetGateway
     public function chargeCard(
         string $nonce,
         int $amountCents,
-        array $orderMeta = []
-    ): AnetAPI\CreateTransactionResponse {
+        array $orderMeta = [],
+        string $dataDescriptor = 'COMMON.ACCEPT.INAPP.PAYMENT'
+    ): ?AnetAPI\CreateTransactionResponse {
+        $this->lastError = null;
+
+        if ($this->loginId === '' || $this->transKey === '') {
+            $this->lastError = 'Authorize.Net credentials are missing. Set ANET_SANDBOX_API_LOGIN_ID and ANET_SANDBOX_TRANSACTION_KEY (or production equivalents).';
+            log_message('error', $this->lastError);
+            return null;
+        }
+
         $txnReq = new AnetAPI\TransactionRequestType();
         $txnReq->setTransactionType('authCaptureTransaction');
         $txnReq->setAmount(number_format($amountCents / 100, 2, '.', ''));
 
         $opaqueData = new AnetAPI\OpaqueDataType();
-        $opaqueData->setDataDescriptor($orderMeta['descriptor'] ?? 'COMMON.ACCEPT.INAPP.PAYMENT');
+        $opaqueData->setDataDescriptor($dataDescriptor !== '' ? $dataDescriptor : 'COMMON.ACCEPT.INAPP.PAYMENT');
         $opaqueData->setDataValue($nonce);
 
         $payment = new AnetAPI\PaymentType();
@@ -75,12 +84,65 @@ final class AuthorizeNetGateway
             $txnReq->setOrder($order);
         }
 
+        $customerEmail = trim((string)($orderMeta['customerEmail'] ?? ''));
+        if ($customerEmail !== '' && filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
+            $customer = new AnetAPI\CustomerDataType();
+            $customer->setEmail($customerEmail);
+            $txnReq->setCustomer($customer);
+        }
+
+        $billTo = $orderMeta['billTo'] ?? null;
+        if (is_array($billTo) && $billTo !== []) {
+            $address = new AnetAPI\CustomerAddressType();
+            if (($billTo['firstName'] ?? '') !== '') {
+                $address->setFirstName(substr((string)$billTo['firstName'], 0, 50));
+            }
+            if (($billTo['lastName'] ?? '') !== '') {
+                $address->setLastName(substr((string)$billTo['lastName'], 0, 50));
+            }
+            if (($billTo['address'] ?? '') !== '') {
+                $address->setAddress(substr((string)$billTo['address'], 0, 60));
+            }
+            if (($billTo['city'] ?? '') !== '') {
+                $address->setCity(substr((string)$billTo['city'], 0, 40));
+            }
+            if (($billTo['state'] ?? '') !== '') {
+                $address->setState(substr((string)$billTo['state'], 0, 40));
+            }
+            if (($billTo['zip'] ?? '') !== '') {
+                $address->setZip(substr((string)$billTo['zip'], 0, 20));
+            }
+            if (($billTo['country'] ?? '') !== '') {
+                $address->setCountry(substr((string)$billTo['country'], 0, 60));
+            }
+            if (($billTo['phone'] ?? '') !== '') {
+                $address->setPhoneNumber(substr((string)$billTo['phone'], 0, 25));
+            }
+            $txnReq->setBillTo($address);
+        }
+
         $request = new AnetAPI\CreateTransactionRequest();
         $request->setMerchantAuthentication($this->auth());
         $request->setTransactionRequest($txnReq);
 
-        $controller = new AnetController\CreateTransactionController($request);
-        return $controller->executeWithApiResponse($this->envConst());
+        try {
+            $controller = new AnetController\CreateTransactionController($request);
+            return $controller->executeWithApiResponse($this->envConst());
+        } catch (\Throwable $e) {
+            $this->lastError = 'Authorize.Net charge request crashed: ' . $e->getMessage();
+            log_message(
+                'critical',
+                'Authorize.Net charge request crashed: {class}: {message} at {file}:{line}',
+                [
+                    'class' => $e::class,
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]
+            );
+
+            return null;
+        }
     }
 
     /**

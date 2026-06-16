@@ -15,10 +15,12 @@ class AuthorizeNet extends BaseConfig
     public string $sandboxApiLoginId = '';
     public string $sandboxTransactionKey = '';
     public string $sandboxSignatureKey = '';
+    public string $sandboxClientKey = '';
 
     public string $productionApiLoginId = '';
     public string $productionTransactionKey = '';
     public string $productionSignatureKey = '';
+    public string $productionClientKey = '';
 
     public function __construct()
     {
@@ -33,10 +35,12 @@ class AuthorizeNet extends BaseConfig
         $this->sandboxApiLoginId = trim((string)env('ANET_SANDBOX_API_LOGIN_ID', ''));
         $this->sandboxTransactionKey = trim((string)env('ANET_SANDBOX_TRANSACTION_KEY', ''));
         $this->sandboxSignatureKey = trim((string)env('ANET_SANDBOX_SIGNATURE_KEY', ''));
+        $this->sandboxClientKey = trim((string)env('ANET_SANDBOX_CLIENT_KEY', ''));
 
         $this->productionApiLoginId = trim((string)env('ANET_PRODUCTION_API_LOGIN_ID', ''));
         $this->productionTransactionKey = trim((string)env('ANET_PRODUCTION_TRANSACTION_KEY', ''));
         $this->productionSignatureKey = trim((string)env('ANET_PRODUCTION_SIGNATURE_KEY', ''));
+        $this->productionClientKey = trim((string)env('ANET_PRODUCTION_CLIENT_KEY', ''));
     }
 
     public function useProduction(): bool
@@ -87,6 +91,26 @@ class AuthorizeNet extends BaseConfig
             : trim((string)env('ANET_SIGNATURE_KEY', ''));
     }
 
+    public function clientKey(): string
+    {
+        if ($this->useProduction()) {
+            return $this->productionClientKey !== ''
+                ? $this->productionClientKey
+                : trim((string)env('ANET_CLIENT_KEY', ''));
+        }
+
+        return $this->sandboxClientKey !== ''
+            ? $this->sandboxClientKey
+            : trim((string)env('ANET_CLIENT_KEY', ''));
+    }
+
+    public function acceptJsUrl(): string
+    {
+        return $this->useProduction()
+            ? 'https://js.authorize.net/v1/Accept.js'
+            : 'https://jstest.authorize.net/v1/Accept.js';
+    }
+
     public function hostedPaymentUrl(): string
     {
         return $this->useProduction()
@@ -94,4 +118,3 @@ class AuthorizeNet extends BaseConfig
             : 'https://test.authorize.net/payment/payment';
     }
 }
-
