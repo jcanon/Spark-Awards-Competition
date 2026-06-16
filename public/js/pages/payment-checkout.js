@@ -10,6 +10,7 @@
     var valueInput = document.getElementById('data_value');
     var isSubmitting = false;
     var originalLabel = submitButton ? submitButton.textContent : '';
+    var tokenizationTimeout = null;
 
     function showStatus(message, type) {
         if (!statusBox) {
@@ -41,6 +42,10 @@
 
     function setSubmittingState(active) {
         isSubmitting = active;
+        if (!active && tokenizationTimeout) {
+            window.clearTimeout(tokenizationTimeout);
+            tokenizationTimeout = null;
+        }
         if (!submitButton) {
             return;
         }
@@ -86,6 +91,10 @@
 
         setSubmittingState(true);
         showStatus('Securing your card details...', 'info');
+        tokenizationTimeout = window.setTimeout(function () {
+            setSubmittingState(false);
+            showStatus('Secure card tokenization took too long or was blocked. Please reload the page and try again. If this continues, contact support.');
+        }, 15000);
 
         window.Accept.dispatchData({
             authData: {

@@ -23,6 +23,8 @@ class ContentSecurityPolicy extends BaseConfig
     private array $authorizeNetHosts = [
         'https://accept.authorize.net',
         'https://test.authorize.net',
+        'https://api.authorize.net',
+        'https://apitest.authorize.net',
     ];
 
     /**
