@@ -1,6 +1,28 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<?php
+$showAnetDebug = trim((string) service('request')->getGet('anet_debug')) === '1'
+    && in_array((string) session('role'), ['admin', 'editor'], true);
+$clientKeyValue = (string) ($clientKey ?? '');
+$clientKeyLength = strlen($clientKeyValue);
+$clientKeyHashPrefix = $clientKeyLength > 0 ? substr(hash('sha256', $clientKeyValue), 0, 16) : '';
+$acceptMode = strpos((string) ($acceptJsUrl ?? ''), 'jstest.authorize.net') !== false ? 'sandbox' : 'production';
+$maskedClientKey = '[empty]';
+
+if ($clientKeyLength > 0) {
+    if ($clientKeyLength <= 12) {
+        $maskedClientKey = substr($clientKeyValue, 0, 2)
+            . str_repeat('*', max(0, $clientKeyLength - 4))
+            . substr($clientKeyValue, -2);
+    } else {
+        $maskedClientKey = substr($clientKeyValue, 0, 8)
+            . str_repeat('*', max(0, $clientKeyLength - 14))
+            . substr($clientKeyValue, -6);
+    }
+}
+?>
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Submit Payment</h1>
@@ -266,11 +288,28 @@
                     </div>
                 </div>
             </div>
+
+            <?php if ($showAnetDebug): ?>
+                <div class="card border-left-warning shadow mt-4">
+                    <div class="card-header bg-white">
+                        <h6 class="m-0 font-weight-bold text-warning">Authorize.Net Debug</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small mb-2"><strong>Mode:</strong> <?= esc($acceptMode) ?></p>
+                        <p class="small mb-2"><strong>API Login ID:</strong> <code><?= esc((string) ($apiLoginId ?? '')) ?></code></p>
+                        <p class="small mb-2"><strong>Client Key:</strong> <code><?= esc($maskedClientKey) ?></code></p>
+                        <p class="small mb-2"><strong>Client Key Length:</strong> <?= esc((string) $clientKeyLength) ?></p>
+                        <p class="small mb-2"><strong>Client Key SHA-256 Prefix:</strong> <code><?= esc($clientKeyHashPrefix) ?></code></p>
+                        <p class="small mb-0"><strong>Accept.js URL:</strong> <code><?= esc((string) ($acceptJsUrl ?? '')) ?></code></p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
         </div>
     </div>
 </div>
 
-<script src="<?= esc($acceptJsUrl) ?>"></script>
+<script type="text/javascript" src="<?= esc($acceptJsUrl) ?>" charset="utf-8"></script>
 <script src="/js/pages/payment-checkout.js"></script>
 
 <?= $this->endSection() ?>

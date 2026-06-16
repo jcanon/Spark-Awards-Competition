@@ -21,9 +21,11 @@ class ContentSecurityPolicy extends BaseConfig
      * @var list<string>
      */
     private array $authorizeNetHosts = [
+        'https://*.authorize.net',
         'https://accept.authorize.net',
         'https://test.authorize.net',
         'https://api.authorize.net',
+        'https://api2.authorize.net',
         'https://apitest.authorize.net',
     ];
 
@@ -31,6 +33,7 @@ class ContentSecurityPolicy extends BaseConfig
      * @var list<string>
      */
     private array $authorizeNetScriptHosts = [
+        'https://*.authorize.net',
         'https://js.authorize.net',
         'https://jstest.authorize.net',
         'https://verify.authorize.net',
@@ -227,7 +230,7 @@ class ContentSecurityPolicy extends BaseConfig
         $this->imageSrc = ['self', 'data:', 'https:'];
 
         // Covers iframes and workers that can be created by third-party scripts.
-        $this->childSrc = array_merge(['self'], $this->googleHosts, $this->mediaEmbedHosts);
+        $this->childSrc = array_merge(['self'], $this->googleHosts, $this->mediaEmbedHosts, $this->authorizeNetHosts, $this->authorizeNetScriptHosts);
         $this->connectSrc = array_merge(
             ['self'],
             $this->googleHosts,
@@ -239,6 +242,6 @@ class ContentSecurityPolicy extends BaseConfig
         // Required for checkout POST to Authorize.Net hosted payment page.
         $this->formAction = array_merge(['self'], $this->authorizeNetHosts);
 
-        $this->frameSrc = array_merge(['self'], $this->googleHosts, $this->mediaEmbedHosts);
+        $this->frameSrc = array_merge(['self'], $this->googleHosts, $this->mediaEmbedHosts, $this->authorizeNetHosts, $this->authorizeNetScriptHosts);
     }
 }

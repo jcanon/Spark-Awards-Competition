@@ -54,6 +54,14 @@
         submitButton.textContent = active ? 'Processing...' : originalLabel;
     }
 
+    window.addEventListener('securitypolicyviolation', function (event) {
+        var blocked = event && event.blockedURI ? event.blockedURI : 'a required payment resource';
+        if (blocked.indexOf('authorize.net') !== -1) {
+            setSubmittingState(false);
+            showStatus('Your browser blocked an Authorize.Net resource required for secure payment: ' + blocked + '. Please reload and try again. If this continues, disable any blocking extensions for this site or contact support.');
+        }
+    });
+
     form.addEventListener('submit', function (event) {
         if (isSubmitting) {
             return;
