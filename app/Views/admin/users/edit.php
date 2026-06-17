@@ -318,6 +318,8 @@
                             <?php
                                 $entryId = (string)($sub['entry_id'] ?? '');
                                 $isMarkedNonFinalist = strtolower(trim((string)($sub['entry_non_finalist'] ?? 'No'))) === 'yes';
+                                $phase1PaymentStatus = strtolower((string)($sub['phase_1_payment_status'] ?? 'pending'));
+                                $phase2PaymentStatus = strtolower((string)($sub['phase_2_payment_status'] ?? 'pending'));
                                 [$statusLabel, $statusClass, $medalIconClass] = entry_status_pill($sub);
 
                                 if ($isMarkedNonFinalist) {
@@ -340,8 +342,22 @@
                                         <?= esc($statusLabel) ?>
                                     </span>
                                 </td>
-                                <td><?= esc((string)($sub['phase_1_payment'] ?? '')) ?></td>
-                                <td><?= esc((string)($sub['phase_2_payment'] ?? '')) ?></td>
+                                <td>
+                                    <?= esc((string)($sub['phase_1_payment'] ?? '')) ?>
+                                    <?php if ($phase1PaymentStatus === 'held_for_review'): ?>
+                                        <div class="mt-1">
+                                            <span class="badge badge-warning">Under Review</span>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?= esc((string)($sub['phase_2_payment'] ?? '')) ?>
+                                    <?php if ($phase2PaymentStatus === 'held_for_review'): ?>
+                                        <div class="mt-1">
+                                            <span class="badge badge-warning">Under Review</span>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= esc((string)($sub['date_created'] ?? '')) ?></td>
                             </tr>
                         <?php endforeach; ?>

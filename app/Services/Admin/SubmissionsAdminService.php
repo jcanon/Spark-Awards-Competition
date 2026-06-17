@@ -58,11 +58,13 @@ class SubmissionsAdminService
 
         $db = db_connect();
         $builder = $db->table('comp_entries a')
-            ->select('a.*, b.comp_year, b.comp_type_id, c.comp_type_name, d.first_name, d.last_name, d.email_address, d.company_name, f.winner_level_name')
+            ->select('a.*, b.comp_year, b.comp_type_id, c.comp_type_name, d.first_name, d.last_name, d.email_address, d.company_name, f.winner_level_name, p1.payment_status AS phase_1_payment_status, p2.payment_status AS phase_2_payment_status')
             ->join('comp_competitions b', 'a.comp_id = b.comp_id')
             ->join('comp_type c', 'b.comp_type_id = c.comp_type_id')
             ->join('comp_users d', 'a.user_id = d.user_id')
             ->join('comp_winner_levels f', 'a.winner_level = f.winner_level_id', 'left')
+            ->join('comp_entry_payments p1', 'p1.entry_id = a.entry_id AND p1.payment_phase = 1', 'left')
+            ->join('comp_entry_payments p2', 'p2.entry_id = a.entry_id AND p2.payment_phase = 2', 'left')
             ->where('b.comp_year', $compYear);
 
         if ($compType !== 'ALL') {

@@ -67,6 +67,8 @@
                                 $designer = trim((string)($row['first_name'] ?? '') . ' ' . (string)($row['last_name'] ?? ''));
                             }
                             [$statusLabel, $statusClass, $medalIconClass] = entry_status_pill($row);
+                            $phase1PaymentStatus = strtolower((string)($row['phase_1_payment_status'] ?? 'pending'));
+                            $phase2PaymentStatus = strtolower((string)($row['phase_2_payment_status'] ?? 'pending'));
                         ?>
                         <tr>
                             <td><input type="checkbox" name="entry_ids[]" value="<?= esc((string)$row['entry_id']) ?>"></td>
@@ -86,6 +88,16 @@
                                     <?php endif; ?>
                                     <?= esc($statusLabel) ?>
                                 </span>
+                                <?php if ($phase1PaymentStatus === 'held_for_review'): ?>
+                                    <div class="mt-1">
+                                        <span class="badge badge-warning">Phase 1 Under Review</span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($phase2PaymentStatus === 'held_for_review'): ?>
+                                    <div class="mt-1">
+                                        <span class="badge badge-warning">Phase 2 Under Review</span>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td><?= ((string)($row['gallery_hide'] ?? 'No') === 'Yes') ? 'No' : 'Yes' ?></td>
                             <td class="text-nowrap">

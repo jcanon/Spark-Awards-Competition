@@ -382,10 +382,12 @@ class ProfileService
     public function getUserSubmissions(string $userId): array
     {
         return db_connect()->table('comp_entries a')
-            ->select('a.entry_id, a.design_name, a.entry_status, a.winner_level, a.phase_1_payment, a.phase_2_payment, a.entry_non_finalist, a.date_created, b.comp_year, c.comp_type_name, d.winner_level_name')
+            ->select('a.entry_id, a.design_name, a.entry_status, a.winner_level, a.phase_1_payment, a.phase_2_payment, a.entry_non_finalist, a.date_created, b.comp_year, c.comp_type_name, d.winner_level_name, p1.payment_status AS phase_1_payment_status, p2.payment_status AS phase_2_payment_status')
             ->join('comp_competitions b', 'a.comp_id = b.comp_id')
             ->join('comp_type c', 'b.comp_type_id = c.comp_type_id')
             ->join('comp_winner_levels d', 'a.winner_level = d.winner_level_id', 'left')
+            ->join('comp_entry_payments p1', 'p1.entry_id = a.entry_id AND p1.payment_phase = 1', 'left')
+            ->join('comp_entry_payments p2', 'p2.entry_id = a.entry_id AND p2.payment_phase = 2', 'left')
             ->where('a.user_id', $userId)
             ->orderBy('b.comp_year', 'DESC')
             ->orderBy('a.date_created', 'DESC')
