@@ -187,6 +187,7 @@ $routes->group('admin', ['filter' => 'auth:admin,editor,2fa'], static function (
     $routes->post('system-tools/retention/save', 'Admin\SystemToolsController::retentionSave', ['filter' => 'auth:admin,2fa']);
     $routes->post('system-tools/retention/run', 'Admin\SystemToolsController::retentionRun', ['filter' => 'auth:admin,2fa']);
     $routes->get('system-tools/readiness', 'Admin\SystemToolsController::readiness', ['filter' => 'auth:admin,2fa']);
+    $routes->get('system-tools/payment-webhooks', 'Admin\SystemToolsController::paymentWebhooks', ['filter' => 'auth:admin,2fa']);
     $routes->get('system-tools/site-health', 'Admin\SystemToolsController::siteHealth', ['filter' => 'auth:admin,2fa']);
     $routes->get('system-tools/diagnostics', 'Admin\SystemToolsController::diagnostics', ['filter' => 'auth:admin,2fa']);
     $routes->post('system-tools/diagnostics/generate', 'Admin\SystemToolsController::diagnosticsGenerate', ['filter' => 'auth:admin,2fa']);

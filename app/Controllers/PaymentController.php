@@ -40,6 +40,18 @@ class PaymentController extends BaseController
                     'updated_at' => (string)($row['payment_status_updated_at'] ?? ''),
                 ]);
             }
+
+            if ($row) {
+                $status = strtolower((string)($row['payment_status'] ?? 'pending'));
+                if ($status !== 'pending') {
+                    return $this->response->setJSON([
+                        'status' => $status,
+                        'transaction_id' => (string)($row['payment_transaction_id'] ?? ''),
+                        'message' => (string)($row['payment_status_message'] ?? ''),
+                        'updated_at' => (string)($row['payment_status_updated_at'] ?? ''),
+                    ]);
+                }
+            }
         }
 
         return $this->response->setJSON(['status' => 'pending']);
@@ -56,10 +68,16 @@ class PaymentController extends BaseController
         $keyHex = config(AuthorizeNetConfig::class)->signatureKey();
 
         if ($payload === '' || $sig === '' || $keyHex === '') {
+            log_message('warning', 'Authorize.Net webhook rejected: missing payload/signature/signature-key. payload_present={payloadPresent} signature_present={signaturePresent} signature_key_present={signatureKeyPresent}', [
+                'payloadPresent' => $payload !== '' ? 'yes' : 'no',
+                'signaturePresent' => $sig !== '' ? 'yes' : 'no',
+                'signatureKeyPresent' => $keyHex !== '' ? 'yes' : 'no',
+            ]);
             return $this->response->setStatusCode(400);
         }
 
         if (!$this->verifyAnetSignature($payload, $sig, $keyHex)) {
+            log_message('warning', 'Authorize.Net webhook rejected: signature verification failed.');
             return $this->response->setStatusCode(401);
         }
 
@@ -75,7 +93,10 @@ class PaymentController extends BaseController
         }
         $replayKey = 'anet_webhook_' . hash('sha256', $eventId);
         if (cache()->get($replayKey) !== null) {
-            return $this->response->setStatusCode(202);
+            log_message('info', 'Authorize.Net webhook ignored duplicate event {eventId}.', [
+                'eventId' => $eventId,
+            ]);
+            return $this->response->setStatusCode(200);
         }
 
         // Example maps for common event
@@ -108,12 +129,33 @@ class PaymentController extends BaseController
                         $message
                     );
                 }
+
+                log_message('info', 'Authorize.Net webhook applied status update. event_id={eventId} payment_id={paymentId} entry_id={entryId} phase={phase} transaction_id={transactionId} raw_status={rawStatus} normalized_status={normalizedStatus}', [
+                    'eventId' => $eventId,
+                    'paymentId' => (string)($payment['payment_id'] ?? ''),
+                    'entryId' => (string)($payment['entry_id'] ?? ''),
+                    'phase' => (string)($payment['payment_phase'] ?? ''),
+                    'transactionId' => (string)$txn,
+                    'rawStatus' => $status,
+                    'normalizedStatus' => $normalizedStatus,
+                ]);
+            } else {
+                log_message('warning', 'Authorize.Net webhook received for unknown payment_id. event_id={eventId} invoice={invoice} transaction_id={transactionId} raw_status={rawStatus}', [
+                    'eventId' => $eventId,
+                    'invoice' => (string)$inv,
+                    'transactionId' => (string)$txn,
+                    'rawStatus' => $status,
+                ]);
             }
+        } else {
+            log_message('warning', 'Authorize.Net webhook payload missing required transaction identifiers/status. event_id={eventId}', [
+                'eventId' => $eventId,
+            ]);
         }
 
         cache()->save($replayKey, 1, 86400);
 
-        return $this->response->setStatusCode(204);
+        return $this->response->setStatusCode(200);
     }
 
     // ----- helpers -----

@@ -387,6 +387,64 @@ class SystemToolsService
         ];
     }
 
+    public function collectPaymentWebhookDiagnostics(): array
+    {
+        $anet = new AuthorizeNet();
+        $activeEnvironment = $anet->useProduction() ? 'production' : 'sandbox';
+        $signatureKey = $anet->signatureKey();
+
+        $recentPayments = $this->db->table('comp_entry_payments p')
+            ->select('p.payment_id, p.entry_id, p.payment_phase, p.payment_total, p.payment_status, p.payment_transaction_id, p.payment_status_message, p.payment_status_updated_at, p.payment_date, e.design_name, e.entry_status')
+            ->join('comp_entries e', 'e.entry_id = p.entry_id', 'left')
+            ->groupStart()
+                ->where('p.payment_status !=', 'pending')
+                ->orWhere('p.payment_status_updated_at IS NOT NULL', null, false)
+            ->groupEnd()
+            ->orderBy('COALESCE(p.payment_status_updated_at, p.payment_date, "1970-01-01 00:00:00")', 'DESC', false)
+            ->limit(25)
+            ->get()
+            ->getResultArray();
+
+        $recentHeld = $this->db->table('comp_entry_payments p')
+            ->select('p.payment_id, p.entry_id, p.payment_phase, p.payment_status, p.payment_transaction_id, p.payment_status_updated_at, e.design_name, e.entry_status')
+            ->join('comp_entries e', 'e.entry_id = p.entry_id', 'left')
+            ->where('p.payment_status', 'held_for_review')
+            ->orderBy('COALESCE(p.payment_status_updated_at, p.payment_date, "1970-01-01 00:00:00")', 'DESC', false)
+            ->limit(10)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'generated_at' => date('Y-m-d H:i:s'),
+            'configuration' => [
+                'configured_mode' => $anet->mode,
+                'active_environment' => $activeEnvironment,
+                'webhook_url' => site_url('payments/webhook'),
+                'hosted_return_url' => site_url('payments/hosted-return'),
+                'api_login_present' => $anet->apiLoginId() !== '',
+                'transaction_key_present' => $anet->transactionKey() !== '',
+                'client_key_present' => $anet->clientKey() !== '',
+                'signature_key_present' => $signatureKey !== '',
+                'signature_key_length' => strlen($signatureKey),
+                'expected_success_code' => 200,
+            ],
+            'recent_payments' => $recentPayments,
+            'held_for_review' => $recentHeld,
+            'recent_logs' => $this->recentLogMatches([
+                'Authorize.Net webhook',
+                'Authorize.Net reconciliation',
+                'Failed to reconcile paid payment',
+                'Failed to finalize payment from return URL',
+            ], 80),
+            'checklist' => [
+                'Authorize.Net Event Notifications should point to the webhook URL shown below.',
+                'The merchant account Signature Key must match the environment-specific ANET signature key in this app.',
+                'Successful webhook deliveries should receive HTTP 200 from this endpoint.',
+                'If webhooks fail, the receipt page can now reconcile held payments against Authorize.Net on refresh.',
+            ],
+        ];
+    }
+
     public function purgeMediaOrphans(): array
     {
         $report = $this->collectMediaCleanerReport();
@@ -1077,6 +1135,51 @@ class SystemToolsService
             $out[$name] = $this->sanitizeDiagnosticsText($this->tailFile($path, $lineCount));
         }
         return $out;
+    }
+
+    private function recentLogMatches(array $needles, int $limit): array
+    {
+        $limit = max(1, $limit);
+        $needles = array_values(array_filter(array_map(static fn (string $v): string => strtolower(trim($v)), $needles)));
+        if ($needles === []) {
+            return [];
+        }
+
+        $logDir = rtrim(WRITEPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'logs';
+        if (! is_dir($logDir)) {
+            return [];
+        }
+
+        $logs = glob($logDir . DIRECTORY_SEPARATOR . '*.log') ?: [];
+        usort($logs, static fn (string $a, string $b): int => ((int) @filemtime($b)) <=> ((int) @filemtime($a)));
+
+        $matches = [];
+        foreach ($logs as $path) {
+            $lines = @file($path, FILE_IGNORE_NEW_LINES);
+            if (! is_array($lines) || $lines === []) {
+                continue;
+            }
+
+            for ($i = count($lines) - 1; $i >= 0; $i--) {
+                $line = (string) $lines[$i];
+                $normalized = strtolower($line);
+                foreach ($needles as $needle) {
+                    if ($needle !== '' && strpos($normalized, $needle) !== false) {
+                        $matches[] = [
+                            'file' => basename($path),
+                            'line' => $this->sanitizeDiagnosticsText($line),
+                        ];
+                        break;
+                    }
+                }
+
+                if (count($matches) >= $limit) {
+                    break 2;
+                }
+            }
+        }
+
+        return $matches;
     }
 
     private function tailFile(string $path, int $lineCount): string

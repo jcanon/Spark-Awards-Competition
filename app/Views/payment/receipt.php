@@ -23,6 +23,41 @@
                 <a class="btn btn-primary mt-3" href="<?= esc(current_url(true)->__toString()) ?>">Refresh Status</a>
             </div>
         </div>
+    <?php elseif (($paymentStatus ?? 'pending') === 'declined'): ?>
+        <div class="card border-left-danger shadow">
+            <div class="card-body">
+                <h5 class="text-danger">Payment Declined</h5>
+                <p>The payment was not approved after review. You can return to checkout and try again.</p>
+                <?= view('payment/_receipt_content', ['payment' => $payment]) ?>
+                <a class="btn btn-danger mt-3" href="<?= site_url('payments/entry/' . urlencode((string)$entryId) . '/phase/' . (int)$phase . '/checkout') ?>">Try Payment Again</a>
+            </div>
+        </div>
+    <?php elseif (($paymentStatus ?? 'pending') === 'voided'): ?>
+        <div class="card border-left-secondary shadow">
+            <div class="card-body">
+                <h5 class="text-secondary">Payment Voided</h5>
+                <p>This payment was voided and was not applied to the entry.</p>
+                <?= view('payment/_receipt_content', ['payment' => $payment]) ?>
+                <a class="btn btn-primary mt-3" href="<?= site_url('payments/entry/' . urlencode((string)$entryId) . '/phase/' . (int)$phase . '/checkout') ?>">Try Payment Again</a>
+            </div>
+        </div>
+    <?php elseif (($paymentStatus ?? 'pending') === 'refunded'): ?>
+        <div class="card border-left-info shadow">
+            <div class="card-body">
+                <h5 class="text-info">Payment Refunded</h5>
+                <p>This payment was refunded after processing.</p>
+                <?= view('payment/_receipt_content', ['payment' => $payment]) ?>
+            </div>
+        </div>
+    <?php elseif (($paymentStatus ?? 'pending') === 'error'): ?>
+        <div class="card border-left-danger shadow">
+            <div class="card-body">
+                <h5 class="text-danger">Payment Error</h5>
+                <p>We could not confirm this payment. Please try again.</p>
+                <?= view('payment/_receipt_content', ['payment' => $payment]) ?>
+                <a class="btn btn-danger mt-3" href="<?= site_url('payments/entry/' . urlencode((string)$entryId) . '/phase/' . (int)$phase . '/checkout') ?>">Try Payment Again</a>
+            </div>
+        </div>
     <?php else: ?>
         <div class="card border-left-warning shadow">
             <div class="card-body">

@@ -278,6 +278,15 @@ class PaymentsController extends BaseController
             ->where('payment_phase', $phase)
             ->first();
 
+        if ($payment) {
+            $this->reconcilePendingPaymentStatus($entryId, $phase, $payment);
+            $payment = $model
+                ->asArray()
+                ->where('entry_id', $entryId)
+                ->where('payment_phase', $phase)
+                ->first();
+        }
+
         if ($payment && ((string)($payment['payment_receipt'] ?? '') === '')) {
             $this->finalizePendingPaymentFromReturn($entryId, $phase, $payment);
             $payment = $model
@@ -706,6 +715,90 @@ class PaymentsController extends BaseController
         }
     }
 
+    private function reconcilePendingPaymentStatus(string $entryId, int $phase, array $payment): void
+    {
+        $currentStatus = strtolower(trim((string)($payment['payment_status'] ?? 'pending')));
+        if (!in_array($currentStatus, ['pending', 'held_for_review'], true)) {
+            return;
+        }
+
+        $gateway = new AuthorizeNetGateway();
+        $transId = trim((string)($payment['payment_transaction_id'] ?? ''));
+        $details = null;
+
+        if ($transId !== '' && preg_match('/^\d{4,32}$/', $transId) === 1) {
+            $details = $gateway->getTransactionDetails($transId);
+        }
+
+        if (!$details) {
+            $details = $gateway->findTransactionByInvoice((string)($payment['payment_id'] ?? ''));
+            if ($details) {
+                $transId = trim((string)($details['transaction_id'] ?? $transId));
+            }
+        }
+
+        if (!$details) {
+            return;
+        }
+
+        $invoice = trim((string)($details['invoice'] ?? ''));
+        if ($invoice !== '' && (int)$invoice !== (int)($payment['payment_id'] ?? 0)) {
+            log_message('warning', 'Authorize.Net reconciliation invoice mismatch for entry {entryId} phase {phase}. Expected payment_id {expected}, got invoice {invoice}', [
+                'entryId' => $entryId,
+                'phase' => (string)$phase,
+                'expected' => (string)($payment['payment_id'] ?? ''),
+                'invoice' => $invoice,
+            ]);
+            return;
+        }
+
+        $normalizedStatus = $this->normalizeAuthorizeNetTransactionStatus((string)($details['status'] ?? ''), (string)($details['response_code'] ?? ''));
+        if ($normalizedStatus === 'pending') {
+            return;
+        }
+
+        if ($normalizedStatus === 'paid') {
+            $receiptReference = $this->formatAuthorizeNetReceiptReference($details, $transId, $entryId, $payment);
+            if ($receiptReference === '') {
+                $receiptReference = $transId;
+            }
+
+            try {
+                service('payments')->userSuccessPaidWithTransaction($entryId, (string)$phase, $receiptReference, $transId);
+                log_message('info', 'Authorize.Net reconciliation finalized payment as paid. entry_id={entryId} phase={phase} payment_id={paymentId} transaction_id={transactionId} raw_status={rawStatus}', [
+                    'entryId' => $entryId,
+                    'phase' => (string)$phase,
+                    'paymentId' => (string)($payment['payment_id'] ?? ''),
+                    'transactionId' => $transId,
+                    'rawStatus' => strtolower(trim((string)($details['status'] ?? ''))),
+                ]);
+            } catch (\Throwable $e) {
+                log_message('error', 'Failed to reconcile paid payment for entry {entryId} phase {phase}: {message}', [
+                    'entryId' => $entryId,
+                    'phase' => (string)$phase,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+
+            return;
+        }
+
+        service('payments')->markPaymentStatusByPaymentId(
+            (int)($payment['payment_id'] ?? 0),
+            $normalizedStatus,
+            $transId,
+            'Authorize.Net reconciliation status: ' . strtolower(trim((string)($details['status'] ?? '')))
+        );
+        log_message('info', 'Authorize.Net reconciliation updated payment status. entry_id={entryId} phase={phase} payment_id={paymentId} transaction_id={transactionId} raw_status={rawStatus} normalized_status={normalizedStatus}', [
+            'entryId' => $entryId,
+            'phase' => (string)$phase,
+            'paymentId' => (string)($payment['payment_id'] ?? ''),
+            'transactionId' => $transId,
+            'rawStatus' => strtolower(trim((string)($details['status'] ?? ''))),
+            'normalizedStatus' => $normalizedStatus,
+        ]);
+    }
+
     private function isAuthorizeNetPaidStatus(string $status, string $responseCode): bool
     {
         $okStatuses = [
@@ -715,6 +808,26 @@ class PaymentsController extends BaseController
         ];
 
         return in_array(strtolower($status), $okStatuses, true) || $responseCode === '1';
+    }
+
+    private function normalizeAuthorizeNetTransactionStatus(string $status, string $responseCode): string
+    {
+        if ($this->isAuthorizeNetPaidStatus($status, $responseCode)) {
+            return 'paid';
+        }
+
+        return match (strtolower(trim($status))) {
+            'heldforreview' => 'held_for_review',
+            'declined',
+            'communicationerror',
+            'generalerror' => 'declined',
+            'voided',
+            'expired' => 'voided',
+            'refundsettledsuccessfully',
+            'returneditem',
+            'chargeback' => 'refunded',
+            default => 'pending',
+        };
     }
 
     private function enrichStoredReceiptReference(array $payment): void

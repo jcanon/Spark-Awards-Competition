@@ -8,6 +8,7 @@ $tools = [
     ['title' => 'Log Viewer', 'icon' => 'file-alt', 'desc' => 'Inspect recent application logs and purge old log files safely.', 'url' => site_url('admin/system-tools/logs')],
     ['title' => 'Media Cleaner', 'icon' => 'images', 'desc' => 'Find duplicate media and safe orphan file cleanup candidates.', 'url' => site_url('admin/system-tools/media-cleaner')],
     ['title' => 'Notifications', 'icon' => 'bell', 'desc' => 'Create and manage topbar notifications for different audiences.', 'url' => site_url('admin/system-tools/notifications')],
+    ['title' => 'Payment Webhooks', 'icon' => 'credit-card', 'desc' => 'Verify webhook setup, recent payment status changes, and reconciliation logs.', 'url' => site_url('admin/system-tools/payment-webhooks')],
     ['title' => 'Readiness Checklist', 'icon' => 'tasks', 'desc' => 'Review competition setup blockers and warnings before launch.', 'url' => site_url('admin/system-tools/readiness')],
     ['title' => 'Retention Rules', 'icon' => 'broom', 'desc' => 'Configure and run scheduled retention cleanup for logs/trash/temp.', 'url' => site_url('admin/system-tools/retention')],
     ['title' => 'Settings', 'icon' => 'cogs', 'desc' => 'Update site-level email and branding settings.', 'url' => site_url('admin/system-tools/settings')],

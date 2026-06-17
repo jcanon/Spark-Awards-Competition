@@ -141,6 +141,13 @@ class SystemToolsController extends BaseController
         ]);
     }
 
+    public function paymentWebhooks()
+    {
+        return view('admin/system_tools/payment_webhooks', [
+            'report' => $this->tools->collectPaymentWebhookDiagnostics(),
+        ]);
+    }
+
     public function siteHealth()
     {
         return view('admin/system_tools/site_health', [
