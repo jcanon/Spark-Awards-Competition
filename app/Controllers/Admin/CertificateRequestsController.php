@@ -34,20 +34,20 @@ class CertificateRequestsController extends BaseController
             ->get()
             ->getResultArray();
 
-        $defaultYear = (int)($years[0]['comp_year'] ?? date('Y'));
-        $year = (int)($this->request->getGet('year') ?? $defaultYear);
-        if ($year <= 0) {
-            $year = $defaultYear;
-        }
+        $year = (int)($this->request->getGet('year') ?? 0);
 
-        $competitionOptions = $db->table('comp_entry_certificate_requests r')
+        $competitionOptionsBuilder = $db->table('comp_entry_certificate_requests r')
             ->select('c.comp_id, c.comp_year, t.comp_type_name')
             ->join('comp_entries e', 'e.entry_id = r.entry_id')
             ->join('comp_competitions c', 'c.comp_id = e.comp_id')
             ->join('comp_type t', 't.comp_type_id = c.comp_type_id')
-            ->where('c.comp_year', $year)
             ->groupBy('c.comp_id, c.comp_year, t.comp_type_name')
-            ->orderBy('t.comp_type_name', 'ASC')
+            ->orderBy('c.comp_year', 'DESC')
+            ->orderBy('t.comp_type_name', 'ASC');
+        if ($year > 0) {
+            $competitionOptionsBuilder->where('c.comp_year', $year);
+        }
+        $competitionOptions = $competitionOptionsBuilder
             ->get()
             ->getResultArray();
 
@@ -76,8 +76,11 @@ class CertificateRequestsController extends BaseController
             ->join('comp_competitions c', 'c.comp_id = e.comp_id')
             ->join('comp_type t', 't.comp_type_id = c.comp_type_id')
             ->join('comp_winner_levels w', 'w.winner_level_id = e.winner_level', 'left')
-            ->join('comp_users u', 'u.user_id = e.user_id')
-            ->where('c.comp_year', $year);
+            ->join('comp_users u', 'u.user_id = e.user_id');
+
+        if ($year > 0) {
+            $builder->where('c.comp_year', $year);
+        }
 
         if ($competitionId > 0) {
             $builder->where('c.comp_id', $competitionId);

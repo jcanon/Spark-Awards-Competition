@@ -14,6 +14,7 @@
                 <div class="col-md-3 mb-2">
                     <label for="year">Year</label>
                     <select id="year" name="year" class="form-control">
+                        <option value="0" <?= (int)$filters['year'] === 0 ? 'selected' : '' ?>>All Years</option>
                         <?php foreach ($years as $y): ?>
                             <option value="<?= (int)$y['comp_year'] ?>" <?= (int)$filters['year'] === (int)$y['comp_year'] ? 'selected' : '' ?>>
                                 <?= (int)$y['comp_year'] ?>
