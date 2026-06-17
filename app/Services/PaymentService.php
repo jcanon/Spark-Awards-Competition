@@ -88,7 +88,10 @@ class PaymentService
         return (new EntryPaymentModel())
             ->asArray()
             ->where('entry_id', $entryId)
-            ->where('payment_receipt !=', '')
+            ->groupStart()
+                ->where('payment_receipt !=', '')
+                ->orWhere('payment_status !=', 'pending')
+            ->groupEnd()
             ->orderBy('payment_phase', 'ASC')
             ->findAll();
     }
@@ -259,6 +262,11 @@ class PaymentService
 
     public function userSuccessPaid(string $entryId, string $phase, string $receipt): void
     {
+        $this->userSuccessPaidWithTransaction($entryId, $phase, $receipt, '');
+    }
+
+    public function userSuccessPaidWithTransaction(string $entryId, string $phase, string $receipt, string $transactionId = ''): void
+    {
         $phaseInt = (int)$phase;
         if ($phaseInt < 1 || $phaseInt > 3) {
             throw new RuntimeException('Invalid payment phase.');
@@ -281,8 +289,19 @@ class PaymentService
                 ],
                 $entryId
             );
+            $resolvedTransactionId = $this->normalizeTransactionId($transactionId);
+            if ($resolvedTransactionId === '') {
+                $resolvedTransactionId = $this->normalizeTransactionId((string)$payment->payment_transaction_id);
+            }
+            if ($resolvedTransactionId === '') {
+                $resolvedTransactionId = $this->normalizeTransactionId($receipt);
+            }
             $model->update((int)$payment->payment_id, [
                 'payment_receipt' => $normalizedReceipt,
+                'payment_status' => 'paid',
+                'payment_transaction_id' => $resolvedTransactionId,
+                'payment_status_message' => '',
+                'payment_status_updated_at' => date('Y-m-d H:i:s'),
                 'payment_date' => date('Y-m-d H:i:s'),
             ]);
         }
@@ -304,6 +323,84 @@ class PaymentService
         if ($db->transStatus() === false) {
             throw new RuntimeException('Payment finalization failed.');
         }
+    }
+
+    public function markPaymentStatus(string $entryId, string $phase, string $status, string $transactionId = '', string $message = ''): void
+    {
+        $phaseInt = (int)$phase;
+        if ($phaseInt < 1 || $phaseInt > 3) {
+            throw new RuntimeException('Invalid payment phase.');
+        }
+
+        $this->ensurePaymentRow($entryId, $phaseInt);
+
+        /** @var EntryPayment|null $payment */
+        $payment = (new EntryPaymentModel())
+            ->where('entry_id', $entryId)
+            ->where('payment_phase', $phaseInt)
+            ->first();
+
+        if (!$payment) {
+            throw new RuntimeException('Unable to load payment row.');
+        }
+
+        $this->updatePaymentStatusRecord((int)$payment->payment_id, $status, $transactionId, $message);
+    }
+
+    public function markPaymentStatusByPaymentId(int $paymentId, string $status, string $transactionId = '', string $message = ''): void
+    {
+        if ($paymentId <= 0) {
+            throw new RuntimeException('Invalid payment ID.');
+        }
+
+        $this->updatePaymentStatusRecord($paymentId, $status, $transactionId, $message);
+    }
+
+    private function updatePaymentStatusRecord(int $paymentId, string $status, string $transactionId, string $message): void
+    {
+        $normalizedStatus = $this->normalizePaymentStatus($status);
+        $normalizedTransactionId = $this->normalizeTransactionId($transactionId);
+
+        $update = [
+            'payment_status' => $normalizedStatus,
+            'payment_status_message' => trim($message),
+            'payment_status_updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        if ($normalizedTransactionId !== '') {
+            $update['payment_transaction_id'] = $normalizedTransactionId;
+        }
+
+        if ($normalizedStatus === 'paid') {
+            $update['payment_status_message'] = '';
+        }
+
+        (new EntryPaymentModel())->update($paymentId, $update);
+    }
+
+    private function normalizePaymentStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return match ($status) {
+            'held_for_review', 'heldforreview' => 'held_for_review',
+            'paid', 'settledsuccessfully', 'capturedpendingsettlement', 'authorizedpendingcapture' => 'paid',
+            'declined', 'decline', 'failed' => 'declined',
+            'voided', 'void' => 'voided',
+            'refunded', 'refund' => 'refunded',
+            'error' => 'error',
+            default => 'pending',
+        };
+    }
+
+    private function normalizeTransactionId(string $transactionId): string
+    {
+        $transactionId = trim($transactionId);
+        if ($transactionId === '') {
+            return '';
+        }
+
+        return preg_match('/^[A-Za-z0-9_-]{4,40}$/', $transactionId) === 1 ? $transactionId : '';
     }
 
     private function normalizeMoney(string $val): float

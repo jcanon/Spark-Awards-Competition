@@ -18,9 +18,9 @@ class PaymentController extends BaseController
 
         if ($entryId !== '') {
             $row = (new EntryPaymentModel())
-                ->select('payment_receipt, payment_date')
+                ->select('payment_receipt, payment_date, payment_status, payment_transaction_id, payment_status_message, payment_status_updated_at')
                 ->where('entry_id', $entryId)
-                ->orderBy('payment_phase', 'ASC')
+                ->orderBy('payment_phase', 'DESC')
                 ->asArray()
                 ->first();
 
@@ -29,6 +29,15 @@ class PaymentController extends BaseController
                     'status' => 'paid',
                     'receipt' => $row['payment_receipt'],
                     'date' => $row['payment_date'],
+                ]);
+            }
+
+            if ($row && strtolower((string)($row['payment_status'] ?? 'pending')) === 'held_for_review') {
+                return $this->response->setJSON([
+                    'status' => 'held_for_review',
+                    'transaction_id' => (string)($row['payment_transaction_id'] ?? ''),
+                    'message' => (string)($row['payment_status_message'] ?? ''),
+                    'updated_at' => (string)($row['payment_status_updated_at'] ?? ''),
                 ]);
             }
         }
@@ -76,25 +85,29 @@ class PaymentController extends BaseController
 
         if ($inv && $txn && is_string($sta)) {
             $status = strtolower($sta);
-            $okStatuses = [
-                'settledsuccessfully',
-                'capturedpendingsettlement',
-                'authorizedpendingcapture',
-            ];
-            if (!in_array($status, $okStatuses, true)) {
-                return $this->response->setStatusCode(202);
-            }
-
             $payment = (new EntryPaymentModel())->asArray()
                 ->where('payment_id', (int)$inv)
                 ->first();
 
             if ($payment) {
-                service('payments')->userSuccessPaid(
-                    (string)$payment['entry_id'],
-                    (string)$payment['payment_phase'],
-                    (string)$txn
-                );
+                $normalizedStatus = $this->normalizeWebhookPaymentStatus($status);
+                $message = 'Authorize.Net status update: ' . $status;
+
+                if ($normalizedStatus === 'paid') {
+                    service('payments')->userSuccessPaidWithTransaction(
+                        (string)$payment['entry_id'],
+                        (string)$payment['payment_phase'],
+                        (string)$txn,
+                        (string)$txn
+                    );
+                } else {
+                    service('payments')->markPaymentStatusByPaymentId(
+                        (int)$payment['payment_id'],
+                        $normalizedStatus,
+                        (string)$txn,
+                        $message
+                    );
+                }
             }
         }
 
@@ -127,5 +140,24 @@ class PaymentController extends BaseController
 
         $calc = strtolower(hash_hmac('sha512', $payload, $binKey));
         return hash_equals($calc, $provided);
+    }
+
+    private function normalizeWebhookPaymentStatus(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'settledsuccessfully',
+            'capturedpendingsettlement',
+            'authorizedpendingcapture' => 'paid',
+            'heldforreview' => 'held_for_review',
+            'declined',
+            'communicationerror',
+            'generalerror' => 'declined',
+            'voided',
+            'expired' => 'voided',
+            'refundsettledsuccessfully',
+            'returneditem',
+            'chargeback' => 'refunded',
+            default => 'pending',
+        };
     }
 }

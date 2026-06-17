@@ -73,7 +73,10 @@ $fmtDate = static function (string $value): string {
                 <tr><td class="label">Entry ID</td><td class="value"><?= esc($entryId) ?></td></tr>
                 <tr><td class="label">Payment ID</td><td class="value"><?= esc((string)($payment['payment_id'] ?? '')) ?></td></tr>
                 <tr><td class="label">Payment Phase</td><td class="value"><?= esc((string)($payment['payment_phase'] ?? '')) ?></td></tr>
+                <tr><td class="label">Payment Status</td><td class="value"><?= esc(ucwords(str_replace('_', ' ', (string)($payment['payment_status'] ?? 'pending')))) ?></td></tr>
                 <tr><td class="label">Payment Date</td><td class="value"><?= esc($fmtDate((string)($payment['payment_date'] ?? ''))) ?></td></tr>
+                <tr><td class="label">Status Updated</td><td class="value"><?= esc($fmtDate((string)($payment['payment_status_updated_at'] ?? ''))) ?></td></tr>
+                <tr><td class="label">Transaction ID</td><td class="value"><?= esc((string)($payment['payment_transaction_id'] ?? '')) ?></td></tr>
                 <tr><td class="label">Competition</td><td class="value"><?= esc(trim((string)($entryMeta['comp_type_name'] ?? '') . ' ' . (string)($entryMeta['comp_year'] ?? ''))) ?></td></tr>
                 <tr><td class="label">Design Name</td><td class="value"><?= esc((string)($entryMeta['design_name'] ?? '')) ?></td></tr>
                 <tr><td class="label">Company</td><td class="value"><?= esc((string)($entryMeta['company_name'] ?? '')) ?></td></tr>
@@ -84,10 +87,14 @@ $fmtDate = static function (string $value): string {
         <div class="section">
             <div class="section-title">Payment Reference</div>
             <div class="receipt-reference">
-                <?= sanitize_receipt_html((string)($payment['payment_receipt'] ?? '')) ?>
+                <?php if ((string)($payment['payment_receipt'] ?? '') !== ''): ?>
+                    <?= sanitize_receipt_html((string)($payment['payment_receipt'] ?? '')) ?>
+                <?php else: ?>
+                    <?= esc((string)($payment['payment_status_message'] ?? 'No payment reference is available yet.')) ?>
+                <?php endif; ?>
             </div>
             <div class="total-bar">
-                Total Paid: $<?= number_format((float)($payment['payment_total'] ?? 0), 2) ?>
+                Total: $<?= number_format((float)($payment['payment_total'] ?? 0), 2) ?>
             </div>
         </div>
 

@@ -7,11 +7,20 @@
         <a class="btn btn-sm btn-secondary" href="<?= site_url('submissions') ?>">Back to Submissions</a>
     </div>
 
-    <?php if ($paid): ?>
+    <?php if (($paymentStatus ?? 'pending') === 'paid'): ?>
         <div class="card border-left-success shadow">
             <div class="card-body">
                 <h5 class="text-success">Payment Confirmed</h5>
                 <?= view('payment/_receipt_content', ['payment' => $payment]) ?>
+            </div>
+        </div>
+    <?php elseif (($paymentStatus ?? 'pending') === 'held_for_review'): ?>
+        <div class="card border-left-warning shadow">
+            <div class="card-body">
+                <h5 class="text-warning">Payment Under Review</h5>
+                <p>Your payment was received but is being held for manual review. We have not marked this entry as paid yet.</p>
+                <?= view('payment/_receipt_content', ['payment' => $payment]) ?>
+                <a class="btn btn-primary mt-3" href="<?= esc(current_url(true)->__toString()) ?>">Refresh Status</a>
             </div>
         </div>
     <?php else: ?>

@@ -66,6 +66,7 @@ $isEntryEditLocked = static function ($entry): bool {
                                 $compName = trim((string)($e->comp_type_name ?? '') . ' ' . (string)($e->comp_year ?? ''));
                                 $p1 = (string)($e->phase_1_payment ?? 'Unpaid');
                                 $isPaid = strcasecmp($p1, 'Paid') === 0;
+                                $phase1PaymentStatus = strtolower((string)($e->phase_1_payment_status ?? 'pending'));
                                 ?>
                                 <tr>
                                     <td>
@@ -80,6 +81,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                                 'phase' => 1,
                                                 'label' => 'Paid - View Receipt',
                                             ]) ?>
+                                        <?php elseif ($phase1PaymentStatus === 'held_for_review'): ?>
+                                            <a class="btn btn-sm btn-warning shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>" title="Payment Under Review">Under Review - View Details</a>
                                         <?php else: ?>
                                             <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1') ?>" title="Submit Payment">Unpaid - Submit Payment</a>
                                         <?php endif; ?>
@@ -133,6 +136,7 @@ $isEntryEditLocked = static function ($entry): bool {
                                 $compName = trim((string)($e->comp_type_name ?? '') . ' ' . (string)($e->comp_year ?? ''));
                                 $p2 = (string)($e->phase_2_payment ?? 'Unpaid');
                                 $isPaid = strcasecmp($p2, 'Paid') === 0;
+                                $phase2PaymentStatus = strtolower((string)($e->phase_2_payment_status ?? 'pending'));
                                 ?>
                                 <tr>
                                     <td>
@@ -147,6 +151,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                                 'phase' => 2,
                                                 'label' => 'Paid - View Receipt',
                                             ]) ?>
+                                        <?php elseif ($phase2PaymentStatus === 'held_for_review'): ?>
+                                            <a class="btn btn-sm btn-warning shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>" title="Payment Under Review">Under Review - View Details</a>
                                         <?php else: ?>
                                             <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2') ?>" title="Submit Payment">Unpaid - Submit Payment</a>
                                         <?php endif; ?>
@@ -196,6 +202,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                 $p2 = (string)($e->phase_2_payment ?? 'Unpaid');
                                 $isPhase1Paid = strcasecmp($p1, 'Paid') === 0;
                                 $isPhase2Paid = strcasecmp($p2, 'Paid') === 0;
+                                $phase1PaymentStatus = strtolower((string)($e->phase_1_payment_status ?? 'pending'));
+                                $phase2PaymentStatus = strtolower((string)($e->phase_2_payment_status ?? 'pending'));
                                 [$statusLabel, $statusClass, $statusIcon] = entry_status_pill($e);
                                 ?>
                                 <tr>
@@ -219,6 +227,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                                 'label' => 'Phase 1 - Paid Receipt',
                                                 'class' => 'btn btn-sm btn-primary shadow-sm js-receipt-modal-link mb-1',
                                             ]) ?>
+                                        <?php elseif ($phase1PaymentStatus === 'held_for_review'): ?>
+                                            <a class="btn btn-sm btn-warning shadow-sm mb-1" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>" title="Payment Under Review">Phase 1 - Under Review</a>
                                         <?php else: ?>
                                             <div class="small text-muted mb-1">Phase 1 - Unpaid</div>
                                         <?php endif; ?>
@@ -229,6 +239,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                                 'phase' => 2,
                                                 'label' => 'Phase 2 - Paid Receipt',
                                             ]) ?>
+                                        <?php elseif ($phase2PaymentStatus === 'held_for_review'): ?>
+                                            <a class="btn btn-sm btn-warning shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>" title="Payment Under Review">Phase 2 - Under Review</a>
                                         <?php else: ?>
                                             <a class="btn btn-sm btn-danger shadow-sm"  href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2') ?>" title="Submit Payment">Phase 2 - Unpaid, Submit Payment</a>
                                         <?php endif; ?>
@@ -278,6 +290,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                 $p2 = (string)($e->phase_2_payment ?? 'Unpaid');
                                 $isPhase1Paid = strcasecmp($p1, 'Paid') === 0;
                                 $isPhase2Paid = strcasecmp($p2, 'Paid') === 0;
+                                $phase1PaymentStatus = strtolower((string)($e->phase_1_payment_status ?? 'pending'));
+                                $phase2PaymentStatus = strtolower((string)($e->phase_2_payment_status ?? 'pending'));
                                 [$statusLabel, $statusClass, $statusIcon] = entry_status_pill($e);
                                 ?>
                                 <tr>
@@ -305,6 +319,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                                 'label' => 'Phase 1 - Paid Receipt',
                                                 'class' => 'btn btn-sm btn-primary shadow-sm js-receipt-modal-link mb-1',
                                             ]) ?>
+                                        <?php elseif ($phase1PaymentStatus === 'held_for_review'): ?>
+                                            <a class="btn btn-sm btn-warning shadow-sm mb-1" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>" title="Payment Under Review">Phase 1 - Under Review</a>
                                         <?php else: ?>
                                             <div class="small text-muted mb-1">Phase 1 - Unpaid</div>
                                         <?php endif; ?>
@@ -315,6 +331,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                                 'phase' => 2,
                                                 'label' => 'Phase 2 - Paid Receipt',
                                             ]) ?>
+                                        <?php elseif ($phase2PaymentStatus === 'held_for_review'): ?>
+                                            <a class="btn btn-sm btn-warning shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>" title="Payment Under Review">Phase 2 - Under Review</a>
                                         <?php else: ?>
                                             <div class="small text-muted">Phase 2 - Unpaid</div>
                                         <?php endif; ?>

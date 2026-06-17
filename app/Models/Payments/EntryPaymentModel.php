@@ -21,6 +21,10 @@ class EntryPaymentModel extends Model
         'spark_trophy',
         'spark_trophy_qty',
         'payment_receipt',
+        'payment_status',
+        'payment_transaction_id',
+        'payment_status_message',
+        'payment_status_updated_at',
         'payment_date',
     ];
 
@@ -32,6 +36,9 @@ class EntryPaymentModel extends Model
         'winner_circle' => 'permit_empty|in_list[No,Yes]',
         'spark_trophy' => 'permit_empty|in_list[No,Yes]',
         'spark_trophy_qty' => 'permit_empty|integer',
+        'payment_status' => 'permit_empty|in_list[pending,held_for_review,paid,declined,voided,refunded,error]',
+        'payment_transaction_id' => 'permit_empty|max_length[40]',
         'payment_date' => 'permit_empty|valid_date[Y-m-d H:i:s]',
+        'payment_status_updated_at' => 'permit_empty|valid_date[Y-m-d H:i:s]',
     ];
 }

@@ -166,10 +166,20 @@
         </div>
 
         <div class="card mb-4">
-            <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Payment Receipts</h6></div>
+            <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Payment Activity</h6></div>
             <div class="card-body">
                 <?php if (!empty($payments)): ?>
                     <?php foreach ($payments as $p): ?>
+                        <?php
+                        $paymentStatus = strtolower(trim((string)($p['payment_status'] ?? 'pending')));
+                        $statusLabel = ucwords(str_replace('_', ' ', $paymentStatus !== '' ? $paymentStatus : 'pending'));
+                        $linkLabel = $paymentStatus === 'paid' || (string)($p['payment_receipt'] ?? '') !== ''
+                            ? 'Phase ' . (string)$p['payment_phase'] . ' Receipt'
+                            : 'Phase ' . (string)$p['payment_phase'] . ' Payment Details';
+                        $statusClass = $paymentStatus === 'paid'
+                            ? 'text-success'
+                            : ($paymentStatus === 'held_for_review' ? 'text-warning' : 'text-muted');
+                        ?>
                         <p class="mb-1">
                             <strong>
                                 <a
@@ -178,13 +188,14 @@
                                     data-receipt-pdf-url="<?= site_url('admin/submissions/receipt-pdf/' . (int)$p['payment_id'] . '/' . rawurlencode((string)$row['entry_id'])) ?>"
                                     class="js-receipt-modal-link"
                                 >
-                                    Phase <?= esc((string)$p['payment_phase']) ?> Receipt
+                                    <?= esc($linkLabel) ?>
                                     <?php if ((string)($p['payment_total'] ?? '') !== ''): ?>
                                         ($<?= number_format((float)$p['payment_total'], 2) ?>)
                                     <?php endif; ?>
                                 </a>
                             </strong>
                             <span class="text-muted"> - <?= esc($fmtDate((string)($p['payment_date'] ?? ''))) ?></span>
+                            <span class="<?= esc($statusClass) ?>"> - <?= esc($statusLabel) ?></span>
                         </p>
                     <?php endforeach; ?>
                 <?php else: ?>

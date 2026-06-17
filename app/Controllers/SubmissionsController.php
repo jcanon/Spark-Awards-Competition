@@ -229,12 +229,14 @@ class SubmissionsController extends BaseController
             ->where('entry_photo_res', 'Low')
             ->orderBy('entry_photo_order', 'ASC')
             ->findAll();
+        $phase1Payment = service('payments')->getPaymentDetails($entryId, '1');
 
         return view('submissions/form', [
             'isEdit'      => true,
             'isReadOnly'  => $isReadOnly,
             'user'        => $user,
             'entry'       => $entry,
+            'phase1PaymentStatus' => strtolower(trim((string)($phase1Payment?->payment_status ?? 'pending'))),
             'videoEmbedUrl' => $svc->normalizeVideoEmbedUrl((string)($entry->youtube_url ?? '')),
             'competition' => $comp,
             'compId'      => (int) $entry->comp_id,
@@ -313,7 +315,13 @@ class SubmissionsController extends BaseController
         }
 
         $phase1Paid = strtoupper((string)($entry->phase_1_payment ?? 'Unpaid')) === 'PAID';
+        $phase1Payment = service('payments')->getPaymentDetails($entryId, '1');
+        $phase1PaymentStatus = strtolower(trim((string)($phase1Payment?->payment_status ?? 'pending')));
         if ($this->request->getPost('submitPayment') && ! $phase1Paid) {
+            if ($phase1PaymentStatus === 'held_for_review') {
+                return redirect()->to('/payments/entry/' . rawurlencode($entryId) . '/phase/1/receipt')
+                    ->with('warning', 'Your phase 1 payment is currently under review. Please wait for the review to complete before attempting another payment.');
+            }
             return redirect()->to('/payments/entry/' . rawurlencode($entryId) . '/phase/1')->with('success', 'Submission updated. Proceed to payment.');
         }
 

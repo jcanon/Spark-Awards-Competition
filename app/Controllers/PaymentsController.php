@@ -209,6 +209,19 @@ class PaymentsController extends BaseController
 
         $result = $this->extractAuthorizeNetChargeResult($response, $gateway);
         if (!$result['ok']) {
+            if (($result['status'] ?? '') === 'held_for_review' && $result['transId'] !== '') {
+                service('payments')->markPaymentStatus(
+                    $entryId,
+                    (string)$phase,
+                    'held_for_review',
+                    $result['transId'],
+                    $result['message']
+                );
+
+                return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}/receipt")
+                    ->with('warning', $result['message']);
+            }
+
             log_message('warning', 'Authorize.Net charge declined for entry {entryId} phase {phase}: {message}', [
                 'entryId' => $entryId,
                 'phase' => (string)$phase,
@@ -234,7 +247,7 @@ class PaymentsController extends BaseController
         }
 
         try {
-            service('payments')->userSuccessPaid($entryId, (string)$phase, $receiptReference);
+            service('payments')->userSuccessPaidWithTransaction($entryId, (string)$phase, $receiptReference, $transId);
         } catch (\Throwable $e) {
             log_message('critical', 'Payment captured but local finalization failed for entry {entryId} phase {phase}. Transaction {transId}. Error: {message}', [
                 'entryId' => $entryId,
@@ -287,11 +300,17 @@ class PaymentsController extends BaseController
             $payment['payment_receipt'] = $this->resolveLegacyReceiptTemplate((string)($payment['payment_receipt'] ?? ''), $payment, $entryId);
         }
 
+        $paymentStatus = strtolower(trim((string)($payment['payment_status'] ?? 'pending')));
+        if ($payment && (string)($payment['payment_receipt'] ?? '') !== '' && $paymentStatus === 'pending') {
+            $paymentStatus = 'paid';
+            $payment['payment_status'] = 'paid';
+        }
+
         return view('payment/receipt', [
             'entryId' => $entryId,
             'phase' => $phase,
             'payment' => $payment,
-            'paid' => $payment && ((string)($payment['payment_receipt'] ?? '') !== ''),
+            'paymentStatus' => $paymentStatus,
         ]);
     }
 
@@ -385,7 +404,7 @@ class PaymentsController extends BaseController
             return $this->response->setJSON(['ok' => false, 'error' => 'Missing receipt']);
         }
 
-        service('payments')->userSuccessPaid($entryId, (string)$phase, $receipt);
+        service('payments')->userSuccessPaidWithTransaction($entryId, (string)$phase, $receipt, $receipt);
         return $this->response->setJSON(['ok' => true]);
     }
 
@@ -473,6 +492,7 @@ class PaymentsController extends BaseController
             return [
                 'ok' => false,
                 'transId' => '',
+                'status' => 'error',
                 'message' => $fallbackError !== '' ? $fallbackError : 'Unable to process the payment right now.',
             ];
         }
@@ -490,23 +510,28 @@ class PaymentsController extends BaseController
                 return [
                     'ok' => true,
                     'transId' => $transId,
+                    'status' => 'paid',
                     'message' => '',
                 ];
             }
 
             if ($transactionErrors !== '') {
+                $failure = $this->normalizeAuthorizeNetChargeFailure($transactionErrors);
                 return [
                     'ok' => false,
                     'transId' => $transId,
-                    'message' => $this->normalizeAuthorizeNetChargeFailure($transactionErrors),
+                    'status' => $failure['status'],
+                    'message' => $failure['message'],
                 ];
             }
 
             if ($transactionMessages !== '') {
+                $failure = $this->normalizeAuthorizeNetChargeFailure($transactionMessages);
                 return [
                     'ok' => false,
                     'transId' => $transId,
-                    'message' => $this->normalizeAuthorizeNetChargeFailure($transactionMessages),
+                    'status' => $failure['status'],
+                    'message' => $failure['message'],
                 ];
             }
         }
@@ -514,10 +539,12 @@ class PaymentsController extends BaseController
         if ($apiMessages && strcasecmp($apiResultCode, 'Ok') !== 0) {
             $messageText = $this->collectAuthorizeNetMessages($apiMessages->getMessage(), 'getText', 'getCode');
             if ($messageText !== '') {
+                $failure = $this->normalizeAuthorizeNetChargeFailure($messageText);
                 return [
                     'ok' => false,
                     'transId' => '',
-                    'message' => $this->normalizeAuthorizeNetChargeFailure($messageText),
+                    'status' => $failure['status'],
+                    'message' => $failure['message'],
                 ];
             }
         }
@@ -525,6 +552,7 @@ class PaymentsController extends BaseController
         return [
             'ok' => false,
             'transId' => '',
+            'status' => 'error',
             'message' => $fallbackError !== '' ? $fallbackError : 'The payment was declined or could not be processed.',
         ];
     }
@@ -553,18 +581,27 @@ class PaymentsController extends BaseController
         return implode(' ', array_values(array_unique($parts)));
     }
 
-    private function normalizeAuthorizeNetChargeFailure(string $message): string
+    private function normalizeAuthorizeNetChargeFailure(string $message): array
     {
         $message = trim($message);
         if ($message === '') {
-            return 'The payment was declined or could not be processed.';
+            return [
+                'status' => 'error',
+                'message' => 'The payment was declined or could not be processed.',
+            ];
         }
 
         if (preg_match('/^(252|253):/i', $message) === 1) {
-            return 'Your payment was received by the processor but is being held for manual review. We have not marked this entry as paid yet. Please contact support if you need immediate confirmation.';
+            return [
+                'status' => 'held_for_review',
+                'message' => 'Your payment was received by the processor but is being held for manual review. We have not marked this entry as paid yet. Please contact support if you need immediate confirmation.',
+            ];
         }
 
-        return $message;
+        return [
+            'status' => 'error',
+            'message' => $message,
+        ];
     }
 
     private function resolveLegacyReceiptTemplate(string $rawReceipt, array $payment, string $entryId): string
@@ -659,7 +696,7 @@ class PaymentsController extends BaseController
 
         $receiptReference = $this->formatAuthorizeNetReceiptReference($details, $transId, $entryId, $payment);
         try {
-            service('payments')->userSuccessPaid($entryId, (string)$phase, $receiptReference);
+            service('payments')->userSuccessPaidWithTransaction($entryId, (string)$phase, $receiptReference, $transId);
         } catch (\Throwable $e) {
             log_message('error', 'Failed to finalize payment from return URL for entry {entryId} phase {phase}: {message}', [
                 'entryId' => $entryId,

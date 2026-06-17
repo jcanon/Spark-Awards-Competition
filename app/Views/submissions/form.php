@@ -30,6 +30,7 @@ foreach (($photosLow ?? []) as $ph) {
     $byOrder[(int) $ph->entry_photo_order] = $ph;
 }
 $deletePhotoIds = [];
+$phase1PaymentStatus = strtolower(trim((string)($phase1PaymentStatus ?? 'pending')));
 ?>
 
 <link href="/css/components/photo-slot.css" rel="stylesheet">
@@ -324,8 +325,10 @@ $deletePhotoIds = [];
             <?php if ($isEdit && !$isReadOnly): ?>
                 <button type="submit" class="btn btn-primary mr-2">Save Changes</button>
                 <button type="submit" name="savePreview" value="1" class="btn btn-info mr-2">Save &amp; Preview</button>
-                <?php if (strtoupper((string)($entry->phase_1_payment ?? 'Unpaid')) !== 'PAID'): ?>
+                <?php if (strtoupper((string)($entry->phase_1_payment ?? 'Unpaid')) !== 'PAID' && $phase1PaymentStatus !== 'held_for_review'): ?>
                     <button type="submit" name="submitPayment" value="1" class="btn btn-primary mr-2">Save & Proceed to Cart</button>
+                <?php elseif ($phase1PaymentStatus === 'held_for_review'): ?>
+                    <a href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>" class="btn btn-warning mr-2">Payment Under Review</a>
                 <?php endif; ?>
                 <a href="<?= site_url('/submissions') ?>" class="btn btn-light">Cancel</a>
             <?php elseif (!$isEdit): ?>

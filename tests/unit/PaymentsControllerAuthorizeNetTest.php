@@ -41,6 +41,7 @@ final class PaymentsControllerAuthorizeNetTest extends CIUnitTestCase
 
         $this->assertTrue($result['ok']);
         $this->assertSame('1234567890', $result['transId']);
+        $this->assertSame('paid', $result['status']);
         $this->assertSame('', $result['message']);
     }
 
@@ -61,6 +62,7 @@ final class PaymentsControllerAuthorizeNetTest extends CIUnitTestCase
 
         $this->assertFalse($result['ok']);
         $this->assertSame('', $result['transId']);
+        $this->assertSame('error', $result['status']);
         $this->assertSame('E00027: The transaction was unsuccessful.', $result['message']);
     }
 
@@ -82,6 +84,7 @@ final class PaymentsControllerAuthorizeNetTest extends CIUnitTestCase
 
         $this->assertFalse($result['ok']);
         $this->assertSame('987654321', $result['transId']);
+        $this->assertSame('held_for_review', $result['status']);
         $this->assertSame(
             'Your payment was received by the processor but is being held for manual review. We have not marked this entry as paid yet. Please contact support if you need immediate confirmation.',
             $result['message']
@@ -94,7 +97,7 @@ final class PaymentsControllerAuthorizeNetTest extends CIUnitTestCase
         $method = new ReflectionMethod(PaymentsController::class, 'extractAuthorizeNetChargeResult');
         $method->setAccessible(true);
 
-        /** @var array{ok:bool,transId:string,message:string} $result */
+        /** @var array{ok:bool,transId:string,status:string,message:string} $result */
         $result = $method->invoke($controller, $response, $gateway);
 
         return $result;

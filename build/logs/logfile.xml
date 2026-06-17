@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="D:\MAMP\Spark-Awards-Competition\phpunit.xml.dist" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.022539">
-    <testsuite name="App" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.022539">
-      <testsuite name="PaymentsControllerAuthorizeNetTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.022539">
-        <testcase name="testSuccessfulTransactionIsNotOverriddenByTopLevelI00001Message" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="17" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.020651"/>
-        <testcase name="testTopLevelErrorMessageStillReturnsFailure" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="47" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.001156"/>
-        <testcase name="testHeldForReviewMessageIsNormalizedForUsers" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="67" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.000732"/>
+  <testsuite name="D:\MAMP\Spark-Awards-Competition\phpunit.xml.dist" tests="3" assertions="12" errors="0" failures="0" skipped="0" time="0.023659">
+    <testsuite name="App" tests="3" assertions="12" errors="0" failures="0" skipped="0" time="0.023659">
+      <testsuite name="PaymentsControllerAuthorizeNetTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" tests="3" assertions="12" errors="0" failures="0" skipped="0" time="0.023659">
+        <testcase name="testSuccessfulTransactionIsNotOverriddenByTopLevelI00001Message" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="17" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="4" time="0.021056"/>
+        <testcase name="testTopLevelErrorMessageStillReturnsFailure" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="48" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="4" time="0.001664"/>
+        <testcase name="testHeldForReviewMessageIsNormalizedForUsers" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="69" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="4" time="0.000939"/>
       </testsuite>
     </testsuite>
   </testsuite>

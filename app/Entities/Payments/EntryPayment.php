@@ -6,7 +6,7 @@ use CodeIgniter\Entity\Entity;
 
 class EntryPayment extends Entity
 {
-    protected $dates = ['payment_date'];
+    protected $dates = ['payment_date', 'payment_status_updated_at'];
 
     protected $casts = [
         'payment_id' => 'integer',

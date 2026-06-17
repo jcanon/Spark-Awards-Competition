@@ -256,6 +256,7 @@ class SubmissionsService
         return (new UserEntriesModel())
             ->join('comp_competitions b', 'b.comp_id = comp_entries.comp_id')
             ->join('comp_type c', 'c.comp_type_id = b.comp_type_id')
+            ->join('comp_entry_payments p1', 'p1.entry_id = comp_entries.entry_id AND p1.payment_phase = 1', 'left')
             ->where('comp_entries.user_id', $uid)
             ->groupStart()
             ->where('b.comp_phase_1_open <=', $now)
@@ -265,6 +266,7 @@ class SubmissionsService
             ->where('comp_entries.entry_status', 'Draft')
             ->orWhere('comp_entries.entry_status', 'Entrant')
             ->groupEnd()
+            ->select('comp_entries.*, b.*, c.*, p1.payment_status AS phase_1_payment_status, p1.payment_status_message AS phase_1_payment_status_message, p1.payment_transaction_id AS phase_1_payment_transaction_id')
             ->orderBy('c.comp_type_name ASC, comp_entries.design_name ASC')
             ->findAll();
     }
@@ -276,9 +278,11 @@ class SubmissionsService
         return (new UserEntriesModel())
             ->join('comp_competitions b', 'b.comp_id = comp_entries.comp_id')
             ->join('comp_type c', 'c.comp_type_id = b.comp_type_id')
+            ->join('comp_entry_payments p2', 'p2.entry_id = comp_entries.entry_id AND p2.payment_phase = 2', 'left')
             ->where('comp_entries.user_id', $uid)
             ->where('comp_entries.entry_status', 'Finalist')
             ->where('b.comp_phase_2_close >', $now)
+            ->select('comp_entries.*, b.*, c.*, p2.payment_status AS phase_2_payment_status, p2.payment_status_message AS phase_2_payment_status_message, p2.payment_transaction_id AS phase_2_payment_transaction_id')
             ->orderBy('c.comp_type_name ASC, comp_entries.design_name ASC')
             ->findAll();
     }
@@ -290,8 +294,11 @@ class SubmissionsService
             ->join('comp_competitions b', 'b.comp_id = comp_entries.comp_id')
             ->join('comp_type c', 'c.comp_type_id = b.comp_type_id')
             ->join('comp_winner_levels w', 'w.winner_level_id = comp_entries.winner_level', 'left')
+            ->join('comp_entry_payments p1', 'p1.entry_id = comp_entries.entry_id AND p1.payment_phase = 1', 'left')
+            ->join('comp_entry_payments p2', 'p2.entry_id = comp_entries.entry_id AND p2.payment_phase = 2', 'left')
             ->where('comp_entries.user_id', $uid)
             ->where('comp_entries.entry_status', 'Winner')
+            ->select('comp_entries.*, b.*, c.*, w.*, p1.payment_status AS phase_1_payment_status, p2.payment_status AS phase_2_payment_status')
             ->orderBy('c.comp_type_name ASC, comp_entries.design_name ASC')
             ->findAll();
     }
@@ -304,6 +311,8 @@ class SubmissionsService
             ->join('comp_competitions b', 'b.comp_id = comp_entries.comp_id')
             ->join('comp_type c', 'c.comp_type_id = b.comp_type_id')
             ->join('comp_winner_levels w', 'w.winner_level_id = comp_entries.winner_level', 'left')
+            ->join('comp_entry_payments p1', 'p1.entry_id = comp_entries.entry_id AND p1.payment_phase = 1', 'left')
+            ->join('comp_entry_payments p2', 'p2.entry_id = comp_entries.entry_id AND p2.payment_phase = 2', 'left')
             ->where('comp_entries.user_id', $uid)
             ->groupStart()
                 ->groupStart()
@@ -315,6 +324,7 @@ class SubmissionsService
                     ->where('b.comp_phase_2_close <=', $now)
                 ->groupEnd()
             ->groupEnd()
+            ->select('comp_entries.*, b.*, c.*, w.*, p1.payment_status AS phase_1_payment_status, p2.payment_status AS phase_2_payment_status')
             ->orderBy('c.comp_type_name ASC, comp_entries.design_name ASC')
             ->findAll();
     }
