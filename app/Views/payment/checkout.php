@@ -1,12 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
-<?php
-$showAnetDebug = trim((string) service('request')->getGet('anet_debug')) === '1'
-    && in_array((string) session('role'), ['admin', 'editor'], true);
-$anetDebugMeta = is_array($anetDebugMeta ?? null) ? $anetDebugMeta : [];
-?>
-
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Submit Payment</h1>
@@ -272,28 +266,6 @@ $anetDebugMeta = is_array($anetDebugMeta ?? null) ? $anetDebugMeta : [];
                     </div>
                 </div>
             </div>
-
-            <?php if ($showAnetDebug): ?>
-                <div class="card border-left-warning shadow mt-4">
-                    <div class="card-header bg-white">
-                        <h6 class="m-0 font-weight-bold text-warning">Authorize.Net Debug</h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="small mb-2"><strong>Selected Env:</strong> <?= esc((string)($anetDebugMeta['selectedEnv'] ?? 'unknown')) ?></p>
-                        <p class="small mb-2"><strong>Configured Mode:</strong> <code><?= esc((string)($anetDebugMeta['configuredMode'] ?? '')) ?></code></p>
-                        <p class="small mb-2"><strong>CI Environment:</strong> <code><?= esc((string)($anetDebugMeta['ciEnvironment'] ?? '')) ?></code></p>
-                        <p class="small mb-2"><strong>API Login ID:</strong> <code><?= esc((string)($anetDebugMeta['apiLoginId'] ?? ($apiLoginId ?? '')) ) ?></code></p>
-                        <p class="small mb-2"><strong>Client Key:</strong> <code><?= esc((string)($anetDebugMeta['clientKeyMasked'] ?? '[empty]')) ?></code></p>
-                        <p class="small mb-2"><strong>Client Key Length:</strong> <?= esc((string)($anetDebugMeta['clientKeyLength'] ?? 0)) ?></p>
-                        <p class="small mb-2"><strong>Client Key SHA-256 Prefix:</strong> <code><?= esc((string)($anetDebugMeta['clientKeyHashPrefix'] ?? '')) ?></code></p>
-                        <p class="small mb-2"><strong>Transaction Key Present:</strong> <?= !empty($anetDebugMeta['transactionKeyPresent']) ? 'yes' : 'no' ?></p>
-                        <p class="small mb-2"><strong>Transaction Key Length:</strong> <?= esc((string)($anetDebugMeta['transactionKeyLength'] ?? 0)) ?></p>
-                        <p class="small mb-2"><strong>Transaction Key SHA-256 Prefix:</strong> <code><?= esc((string)($anetDebugMeta['transactionKeyHashPrefix'] ?? '')) ?></code></p>
-                        <p class="small mb-0"><strong>Accept.js URL:</strong> <code><?= esc((string)($anetDebugMeta['acceptJsUrl'] ?? ($acceptJsUrl ?? '')) ) ?></code></p>
-                    </div>
-                </div>
-            <?php endif; ?>
-
         </div>
     </div>
 </div>

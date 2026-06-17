@@ -104,8 +104,6 @@ class PaymentsController extends BaseController
                 ->with('error', $errorMessage);
         }
 
-        $this->logAuthorizeNetCheckoutDebug($anet);
-
         return view('payment/checkout', [
             'entryId' => $entryId,
             'phase' => $phase,
@@ -113,7 +111,6 @@ class PaymentsController extends BaseController
             'apiLoginId' => $anet->apiLoginId(),
             'clientKey' => $anet->clientKey(),
             'acceptJsUrl' => $anet->acceptJsUrl(),
-            'anetDebugMeta' => $this->buildAuthorizeNetDebugMeta($anet),
             'countries' => service('profiles')->getCountries(),
         ]);
     }
@@ -442,67 +439,6 @@ class PaymentsController extends BaseController
         return in_array($phase, [1, 2, 3], true) ? $phase : 1;
     }
 
-    private function logAuthorizeNetCheckoutDebug(AuthorizeNetConfig $anet): void
-    {
-        if (trim((string)$this->request->getGet('anet_debug')) !== '1') {
-            return;
-        }
-
-        if (!in_array((string)session('role'), ['admin', 'editor'], true)) {
-            return;
-        }
-
-        $meta = $this->buildAuthorizeNetDebugMeta($anet);
-        log_message('warning', 'Authorize.Net checkout debug. Selected Env: {selectedEnv}; Configured Mode: {configuredMode}; CI Environment: {ciEnvironment}; API Login ID: {login}; Client Key: {clientMasked}; Client Key Length: {clientLength}; Client Key SHA-256 Prefix: {clientHash}; Transaction Key Present: {transactionPresent}; Transaction Key Length: {transactionLength}; Transaction Key SHA-256 Prefix: {transactionHash}; Accept.js URL: {url}', [
-            'selectedEnv' => $meta['selectedEnv'],
-            'configuredMode' => $meta['configuredMode'],
-            'ciEnvironment' => $meta['ciEnvironment'],
-            'login' => $meta['apiLoginId'],
-            'clientMasked' => $meta['clientKeyMasked'],
-            'clientLength' => (string)$meta['clientKeyLength'],
-            'clientHash' => $meta['clientKeyHashPrefix'],
-            'transactionPresent' => $meta['transactionKeyPresent'] ? 'yes' : 'no',
-            'transactionLength' => (string)$meta['transactionKeyLength'],
-            'transactionHash' => $meta['transactionKeyHashPrefix'],
-            'url' => $meta['acceptJsUrl'],
-        ]);
-    }
-
-    private function maskSecretForDebug(string $value): string
-    {
-        $value = trim($value);
-        $length = strlen($value);
-        if ($length === 0) {
-            return '[empty]';
-        }
-
-        if ($length <= 12) {
-            return substr($value, 0, 2) . str_repeat('*', max(0, $length - 4)) . substr($value, -2);
-        }
-
-        return substr($value, 0, 8) . str_repeat('*', max(0, $length - 14)) . substr($value, -6);
-    }
-
-    private function buildAuthorizeNetDebugMeta(AuthorizeNetConfig $anet): array
-    {
-        $clientKey = $anet->clientKey();
-        $transactionKey = $anet->transactionKey();
-
-        return [
-            'configuredMode' => $anet->mode,
-            'selectedEnv' => $anet->useProduction() ? 'production' : 'sandbox',
-            'ciEnvironment' => ENVIRONMENT,
-            'apiLoginId' => $anet->apiLoginId(),
-            'clientKeyMasked' => $this->maskSecretForDebug($clientKey),
-            'clientKeyLength' => strlen($clientKey),
-            'clientKeyHashPrefix' => $clientKey !== '' ? substr(hash('sha256', $clientKey), 0, 16) : '',
-            'transactionKeyPresent' => $transactionKey !== '',
-            'transactionKeyLength' => strlen($transactionKey),
-            'transactionKeyHashPrefix' => $transactionKey !== '' ? substr(hash('sha256', $transactionKey), 0, 16) : '',
-            'acceptJsUrl' => $anet->acceptJsUrl(),
-        ];
-    }
-
     private function allowedBillingCountries(): array
     {
         $allowed = [];
@@ -541,10 +477,15 @@ class PaymentsController extends BaseController
             ];
         }
 
+        $apiMessages = $response->getMessages();
+        $apiResultCode = $apiMessages ? trim((string)$apiMessages->getResultCode()) : '';
         $transaction = $response->getTransactionResponse();
         if ($transaction) {
             $responseCode = (string)$transaction->getResponseCode();
             $transId = trim((string)$transaction->getTransId());
+            $transactionMessages = $this->collectAuthorizeNetMessages($transaction->getMessages(), 'getDescription', 'getCode');
+            $transactionErrors = $this->collectAuthorizeNetMessages($transaction->getErrors(), 'getErrorText', 'getErrorCode');
+
             if ($responseCode === '1' && $transId !== '') {
                 return [
                     'ok' => true,
@@ -553,15 +494,17 @@ class PaymentsController extends BaseController
                 ];
             }
 
-            $transactionMessages = $this->collectAuthorizeNetMessages($transaction->getErrors(), 'getErrorText', 'getErrorCode');
+            if ($transactionErrors !== '') {
+                return ['ok' => false, 'transId' => $transId, 'message' => $transactionErrors];
+            }
+
             if ($transactionMessages !== '') {
                 return ['ok' => false, 'transId' => $transId, 'message' => $transactionMessages];
             }
         }
 
-        $messages = $response->getMessages();
-        if ($messages) {
-            $messageText = $this->collectAuthorizeNetMessages($messages->getMessage(), 'getText', 'getCode');
+        if ($apiMessages && strcasecmp($apiResultCode, 'Ok') !== 0) {
+            $messageText = $this->collectAuthorizeNetMessages($apiMessages->getMessage(), 'getText', 'getCode');
             if ($messageText !== '') {
                 return ['ok' => false, 'transId' => '', 'message' => $messageText];
             }

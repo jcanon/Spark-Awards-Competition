@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="AdminBulkEndpointsTest" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" tests="4" assertions="12" errors="0" failures="0" skipped="0" time="0.081654">
-    <testcase name="testSubmissionsBulkRequiresAction" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="91" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.066961"/>
-    <testcase name="testSubmissionsBulkUnknownActionReturnsUpdatedZero" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="102" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.005535"/>
-    <testcase name="testScoreResultsBulkRequiresSelection" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="113" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.004931"/>
-    <testcase name="testScoreResultsBulkUnknownActionReturnsUpdatedZero" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="123" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.004228"/>
+  <testsuite name="D:\MAMP\Spark-Awards-Competition\phpunit.xml.dist" tests="2" assertions="6" errors="0" failures="0" skipped="0" time="0.043081">
+    <testsuite name="App" tests="2" assertions="6" errors="0" failures="0" skipped="0" time="0.043081">
+      <testsuite name="PaymentsControllerAuthorizeNetTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" tests="2" assertions="6" errors="0" failures="0" skipped="0" time="0.043081">
+        <testcase name="testSuccessfulTransactionIsNotOverriddenByTopLevelI00001Message" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="17" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.041213"/>
+        <testcase name="testTopLevelErrorMessageStillReturnsFailure" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="47" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.001869"/>
+      </testsuite>
+    </testsuite>
   </testsuite>
 </testsuites>

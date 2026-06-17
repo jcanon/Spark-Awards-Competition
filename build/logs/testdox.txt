@@ -1,6 +1,4 @@
-Admin Bulk Endpoints
- [x] Submissions bulk requires action
- [x] Submissions bulk unknown action returns updated zero
- [x] Score results bulk requires selection
- [x] Score results bulk unknown action returns updated zero
+Payments Controller Authorize Net
+ [x] Successful transaction is not overridden by top level i 00001 message
+ [x] Top level error message still returns failure
 
