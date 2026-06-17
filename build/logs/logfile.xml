@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="D:\MAMP\Spark-Awards-Competition\phpunit.xml.dist" tests="2" assertions="6" errors="0" failures="0" skipped="0" time="0.043081">
-    <testsuite name="App" tests="2" assertions="6" errors="0" failures="0" skipped="0" time="0.043081">
-      <testsuite name="PaymentsControllerAuthorizeNetTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" tests="2" assertions="6" errors="0" failures="0" skipped="0" time="0.043081">
-        <testcase name="testSuccessfulTransactionIsNotOverriddenByTopLevelI00001Message" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="17" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.041213"/>
-        <testcase name="testTopLevelErrorMessageStillReturnsFailure" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="47" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.001869"/>
+  <testsuite name="D:\MAMP\Spark-Awards-Competition\phpunit.xml.dist" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.022539">
+    <testsuite name="App" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.022539">
+      <testsuite name="PaymentsControllerAuthorizeNetTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.022539">
+        <testcase name="testSuccessfulTransactionIsNotOverriddenByTopLevelI00001Message" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="17" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.020651"/>
+        <testcase name="testTopLevelErrorMessageStillReturnsFailure" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="47" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.001156"/>
+        <testcase name="testHeldForReviewMessageIsNormalizedForUsers" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="67" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="3" time="0.000732"/>
       </testsuite>
     </testsuite>
   </testsuite>

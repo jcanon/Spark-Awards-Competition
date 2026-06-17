@@ -495,18 +495,30 @@ class PaymentsController extends BaseController
             }
 
             if ($transactionErrors !== '') {
-                return ['ok' => false, 'transId' => $transId, 'message' => $transactionErrors];
+                return [
+                    'ok' => false,
+                    'transId' => $transId,
+                    'message' => $this->normalizeAuthorizeNetChargeFailure($transactionErrors),
+                ];
             }
 
             if ($transactionMessages !== '') {
-                return ['ok' => false, 'transId' => $transId, 'message' => $transactionMessages];
+                return [
+                    'ok' => false,
+                    'transId' => $transId,
+                    'message' => $this->normalizeAuthorizeNetChargeFailure($transactionMessages),
+                ];
             }
         }
 
         if ($apiMessages && strcasecmp($apiResultCode, 'Ok') !== 0) {
             $messageText = $this->collectAuthorizeNetMessages($apiMessages->getMessage(), 'getText', 'getCode');
             if ($messageText !== '') {
-                return ['ok' => false, 'transId' => '', 'message' => $messageText];
+                return [
+                    'ok' => false,
+                    'transId' => '',
+                    'message' => $this->normalizeAuthorizeNetChargeFailure($messageText),
+                ];
             }
         }
 
@@ -539,6 +551,20 @@ class PaymentsController extends BaseController
         }
 
         return implode(' ', array_values(array_unique($parts)));
+    }
+
+    private function normalizeAuthorizeNetChargeFailure(string $message): string
+    {
+        $message = trim($message);
+        if ($message === '') {
+            return 'The payment was declined or could not be processed.';
+        }
+
+        if (preg_match('/^(252|253):/i', $message) === 1) {
+            return 'Your payment was received by the processor but is being held for manual review. We have not marked this entry as paid yet. Please contact support if you need immediate confirmation.';
+        }
+
+        return $message;
     }
 
     private function resolveLegacyReceiptTemplate(string $rawReceipt, array $payment, string $entryId): string

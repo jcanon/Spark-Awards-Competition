@@ -64,6 +64,30 @@ final class PaymentsControllerAuthorizeNetTest extends CIUnitTestCase
         $this->assertSame('E00027: The transaction was unsuccessful.', $result['message']);
     }
 
+    public function testHeldForReviewMessageIsNormalizedForUsers(): void
+    {
+        $response = new CreateTransactionResponse();
+
+        $transaction = new TransactionResponseType();
+        $transaction->setResponseCode('4');
+        $transaction->setTransId('987654321');
+        $transaction->addToMessages(
+            (new TransactionMessage())
+                ->setCode('252')
+                ->setDescription('Your order has been received. Thank you for your business!')
+        );
+        $response->setTransactionResponse($transaction);
+
+        $result = $this->invokeExtractAuthorizeNetChargeResult($response, new AuthorizeNetGateway('production', 'login', 'key'));
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('987654321', $result['transId']);
+        $this->assertSame(
+            'Your payment was received by the processor but is being held for manual review. We have not marked this entry as paid yet. Please contact support if you need immediate confirmation.',
+            $result['message']
+        );
+    }
+
     private function invokeExtractAuthorizeNetChargeResult(CreateTransactionResponse $response, AuthorizeNetGateway $gateway): array
     {
         $controller = new PaymentsController();
