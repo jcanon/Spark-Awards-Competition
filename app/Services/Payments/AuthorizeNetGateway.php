@@ -48,6 +48,41 @@ final class AuthorizeNetGateway
     }
 
     /**
+     * Normalize masked payment details across Authorize.Net response types.
+     *
+     * @param object $tx
+     * @return array{account_type:string,account_number:string}
+     */
+    private function extractMaskedPaymentDetails(object $tx): array
+    {
+        if (method_exists($tx, 'getPayment')) {
+            $payment = $tx->getPayment();
+            if ($payment instanceof AnetAPI\PaymentMaskedType) {
+                $creditCard = $payment->getCreditCard();
+                if ($creditCard instanceof AnetAPI\CreditCardMaskedType) {
+                    return [
+                        'account_type' => (string)$creditCard->getCardType(),
+                        'account_number' => (string)$creditCard->getCardNumber(),
+                    ];
+                }
+
+                $bankAccount = $payment->getBankAccount();
+                if ($bankAccount instanceof AnetAPI\BankAccountMaskedType) {
+                    return [
+                        'account_type' => (string)$bankAccount->getAccountType(),
+                        'account_number' => (string)$bankAccount->getAccountNumber(),
+                    ];
+                }
+            }
+        }
+
+        return [
+            'account_type' => method_exists($tx, 'getAccountType') ? (string)$tx->getAccountType() : '',
+            'account_number' => method_exists($tx, 'getAccountNumber') ? (string)$tx->getAccountNumber() : '',
+        ];
+    }
+
+    /**
      * Server-to-server charge (only if you are not using Accept Hosted).
      * $nonce should be Authorize.Net opaqueData value from Accept.js.
      */
@@ -328,14 +363,16 @@ final class AuthorizeNetGateway
                 $submittedAt = $submitted->format('Y-m-d H:i:s');
             }
 
+            $paymentDetails = $this->extractMaskedPaymentDetails($tx);
+
             return [
                 'transaction_id' => (string)$tx->getTransId(),
                 'invoice' => $invoice,
                 'status' => strtolower((string)$tx->getTransactionStatus()),
                 'response_code' => $responseCode,
                 'auth_code' => (string)$tx->getAuthCode(),
-                'account_type' => (string)$tx->getAccountType(),
-                'account_number' => (string)$tx->getAccountNumber(),
+                'account_type' => $paymentDetails['account_type'],
+                'account_number' => $paymentDetails['account_number'],
                 'transaction_type' => (string)$tx->getTransactionType(),
                 'submitted_at' => $submittedAt,
                 'amount' => (string)$tx->getSettleAmount(),
@@ -418,14 +455,16 @@ final class AuthorizeNetGateway
                     continue;
                 }
 
+                $paymentDetails = $this->extractMaskedPaymentDetails($tx);
+
                 return [
                     'transaction_id' => (string)$tx->getTransId(),
                     'invoice' => (string)$tx->getInvoiceNumber(),
                     'status' => strtolower((string)$tx->getTransactionStatus()),
                     'response_code' => '',
                     'auth_code' => '',
-                    'account_type' => (string)$tx->getAccountType(),
-                    'account_number' => (string)$tx->getAccountNumber(),
+                    'account_type' => $paymentDetails['account_type'],
+                    'account_number' => $paymentDetails['account_number'],
                     'transaction_type' => '',
                     'submitted_at' => '',
                     'amount' => (string)$tx->getSettleAmount(),
@@ -503,14 +542,16 @@ final class AuthorizeNetGateway
                         continue;
                     }
 
+                    $paymentDetails = $this->extractMaskedPaymentDetails($tx);
+
                     return [
                         'transaction_id' => (string)$tx->getTransId(),
                         'invoice' => (string)$tx->getInvoiceNumber(),
                         'status' => strtolower((string)$tx->getTransactionStatus()),
                         'response_code' => '',
                         'auth_code' => '',
-                        'account_type' => (string)$tx->getAccountType(),
-                        'account_number' => (string)$tx->getAccountNumber(),
+                        'account_type' => $paymentDetails['account_type'],
+                        'account_number' => $paymentDetails['account_number'],
                         'transaction_type' => '',
                         'submitted_at' => '',
                         'amount' => (string)$tx->getSettleAmount(),
