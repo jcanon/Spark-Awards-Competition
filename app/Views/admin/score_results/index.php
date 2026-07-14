@@ -103,7 +103,7 @@
         <div class="card">
             <div class="card-body table-responsive">
                 <table class="table table-bordered table-hover datatable">
-                    <thead><tr><th><input type="checkbox" id="select_all"></th><th>Entry</th><th>Status</th><th>Competition</th><th>Score</th><th>Judges</th></tr></thead>
+                    <thead><tr><th><input type="checkbox" id="select_all"></th><th>Entry</th><th>Status</th><th>Competition</th><th>Score</th><th>Judges</th><th>Actions</th></tr></thead>
                     <tbody>
                     <?php foreach ($rows as $row): ?>
                         <?php
@@ -111,7 +111,7 @@
                         ?>
                         <tr>
                             <td><input type="checkbox" name="entry_ids[]" value="<?= esc((string)$row['entry_id']) ?>"></td>
-                            <td><a href="https://galleries.sparkawards.com/index.cfm?entry=<?= rawurlencode((string)$row['entry_id']) ?>" target="_blank" rel="noopener"><?= esc((string)$row['design_name']) ?></a></td>
+                            <td><a href="https://galleries.sparkawards.com/gallery?entry=<?= rawurlencode((string)$row['entry_id']) ?>" target="_blank" rel="noopener"><?= esc((string)$row['design_name']) ?></a></td>
                             <td>
                                 <span class="status-pill <?= esc($statusClass) ?>">
                                     <?php if ($medalIconClass !== ''): ?>
@@ -123,6 +123,9 @@
                             <td><?= esc((string)$row['comp_type_name']) ?></td>
                             <td><?= (int)($row['total_score'] ?? 0) ?></td>
                             <td><?= (int)($row['total_judges'] ?? 0) ?></td>
+                            <td class="text-nowrap">
+                                <a class="btn btn-sm btn-primary" href="<?= site_url('admin/score-results/edit/' . rawurlencode((string)$row['entry_id']) . '?' . http_build_query($filters)) ?>">Edit Scores</a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

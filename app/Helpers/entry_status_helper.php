@@ -68,7 +68,7 @@ if (!function_exists('entry_status_bulk_actions')) {
     function entry_status_bulk_actions(): array
     {
         return [
-            'non_finalist' => 'Change Status - Non-Finalist',
+            'non_finalist' => 'Change Status - Non-Finalist (Entrant)',
             'finalist' => 'Change Status - Finalist',
             'winner_platinum' => 'Change Status - Winner: Platinum',
             'winner_gold' => 'Change Status - Winner: Gold',

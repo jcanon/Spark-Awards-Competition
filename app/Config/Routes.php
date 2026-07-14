@@ -152,6 +152,8 @@ $routes->group('admin', ['filter' => 'auth:admin,editor,2fa'], static function (
 
     $routes->get('score-results', 'Admin\ScoreResultsController::index');
     $routes->post('score-results/bulk', 'Admin\ScoreResultsController::bulk');
+    $routes->get('score-results/edit/(:segment)', 'Admin\ScoreResultsController::editScores/$1');
+    $routes->post('score-results/edit/(:segment)', 'Admin\ScoreResultsController::updateScores/$1');
     $routes->get('score-results/export', 'Admin\ScoreResultsController::export');
 
     $routes->get('email-lists', 'Admin\EmailListsController::index');

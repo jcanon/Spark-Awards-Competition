@@ -82,6 +82,102 @@ class ScoreResultsController extends BaseController
         return redirect()->back()->with('success', 'Updated ' . $updated . ' record(s).');
     }
 
+    public function editScores(string $entryId)
+    {
+        $phase = $this->normalizePhase((string)($this->request->getGet('phase') ?? '1'));
+        $entry = $this->scoreEntry($entryId);
+        if ($entry === null) {
+            return redirect()->to('/admin/score-results')->with('error', 'Entry not found.');
+        }
+
+        return view('admin/score_results/edit_scores', [
+            'entry' => $entry,
+            'phase' => $phase,
+            'scores' => $this->scoreRows($entryId, $phase),
+            'filters' => $this->filtersFromRequest(),
+        ]);
+    }
+
+    public function updateScores(string $entryId)
+    {
+        $phase = $this->normalizePhase((string)$this->request->getPost('phase'));
+        $entry = $this->scoreEntry($entryId);
+        if ($entry === null) {
+            return redirect()->to('/admin/score-results')->with('error', 'Entry not found.');
+        }
+
+        $scores = $this->request->getPost('scores') ?? [];
+        if (!is_array($scores) || $scores === []) {
+            return redirect()->back()->with('error', 'No scores to update.');
+        }
+
+        $db = db_connect();
+        $existingRows = $this->scoreRows($entryId, $phase);
+        $existingByUserId = [];
+        foreach ($existingRows as $row) {
+            $existingByUserId[(string)($row['user_id'] ?? '')] = $row;
+        }
+
+        $updates = [];
+        foreach ($scores as $scoreRow) {
+            if (!is_array($scoreRow)) {
+                continue;
+            }
+
+            $userId = trim((string)($scoreRow['user_id'] ?? ''));
+            $entryScoreRaw = trim((string)($scoreRow['entry_score'] ?? ''));
+            $entryComments = trim((string)($scoreRow['entry_comments'] ?? ''));
+
+            if ($userId === '' || !isset($existingByUserId[$userId])) {
+                return redirect()->back()->withInput()->with('error', 'Invalid judge score row.');
+            }
+
+            if (!in_array($entryScoreRaw, ['0', '1', '2'], true)) {
+                return redirect()->back()->withInput()->with('error', 'Scores must be 0, 1, or 2.');
+            }
+
+            if (strlen($entryComments) > 5000) {
+                return redirect()->back()->withInput()->with('error', 'Comments must be 5000 characters or fewer.');
+            }
+
+            $existing = $existingByUserId[$userId];
+            if ((int)($existing['entry_score'] ?? -1) !== (int)$entryScoreRaw || (string)($existing['entry_comments'] ?? '') !== $entryComments) {
+                $updates[] = [
+                    'user_id' => $userId,
+                    'entry_score' => (int)$entryScoreRaw,
+                    'entry_comments' => $entryComments,
+                ];
+            }
+        }
+
+        $updated = 0;
+        $db->transStart();
+        foreach ($updates as $update) {
+            $db->table('comp_judging')
+                ->where('entry_id', $entryId)
+                ->where('entry_phase', $phase)
+                ->where('user_id', $update['user_id'])
+                ->update([
+                    'entry_score' => $update['entry_score'],
+                    'entry_comments' => $update['entry_comments'],
+                    'date_judged' => date('Y-m-d H:i:s'),
+                ]);
+
+            if ($db->affectedRows() >= 0) {
+                $updated++;
+            }
+        }
+        $db->transComplete();
+
+        if (!$db->transStatus()) {
+            return redirect()->back()->withInput()->with('error', 'Unable to update scores.');
+        }
+
+        return redirect()
+            ->to(site_url('admin/score-results/edit/' . rawurlencode($entryId) . '?phase=' . rawurlencode($phase) . '&' . http_build_query($this->filtersFromRequest())))
+            ->with('success', 'Updated ' . $updated . ' score(s).');
+    }
+
     public function export()
     {
         $filters = $this->filters();
@@ -183,6 +279,49 @@ class ScoreResultsController extends BaseController
             'userType' => (string)($this->request->getGet('userType') ?? 'all'),
             'status' => (string)($this->request->getGet('status') ?? 'All'),
         ];
+    }
+
+    private function filtersFromRequest(): array
+    {
+        return [
+            'year' => (int)($this->request->getGetPost('year') ?? date('Y')),
+            'type' => (int)($this->request->getGetPost('type') ?? 0),
+            'userType' => (string)($this->request->getGetPost('userType') ?? 'all'),
+            'status' => (string)($this->request->getGetPost('status') ?? 'All'),
+        ];
+    }
+
+    private function normalizePhase(string $phase): string
+    {
+        return in_array($phase, ['1', '2', 'AllSpark'], true) ? $phase : '1';
+    }
+
+    private function scoreEntry(string $entryId): ?array
+    {
+        $row = db_connect()->table('comp_entries e')
+            ->select('e.entry_id, e.design_name, e.entry_status, e.designer_first_name, e.designer_last_name, c.comp_year, t.comp_type_name, w.winner_level_name')
+            ->join('comp_competitions c', 'c.comp_id = e.comp_id')
+            ->join('comp_type t', 't.comp_type_id = c.comp_type_id')
+            ->join('comp_winner_levels w', 'w.winner_level_id = e.winner_level', 'left')
+            ->where('e.entry_id', $entryId)
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
+    }
+
+    private function scoreRows(string $entryId, string $phase): array
+    {
+        return db_connect()->table('comp_judging j')
+            ->select('j.user_id, j.entry_score, j.entry_comments, j.date_judged, u.first_name, u.last_name, u.email_address, u.company_name')
+            ->join('comp_users u', 'u.user_id = j.user_id', 'left')
+            ->where('j.entry_id', $entryId)
+            ->where('j.entry_phase', $phase)
+            ->orderBy('u.last_name', 'ASC')
+            ->orderBy('u.first_name', 'ASC')
+            ->orderBy('j.user_id', 'ASC')
+            ->get()
+            ->getResultArray();
     }
 
     private function years(): array

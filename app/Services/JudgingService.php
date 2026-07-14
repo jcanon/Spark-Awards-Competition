@@ -71,6 +71,34 @@ class JudgingService
             ->findAll();
     }
 
+    public function getClosedPhase1Judging(): array
+    {
+        $now = date('Y-m-d H:i:s');
+
+        return (new CompetitionModel())
+            ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
+            ->where('comp_competitions.comp_year', (int)date('Y'))
+            ->where('jury_phase_1_close <=', $now)
+            ->where('b.comp_type_id <>', 9)
+            ->orderBy('jury_phase_1_close DESC, b.comp_type_name ASC')
+            ->asArray()
+            ->findAll();
+    }
+
+    public function getClosedPhase2Judging(): array
+    {
+        $now = date('Y-m-d H:i:s');
+
+        return (new CompetitionModel())
+            ->join('comp_type b', 'b.comp_type_id = comp_competitions.comp_type_id')
+            ->where('comp_competitions.comp_year', (int)date('Y'))
+            ->where('jury_phase_2_close <=', $now)
+            ->where('b.comp_type_id <>', 9)
+            ->orderBy('jury_phase_2_close DESC, b.comp_type_name ASC')
+            ->asArray()
+            ->findAll();
+    }
+
     public function getAllSparkJudging(): array
     {
         $now = date('Y-m-d H:i:s');

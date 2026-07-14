@@ -24,6 +24,8 @@ class JudgingController extends BaseController
             'openPhase2' => $this->judging->getOpenPhase2Judging(),
             'upcomingPhase1' => $this->judging->getUpcomingPhase1Judging(),
             'upcomingPhase2' => $this->judging->getUpcomingPhase2Judging(),
+            'closedPhase1' => $this->judging->getClosedPhase1Judging(),
+            'closedPhase2' => $this->judging->getClosedPhase2Judging(),
         ]);
     }
 
@@ -51,6 +53,11 @@ class JudgingController extends BaseController
             }
             if ($entries === []) {
                 foreach ($this->judging->getUpcomingPhase2Judging() as $comp) {
+                    $entries = array_merge($entries, $this->judging->judgingEntries((int)$comp['comp_id'], 'Finalist'));
+                }
+            }
+            if ($entries === []) {
+                foreach ($this->judging->getClosedPhase2Judging() as $comp) {
                     $entries = array_merge($entries, $this->judging->judgingEntries((int)$comp['comp_id'], 'Finalist'));
                 }
             }
@@ -105,16 +112,24 @@ class JudgingController extends BaseController
         $judgingContextLabel = null;
         if ($competition) {
             $competitionLabel = 'SPARK:' . strtoupper((string)($competition['comp_type_name'] ?? '')) . ' ' . (string)($competition['comp_year'] ?? '');
-            $now = date('Y-m-d H:i:s');
             if ($phase === '1') {
-                $isOpen = (string)($competition['jury_phase_1_open'] ?? '') <= $now && (string)($competition['jury_phase_1_close'] ?? '') > $now;
-                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 1 Entrant Judging';
+                $judgingContextLabel = $this->resolveJudgingContextLabel(
+                    (string)($competition['jury_phase_1_open'] ?? ''),
+                    (string)($competition['jury_phase_1_close'] ?? ''),
+                    'Phase 1 Entrant Judging'
+                );
             } elseif ($phase === '2') {
-                $isOpen = (string)($competition['jury_phase_2_open'] ?? '') <= $now && (string)($competition['jury_phase_2_close'] ?? '') > $now;
-                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 2 Finalist Judging';
+                $judgingContextLabel = $this->resolveJudgingContextLabel(
+                    (string)($competition['jury_phase_2_open'] ?? ''),
+                    (string)($competition['jury_phase_2_close'] ?? ''),
+                    'Phase 2 Finalist Judging'
+                );
             } elseif ($phase === 'AllSpark') {
-                $isOpen = (string)($competition['jury_phase_2_open'] ?? '') <= $now && (string)($competition['jury_phase_2_close'] ?? '') > $now;
-                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' AllSpark Judging';
+                $judgingContextLabel = $this->resolveJudgingContextLabel(
+                    (string)($competition['jury_phase_2_open'] ?? ''),
+                    (string)($competition['jury_phase_2_close'] ?? ''),
+                    'AllSpark Judging'
+                );
             }
         }
 
@@ -159,16 +174,24 @@ class JudgingController extends BaseController
         $judgingContextLabel = null;
         if ($competition) {
             $competitionLabel = 'SPARK:' . strtoupper((string)($competition['comp_type_name'] ?? '')) . ' ' . (string)($competition['comp_year'] ?? '');
-            $now = date('Y-m-d H:i:s');
             if ($phase === '1') {
-                $isOpen = (string)($competition['jury_phase_1_open'] ?? '') <= $now && (string)($competition['jury_phase_1_close'] ?? '') > $now;
-                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 1 Entrant Judging';
+                $judgingContextLabel = $this->resolveJudgingContextLabel(
+                    (string)($competition['jury_phase_1_open'] ?? ''),
+                    (string)($competition['jury_phase_1_close'] ?? ''),
+                    'Phase 1 Entrant Judging'
+                );
             } elseif ($phase === '2') {
-                $isOpen = (string)($competition['jury_phase_2_open'] ?? '') <= $now && (string)($competition['jury_phase_2_close'] ?? '') > $now;
-                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' Phase 2 Finalist Judging';
+                $judgingContextLabel = $this->resolveJudgingContextLabel(
+                    (string)($competition['jury_phase_2_open'] ?? ''),
+                    (string)($competition['jury_phase_2_close'] ?? ''),
+                    'Phase 2 Finalist Judging'
+                );
             } elseif ($phase === 'AllSpark') {
-                $isOpen = (string)($competition['jury_phase_2_open'] ?? '') <= $now && (string)($competition['jury_phase_2_close'] ?? '') > $now;
-                $judgingContextLabel = ($isOpen ? 'Open' : 'Upcoming') . ' AllSpark Judging';
+                $judgingContextLabel = $this->resolveJudgingContextLabel(
+                    (string)($competition['jury_phase_2_open'] ?? ''),
+                    (string)($competition['jury_phase_2_close'] ?? ''),
+                    'AllSpark Judging'
+                );
             }
         }
 
@@ -470,6 +493,11 @@ class JudgingController extends BaseController
                     $entries = array_merge($entries, $this->judging->judgingEntries((int)$comp['comp_id'], 'Finalist'));
                 }
             }
+            if ($entries === []) {
+                foreach ($this->judging->getClosedPhase2Judging() as $comp) {
+                    $entries = array_merge($entries, $this->judging->judgingEntries((int)$comp['comp_id'], 'Finalist'));
+                }
+            }
 
             return $entries;
         }
@@ -500,5 +528,20 @@ class JudgingController extends BaseController
         $open = (string)($row['jury_phase_2_open'] ?? '');
         $close = (string)($row['jury_phase_2_close'] ?? '');
         return $open !== '' && $close !== '' && $open <= $now && $close > $now;
+    }
+
+    private function resolveJudgingContextLabel(string $openAt, string $closeAt, string $suffix): string
+    {
+        $now = date('Y-m-d H:i:s');
+
+        if ($openAt !== '' && $closeAt !== '' && $openAt <= $now && $closeAt > $now) {
+            return 'Open ' . $suffix;
+        }
+
+        if ($closeAt !== '' && $closeAt <= $now) {
+            return 'Closed ' . $suffix;
+        }
+
+        return 'Upcoming ' . $suffix;
     }
 }
