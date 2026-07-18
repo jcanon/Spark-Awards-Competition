@@ -285,6 +285,7 @@ class JudgingService
                 b.entry_id,
                 b.design_name,
                 b.entry_status,
+                b.winner_level,
                 b.designer_first_name,
                 b.designer_last_name,
                 d.user_id,

@@ -1,0 +1,46 @@
+.score-result-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 220px;
+}
+
+.score-result-thumb {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #d1d3e2;
+    border-radius: 4px;
+    object-fit: cover;
+    background: #f8f9fc;
+}
+
+.score-result-thumb-btn {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: zoom-in;
+}
+
+.score-result-thumb-btn:focus {
+    outline: 2px solid #4e73df;
+    outline-offset: 2px;
+}
+
+.score-result-thumb-btn .score-result-thumb {
+    flex: 0 0 auto;
+}
+
+.score-result-thumb-empty {
+    display: inline-block;
+}
+
+.score-result-lightbox-image {
+    max-height: 80vh;
+}

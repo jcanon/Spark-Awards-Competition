@@ -1,63 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="D:\MAMP\Spark-Awards-Competition\phpunit.xml.dist" tests="30" assertions="81" errors="0" failures="0" skipped="0" time="0.949320">
-    <testsuite name="App" tests="30" assertions="81" errors="0" failures="0" skipped="0" time="0.949320">
-      <testsuite name="AuthPasswordResetFlowTest" file="D:\MAMP\Spark-Awards-Competition\tests\database\AuthPasswordResetFlowTest.php" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.239835">
-        <testcase name="testResetTokenIsSingleUseAfterConsumption" file="D:\MAMP\Spark-Awards-Competition\tests\database\AuthPasswordResetFlowTest.php" line="50" class="AuthPasswordResetFlowTest" classname="AuthPasswordResetFlowTest" assertions="2" time="0.136985"/>
-        <testcase name="testExpiredResetTokenIsRejected" file="D:\MAMP\Spark-Awards-Competition\tests\database\AuthPasswordResetFlowTest.php" line="64" class="AuthPasswordResetFlowTest" classname="AuthPasswordResetFlowTest" assertions="1" time="0.102850"/>
-      </testsuite>
-      <testsuite name="ExampleDatabaseTest" file="D:\MAMP\Spark-Awards-Competition\tests\database\ExampleDatabaseTest.php" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.018976">
-        <testcase name="testModelFindAll" file="D:\MAMP\Spark-Awards-Competition\tests\database\ExampleDatabaseTest.php" line="19" class="ExampleDatabaseTest" classname="ExampleDatabaseTest" assertions="1" time="0.011664"/>
-        <testcase name="testSoftDeleteLeavesRow" file="D:\MAMP\Spark-Awards-Competition\tests\database\ExampleDatabaseTest.php" line="30" class="ExampleDatabaseTest" classname="ExampleDatabaseTest" assertions="2" time="0.007311"/>
-      </testsuite>
-      <testsuite name="RecoveryCodeServiceTest" file="D:\MAMP\Spark-Awards-Competition\tests\database\RecoveryCodeServiceTest.php" tests="1" assertions="6" errors="0" failures="0" skipped="0" time="0.607562">
-        <testcase name="testGenerateAndConsumeRecoveryCode" file="D:\MAMP\Spark-Awards-Competition\tests\database\RecoveryCodeServiceTest.php" line="43" class="RecoveryCodeServiceTest" classname="RecoveryCodeServiceTest" assertions="6" time="0.607562"/>
-      </testsuite>
-      <testsuite name="AdminBulkEndpointsTest" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" tests="4" assertions="12" errors="0" failures="0" skipped="0" time="0.052541">
-        <testcase name="testSubmissionsBulkRequiresAction" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="91" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.035601"/>
-        <testcase name="testSubmissionsBulkUnknownActionReturnsUpdatedZero" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="102" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.005658"/>
-        <testcase name="testScoreResultsBulkRequiresSelection" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="113" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.006465"/>
-        <testcase name="testScoreResultsBulkUnknownActionReturnsUpdatedZero" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="123" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.004817"/>
-      </testsuite>
-      <testsuite name="ExampleSessionTest" file="D:\MAMP\Spark-Awards-Competition\tests\session\ExampleSessionTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.001097">
-        <testcase name="testSessionSimple" file="D:\MAMP\Spark-Awards-Competition\tests\session\ExampleSessionTest.php" line="10" class="ExampleSessionTest" classname="ExampleSessionTest" assertions="1" time="0.001097"/>
-      </testsuite>
-      <testsuite name="HealthTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\HealthTest.php" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.002464">
-        <testcase name="testIsDefinedAppPath" file="D:\MAMP\Spark-Awards-Competition\tests\unit\HealthTest.php" line="12" class="HealthTest" classname="HealthTest" assertions="1" time="0.000749"/>
-        <testcase name="testBaseUrlHasBeenSet" file="D:\MAMP\Spark-Awards-Competition\tests\unit\HealthTest.php" line="17" class="HealthTest" classname="HealthTest" assertions="2" time="0.001714"/>
-      </testsuite>
-      <testsuite name="CertificateRequestHelperTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Helpers\CertificateRequestHelperTest.php" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.002519">
-        <testcase name="testEmptyStatusDefaultsToPendingWhenRequested" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Helpers\CertificateRequestHelperTest.php" line="16" class="CertificateRequestHelperTest" classname="CertificateRequestHelperTest" assertions="3" time="0.000949"/>
-        <testcase name="testUnknownStatusUsesNotRequestedClass" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Helpers\CertificateRequestHelperTest.php" line="25" class="CertificateRequestHelperTest" classname="CertificateRequestHelperTest" assertions="3" time="0.000806"/>
-        <testcase name="testKnownStatusMapsToExpectedClass" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Helpers\CertificateRequestHelperTest.php" line="34" class="CertificateRequestHelperTest" classname="CertificateRequestHelperTest" assertions="3" time="0.000765"/>
-      </testsuite>
-      <testsuite name="EntryStatusHelperTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Helpers\EntryStatusHelperTest.php" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.002412">
-        <testcase name="testWinnerLevelPillIncludesSpecificClassAndLabel" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Helpers\EntryStatusHelperTest.php" line="16" class="EntryStatusHelperTest" classname="EntryStatusHelperTest" assertions="3" time="0.000982"/>
-        <testcase name="testEntrantPillFromArray" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Helpers\EntryStatusHelperTest.php" line="25" class="EntryStatusHelperTest" classname="EntryStatusHelperTest" assertions="3" time="0.000749"/>
-        <testcase name="testUnknownStatusFallsBackToDraftClass" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Helpers\EntryStatusHelperTest.php" line="37" class="EntryStatusHelperTest" classname="EntryStatusHelperTest" assertions="3" time="0.000682"/>
-      </testsuite>
-      <testsuite name="PaymentsControllerAuthorizeNetTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" tests="3" assertions="12" errors="0" failures="0" skipped="0" time="0.007739">
-        <testcase name="testSuccessfulTransactionIsNotOverriddenByTopLevelI00001Message" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="17" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="4" time="0.005925"/>
-        <testcase name="testTopLevelErrorMessageStillReturnsFailure" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="48" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="4" time="0.001059"/>
-        <testcase name="testHeldForReviewMessageIsNormalizedForUsers" file="D:\MAMP\Spark-Awards-Competition\tests\unit\PaymentsControllerAuthorizeNetTest.php" line="69" class="PaymentsControllerAuthorizeNetTest" classname="PaymentsControllerAuthorizeNetTest" assertions="4" time="0.000754"/>
-      </testsuite>
-      <testsuite name="AuthPolicyTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\AuthPolicyTest.php" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.002456">
-        <testcase name="testPolicyClampsExpiryAndHistoryBounds" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\AuthPolicyTest.php" line="30" class="AuthPolicyTest" classname="AuthPolicyTest" assertions="2" time="0.001368"/>
-        <testcase name="testPolicyReadsEnforcementToggle" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\AuthPolicyTest.php" line="40" class="AuthPolicyTest" classname="AuthPolicyTest" assertions="1" time="0.001088"/>
-      </testsuite>
-      <testsuite name="AuthServiceSecurityTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\AuthServiceSecurityTest.php" tests="2" assertions="10" errors="0" failures="0" skipped="0" time="0.003348">
-        <testcase name="testPasswordStrengthRules" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\AuthServiceSecurityTest.php" line="13" class="AuthServiceSecurityTest" classname="AuthServiceSecurityTest" assertions="6" time="0.001565"/>
-        <testcase name="testPasswordExpiryLogic" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\AuthServiceSecurityTest.php" line="25" class="AuthServiceSecurityTest" classname="AuthServiceSecurityTest" assertions="4" time="0.001784"/>
-      </testsuite>
-      <testsuite name="ProfileServicePolicyTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\ProfileServicePolicyTest.php" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.004619">
-        <testcase name="testNonAdminCannotAssignElevatedRoles" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\ProfileServicePolicyTest.php" line="12" class="ProfileServicePolicyTest" classname="ProfileServicePolicyTest" assertions="2" time="0.003592"/>
-        <testcase name="testAdminCanAssignElevatedRoles" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Security\ProfileServicePolicyTest.php" line="24" class="ProfileServicePolicyTest" classname="ProfileServicePolicyTest" assertions="1" time="0.001027"/>
-      </testsuite>
-      <testsuite name="EntryBulkActionsTest" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Support\EntryBulkActionsTest.php" tests="3" assertions="7" errors="0" failures="0" skipped="0" time="0.003753">
-        <testcase name="testSubmissionPayloadIncludesGalleryAndWinnerMappings" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Support\EntryBulkActionsTest.php" line="11" class="EntryBulkActionsTest" classname="EntryBulkActionsTest" assertions="2" time="0.001087"/>
-        <testcase name="testScoreResultStatusAndPatchForFinalist" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Support\EntryBulkActionsTest.php" line="17" class="EntryBulkActionsTest" classname="EntryBulkActionsTest" assertions="3" time="0.001836"/>
-        <testcase name="testUnknownActionReturnsNull" file="D:\MAMP\Spark-Awards-Competition\tests\unit\Support\EntryBulkActionsTest.php" line="26" class="EntryBulkActionsTest" classname="EntryBulkActionsTest" assertions="2" time="0.000829"/>
-      </testsuite>
-    </testsuite>
+  <testsuite name="AdminBulkEndpointsTest" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" tests="4" assertions="12" errors="0" failures="0" skipped="0" time="0.084333">
+    <testcase name="testSubmissionsBulkRequiresAction" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="91" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.067106"/>
+    <testcase name="testSubmissionsBulkUnknownActionReturnsUpdatedZero" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="102" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.006178"/>
+    <testcase name="testScoreResultsBulkRequiresSelection" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="113" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.006712"/>
+    <testcase name="testScoreResultsBulkUnknownActionReturnsUpdatedZero" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="123" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.004338"/>
   </testsuite>
 </testsuites>

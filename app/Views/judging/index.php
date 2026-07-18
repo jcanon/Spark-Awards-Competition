@@ -92,7 +92,7 @@
                 <p class="mb-0">There are currently no closed phase 1 competitions at this time.</p>
             <?php else: ?>
             <table class="table table-bordered table-hover">
-                <thead><tr><th>Competition</th><th>Entries</th><th>My Votes</th><th>Closed</th><th></th></tr></thead>
+                <thead><tr><th>Competition</th><th>Entries</th><th>My Votes</th><th>Closed</th></tr></thead>
                 <tbody>
                 <?php foreach ($closedPhase1 as $row): ?>
                     <?php $entries = service('judging')->judgingEntries((int)$row['comp_id'], 'Entrant'); ?>
@@ -108,7 +108,6 @@
                         <td><?= count($entries) ?></td>
                         <td><?= (int)$scoredCount ?> out of <?= count($entries) ?></td>
                         <td><?= esc(format_datetime_ui((string)$row['jury_phase_1_close'])) ?></td>
-                        <td class="text-center"><a class="btn btn-sm btn-outline-secondary" href="<?= $voteUrl ?>">View Entries</a></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -193,7 +192,7 @@
                 <p class="mb-0">There are currently no closed phase 2 competitions at this time.</p>
             <?php else: ?>
             <table class="table table-bordered table-hover">
-                <thead><tr><th>Competition</th><th>Entries</th><th>My Votes</th><th>Closed</th><th></th></tr></thead>
+                <thead><tr><th>Competition</th><th>Entries</th><th>My Votes</th><th>Closed</th></tr></thead>
                 <tbody>
                 <?php foreach ($closedPhase2 as $row): ?>
                     <?php $entries = service('judging')->judgingEntries((int)$row['comp_id'], 'Finalist'); ?>
@@ -209,7 +208,6 @@
                         <td><?= count($entries) ?></td>
                         <td><?= (int)$scoredCount ?> out of <?= count($entries) ?></td>
                         <td><?= esc(format_datetime_ui((string)$row['jury_phase_2_close'])) ?></td>
-                        <td class="text-center"><a class="btn btn-sm btn-outline-secondary" href="<?= $voteUrl ?>">View Entries</a></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

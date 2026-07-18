@@ -28,10 +28,12 @@ class ScoreResultsController extends BaseController
 
         $entryIds = array_map(static fn (array $row): string => (string)($row['entry_id'] ?? ''), $rows);
         $tallies = service('judging')->tallyScoresByEntryIds($entryIds, $filters['phase']);
+        $photoUrls = $this->firstPhotoUrlsByEntryIds($entryIds);
         foreach ($rows as &$row) {
             $entryId = (string)($row['entry_id'] ?? '');
             $row['total_score'] = (int)($tallies[$entryId]['total_score'] ?? 0);
             $row['total_judges'] = (int)($tallies[$entryId]['total_judges'] ?? 0);
+            $row['_thumbnail_url'] = (string)($photoUrls[$entryId] ?? '');
         }
         unset($row);
 
@@ -189,26 +191,32 @@ class ScoreResultsController extends BaseController
             $filters['status']
         );
 
-        foreach ($rows as &$row) {
-            $scores = service('judging')->tallyScores((string)$row['entry_id'], $filters['phase']);
-            $sum = 0;
-            $count = 0;
-            foreach ($scores as $score) {
-                $sum += (int)($score['entry_score'] ?? 0);
-                $count++;
-            }
-            $row['average_score'] = $count > 0 ? round($sum / $count, 2) : 0;
-        }
-        unset($row);
-
         $rows = $this->sortExportRows($rows);
+        $entryIds = array_map(static fn (array $row): string => (string)($row['entry_id'] ?? ''), $rows);
+        $tallies = service('judging')->tallyScoresByEntryIds($entryIds, $filters['phase']);
+        $photoUrls = $this->firstPhotoUrlsByEntryIds($entryIds);
+
+        $exportRows = [];
+        foreach ($rows as $row) {
+            $entryId = (string)($row['entry_id'] ?? '');
+            $exportRows[] = [
+                'Design Name' => (string)($row['design_name'] ?? ''),
+                'Designer First Name' => (string)($row['designer_first_name'] ?? ''),
+                'Designer Last Name' => (string)($row['designer_last_name'] ?? ''),
+                'Company' => (string)($row['company_name'] ?? ''),
+                'Image' => (string)($photoUrls[$entryId] ?? ''),
+                'Award' => $this->awardLabel($row),
+                'Total Score' => (int)($tallies[$entryId]['total_score'] ?? 0),
+                'Number of Judges' => (int)($tallies[$entryId]['total_judges'] ?? 0),
+            ];
+        }
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Score Results');
 
-        if ($rows !== []) {
-            $headers = array_keys($rows[0]);
+        if ($exportRows !== []) {
+            $headers = array_keys($exportRows[0]);
             $columnCount = count($headers);
 
             foreach ($headers as $index => $header) {
@@ -227,7 +235,7 @@ class ScoreResultsController extends BaseController
             ]);
 
             $rowNum = 2;
-            foreach ($rows as $row) {
+            foreach ($exportRows as $row) {
                 foreach ($headers as $index => $header) {
                     $col = $index + 1;
                     $val = $row[$header] ?? '';
@@ -235,18 +243,18 @@ class ScoreResultsController extends BaseController
                     $sheet->setCellValueExplicit(
                         $cell,
                         is_scalar($val) ? (string)$val : (string)json_encode($val, JSON_UNESCAPED_UNICODE),
-                        DataType::TYPE_STRING
+                        is_int($val) || is_float($val) ? DataType::TYPE_NUMERIC : DataType::TYPE_STRING
                     );
-                }
 
-                $winnerFill = $this->winnerFillColorHex($row);
-                if ($winnerFill !== null) {
-                    $sheet->getStyle('A' . $rowNum . ':' . $lastHeaderCol . $rowNum)->applyFromArray([
-                        'fill' => [
-                            'fillType' => Fill::FILL_SOLID,
-                            'startColor' => ['rgb' => $winnerFill],
-                        ],
-                    ]);
+                    if ($header === 'Image' && is_string($val) && $val !== '') {
+                        $sheet->getCell($cell)->getHyperlink()->setUrl($val);
+                        $sheet->getStyle($cell)->applyFromArray([
+                            'font' => [
+                                'color' => ['rgb' => '0563C1'],
+                                'underline' => true,
+                            ],
+                        ]);
+                    }
                 }
 
                 $rowNum++;
@@ -390,19 +398,59 @@ class ScoreResultsController extends BaseController
         };
     }
 
-    private function winnerFillColorHex(array $row): ?string
+    private function firstPhotoUrlsByEntryIds(array $entryIds): array
     {
-        if (strcasecmp((string)($row['entry_status'] ?? ''), 'Winner') !== 0) {
-            return null;
+        $ids = array_values(array_filter(array_map(static fn ($id): string => trim((string)$id), $entryIds)));
+        if ($ids === []) {
+            return [];
         }
 
-        return match (strtolower(trim((string)($row['winner_level_name'] ?? '')))) {
-            'platinum' => 'F4F7FB',
-            'gold' => 'FFF6DE',
-            'silver' => 'F4F6F8',
-            'bronze' => 'F8EEE7',
-            default => 'F8F4FF',
+        $rows = db_connect()->table('comp_entry_photos')
+            ->select('entry_photo_id, entry_id')
+            ->where('entry_photo_res', 'Low')
+            ->whereIn('entry_id', $ids)
+            ->orderBy('entry_id', 'ASC')
+            ->orderBy('entry_photo_order', 'ASC')
+            ->orderBy('entry_photo_id', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $urls = [];
+        foreach ($rows as $row) {
+            $entryId = (string)($row['entry_id'] ?? '');
+            if ($entryId === '' || isset($urls[$entryId])) {
+                continue;
+            }
+
+            $photoId = (int)($row['entry_photo_id'] ?? 0);
+            if ($photoId > 0) {
+                $urls[$entryId] = site_url('media/photo/' . $photoId);
+            }
+        }
+
+        return $urls;
+    }
+
+    private function awardLabel(array $row): string
+    {
+        $winnerLevelName = trim((string)($row['winner_level_name'] ?? ''));
+        if ($winnerLevelName !== '') {
+            return $winnerLevelName;
+        }
+
+        $winnerLevelId = (int)($row['winner_level'] ?? 0);
+        $winnerLevel = match ($winnerLevelId) {
+            1 => 'Platinum',
+            2 => 'Gold',
+            3 => 'Silver',
+            4 => 'Bronze',
+            default => '',
         };
+        if ($winnerLevel !== '') {
+            return $winnerLevel;
+        }
+
+        return trim((string)($row['entry_status'] ?? ''));
     }
 
     private function applyBulkStatusAction(string $entryId, string $action): bool

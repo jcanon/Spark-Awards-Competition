@@ -19,7 +19,6 @@
         <div class="col-12 col-lg-8">
             <div class="card mb-4">
                 <div class="card-body">
-                    <p><strong>Designer:</strong> <?= esc(trim((string)$entry['designer_first_name'] . ' ' . (string)$entry['designer_last_name'])) ?></p>
                     <p><strong>Design Type:</strong> <?= esc((string)($entry['design_type'] ?? '')) ?></p>
                     <p><strong>Launch Year:</strong> <?= esc((string)($entry['launch_year'] ?? '')) ?></p>
                     <p><strong>Series:</strong> <?= esc((string)($entry['series'] ?? 'No')) ?></p>

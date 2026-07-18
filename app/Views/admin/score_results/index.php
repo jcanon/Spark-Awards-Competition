@@ -1,6 +1,8 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<link href="/css/pages/admin-score-results.css" rel="stylesheet">
+
 <div class="container-fluid">
     <?php $statusBulkActions = entry_status_bulk_actions(); ?>
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -111,7 +113,29 @@
                         ?>
                         <tr>
                             <td><input type="checkbox" name="entry_ids[]" value="<?= esc((string)$row['entry_id']) ?>"></td>
-                            <td><a href="https://galleries.sparkawards.com/gallery?entry=<?= rawurlencode((string)$row['entry_id']) ?>" target="_blank" rel="noopener"><?= esc((string)$row['design_name']) ?></a></td>
+                            <td>
+                                <div class="score-result-entry">
+                                    <?php if (!empty($row['_thumbnail_url'])): ?>
+                                        <button
+                                            type="button"
+                                            class="score-result-thumb-btn js-score-result-thumb"
+                                            data-photo-url="<?= esc((string)$row['_thumbnail_url']) ?>"
+                                            data-photo-title="<?= esc((string)$row['design_name']) ?>"
+                                            aria-label="Open <?= esc((string)$row['design_name']) ?> thumbnail at full size"
+                                        >
+                                            <img
+                                                src="<?= esc((string)$row['_thumbnail_url']) ?>"
+                                                class="score-result-thumb"
+                                                alt=""
+                                                loading="lazy"
+                                            >
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="score-result-thumb score-result-thumb-empty" aria-hidden="true"></span>
+                                    <?php endif; ?>
+                                    <a href="https://galleries.sparkawards.com/gallery?entry=<?= rawurlencode((string)$row['entry_id']) ?>" target="_blank" rel="noopener"><?= esc((string)$row['design_name']) ?></a>
+                                </div>
+                            </td>
                             <td>
                                 <span class="status-pill <?= esc($statusClass) ?>">
                                     <?php if ($medalIconClass !== ''): ?>
@@ -135,7 +159,37 @@
     </form>
 </div>
 
+<div class="modal fade" id="scoreResultThumbnailModal" tabindex="-1" role="dialog" aria-labelledby="scoreResultThumbnailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scoreResultThumbnailModalLabel">Entry Thumbnail</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="scoreResultThumbnailModalImage" src="" alt="" class="img-fluid rounded border score-result-lightbox-image">
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="/js/utils/bulk-actions.js"></script>
+<script src="/js/utils/modal.js"></script>
+<script src="/js/utils/photo-preview-modal.js"></script>
+<script>
+    window.Spark = window.Spark || {};
+    if (window.Spark.photoPreviewModal) {
+        window.Spark.photoPreviewModal.initSimpleImageModal({
+            modalId: 'scoreResultThumbnailModal',
+            imageId: 'scoreResultThumbnailModalImage',
+            titleId: 'scoreResultThumbnailModalLabel',
+            buttonSelector: '.js-score-result-thumb',
+            defaultTitle: 'Entry Thumbnail'
+        });
+    }
+</script>
 
 <?= $this->endSection() ?>
 
