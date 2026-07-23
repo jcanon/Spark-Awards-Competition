@@ -24,6 +24,13 @@ $isEntryEditLocked = static function ($entry): bool {
 
     return false;
 };
+$isLatePaymentWindowOpen = static function ($entry): bool {
+    $open = trim((string)($entry->late_payment_open ?? ''));
+    $close = trim((string)($entry->late_payment_close ?? ''));
+    $now = date('Y-m-d H:i:s');
+
+    return $open !== '' && $close !== '' && $open <= $now && $close > $now;
+};
 ?>
 
     <div class="container-fluid">
@@ -292,6 +299,7 @@ $isEntryEditLocked = static function ($entry): bool {
                                 $isPhase2Paid = strcasecmp($p2, 'Paid') === 0;
                                 $phase1PaymentStatus = strtolower((string)($e->phase_1_payment_status ?? 'pending'));
                                 $phase2PaymentStatus = strtolower((string)($e->phase_2_payment_status ?? 'pending'));
+                                $latePaymentOpen = $isLatePaymentWindowOpen($e);
                                 [$statusLabel, $statusClass, $statusIcon] = entry_status_pill($e);
                                 ?>
                                 <tr>
@@ -321,6 +329,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                             ]) ?>
                                         <?php elseif ($phase1PaymentStatus === 'held_for_review'): ?>
                                             <a class="btn btn-sm btn-warning shadow-sm mb-1" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1/receipt') ?>" title="Payment Under Review">Phase 1 - Under Review</a>
+                                        <?php elseif ($latePaymentOpen): ?>
+                                            <a class="btn btn-sm btn-danger shadow-sm mb-1" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/1') ?>" title="Submit Payment">Phase 1 - Unpaid, Submit Payment</a>
                                         <?php else: ?>
                                             <div class="small text-muted mb-1">Phase 1 - Unpaid</div>
                                         <?php endif; ?>
@@ -333,6 +343,8 @@ $isEntryEditLocked = static function ($entry): bool {
                                             ]) ?>
                                         <?php elseif ($phase2PaymentStatus === 'held_for_review'): ?>
                                             <a class="btn btn-sm btn-warning shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2/receipt') ?>" title="Payment Under Review">Phase 2 - Under Review</a>
+                                        <?php elseif ($latePaymentOpen): ?>
+                                            <a class="btn btn-sm btn-danger shadow-sm" href="<?= site_url('payments/entry/' . urlencode($entryId) . '/phase/2') ?>" title="Submit Payment">Phase 2 - Unpaid, Submit Payment</a>
                                         <?php else: ?>
                                             <div class="small text-muted">Phase 2 - Unpaid</div>
                                         <?php endif; ?>

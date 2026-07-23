@@ -17,6 +17,8 @@ class Competition extends Entity
         'comp_phase_2_close',
         'jury_phase_2_open',
         'jury_phase_2_close',
+        'late_payment_open',
+        'late_payment_close',
     ];
 
     protected $casts = [

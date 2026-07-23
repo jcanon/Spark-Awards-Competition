@@ -115,6 +115,17 @@ $datetimeValue = static function (string $field) use ($row): string {
         </div>
 
         <div class="card mb-4">
+            <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Late Payments</h6></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 form-group"><label>Late Payment Open</label><input type="datetime-local" class="form-control" name="late_payment_open" value="<?= esc($datetimeValue('late_payment_open')) ?>"></div>
+                    <div class="col-md-3 form-group"><label>Late Payment Close</label><input type="datetime-local" class="form-control" name="late_payment_close" value="<?= esc($datetimeValue('late_payment_close')) ?>"></div>
+                </div>
+                <small class="form-text text-muted">When active, unpaid past submissions can submit Phase 1 and Phase 2 payments after the competition has closed.</small>
+            </div>
+        </div>
+
+        <div class="card mb-4">
             <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Pricing</h6></div>
             <div class="card-body">
                 <?php

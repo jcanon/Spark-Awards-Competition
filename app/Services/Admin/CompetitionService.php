@@ -307,6 +307,8 @@ class CompetitionService
             'comp_phase_2_close' => $this->dt($form['comp_phase_2_close'] ?? null),
             'jury_phase_2_open' => $this->dt($form['jury_phase_2_open'] ?? null),
             'jury_phase_2_close' => $this->dt($form['jury_phase_2_close'] ?? null),
+            'late_payment_open' => $this->dt($form['late_payment_open'] ?? null),
+            'late_payment_close' => $this->dt($form['late_payment_close'] ?? null),
 
             'pro_early_reg_price' => $this->money($form['pro_early_reg_price'] ?? null),
             'pro_regular_reg_price' => $this->money($form['pro_regular_reg_price'] ?? null),

@@ -276,6 +276,8 @@ class CompetitionsController extends BaseController
             'comp_phase_2_close' => 'required',
             'jury_phase_2_open' => 'required',
             'jury_phase_2_close' => 'required',
+            'late_payment_open' => 'permit_empty',
+            'late_payment_close' => 'permit_empty',
             'pro_early_reg_price' => $moneyRule,
             'pro_regular_reg_price' => $moneyRule,
             'pro_late_reg_price' => $moneyRule,
