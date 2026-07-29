@@ -349,8 +349,10 @@ class SubmissionsController extends BaseController
 
     public function export()
     {
-        $rows = $this->adminSubs->export($this->getFilters());
-        $binary = $this->toXlsx($rows);
+        $filters = $this->getFilters();
+        $rows = $this->adminSubs->export($filters);
+        $judgingRows = $this->adminSubs->exportJudging($filters);
+        $binary = $this->toXlsx($rows, $judgingRows);
         $filename = 'submissions-export-' . date('Ymd_His') . '.xlsx';
 
         return $this->response
@@ -493,6 +495,21 @@ class SubmissionsController extends BaseController
         return redirect()->back()->with($ok ? 'success' : 'error', $ok ? 'Certificate PDF removed.' : 'Certificate could not be removed.');
     }
 
+    public function generateCertificate(string $entryId)
+    {
+        $entry = $this->adminSubs->find($entryId);
+        if (!$entry) {
+            return redirect()->to('/admin/submissions')->with('error', 'Submission not found.');
+        }
+
+        $errors = $this->generateCertificateFiles($entry);
+        if ($errors !== null) {
+            return redirect()->back()->with('error', implode(' ', $errors));
+        }
+
+        return redirect()->to('/admin/submissions/edit/' . rawurlencode($entryId))->with('success', 'Certificate generated and assigned.');
+    }
+
     private function canDelete(): bool
     {
         return (string)session('role') !== 'editor';
@@ -566,45 +583,19 @@ class SubmissionsController extends BaseController
             ->getRowArray() ?? [];
     }
 
-    private function toXlsx(array $rows): string
+    private function toXlsx(array $rows, array $judgingRows): string
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Submissions');
 
-        if ($rows === []) {
-            $sheet->setCellValueExplicit('A1', 'No data', DataType::TYPE_STRING);
-        } else {
-            $headers = array_keys($rows[0]);
-            $lastHeaderCol = Coordinate::stringFromColumnIndex(count($headers));
+        $this->writeRowsToSheet($sheet, $rows);
 
-            foreach ($headers as $index => $header) {
-                $cell = Coordinate::stringFromColumnIndex($index + 1) . '1';
-                $sheet->setCellValueExplicit($cell, (string)$header, DataType::TYPE_STRING);
-            }
+        $judgingSheet = $spreadsheet->createSheet();
+        $judgingSheet->setTitle('Judging');
+        $this->writeRowsToSheet($judgingSheet, $judgingRows);
 
-            $sheet->getStyle('A1:' . $lastHeaderCol . '1')->applyFromArray([
-                'font' => ['bold' => true],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'E9ECEF'],
-                ],
-            ]);
-
-            $rowNum = 2;
-            foreach ($rows as $row) {
-                foreach ($headers as $index => $header) {
-                    $val = $row[$header] ?? '';
-                    $cell = Coordinate::stringFromColumnIndex($index + 1) . (string)$rowNum;
-                    $sheet->setCellValueExplicit(
-                        $cell,
-                        is_scalar($val) ? (string)$val : (string)json_encode($val, JSON_UNESCAPED_UNICODE),
-                        DataType::TYPE_STRING
-                    );
-                }
-                $rowNum++;
-            }
-        }
+        $spreadsheet->setActiveSheetIndex(0);
 
         $writer = new Xlsx($spreadsheet);
         $writer->setPreCalculateFormulas(false);
@@ -612,6 +603,44 @@ class SubmissionsController extends BaseController
         $writer->save('php://output');
 
         return (string)ob_get_clean();
+    }
+
+    private function writeRowsToSheet($sheet, array $rows): void
+    {
+        if ($rows === []) {
+            $sheet->setCellValueExplicit('A1', 'No data', DataType::TYPE_STRING);
+            return;
+        }
+
+        $headers = array_keys($rows[0]);
+        $lastHeaderCol = Coordinate::stringFromColumnIndex(count($headers));
+
+        foreach ($headers as $index => $header) {
+            $cell = Coordinate::stringFromColumnIndex($index + 1) . '1';
+            $sheet->setCellValueExplicit($cell, (string)$header, DataType::TYPE_STRING);
+        }
+
+        $sheet->getStyle('A1:' . $lastHeaderCol . '1')->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF'],
+            ],
+        ]);
+
+        $rowNum = 2;
+        foreach ($rows as $row) {
+            foreach ($headers as $index => $header) {
+                $val = $row[$header] ?? '';
+                $cell = Coordinate::stringFromColumnIndex($index + 1) . (string)$rowNum;
+                $sheet->setCellValueExplicit(
+                    $cell,
+                    is_scalar($val) ? (string)$val : (string)json_encode($val, JSON_UNESCAPED_UNICODE),
+                    DataType::TYPE_STRING
+                );
+            }
+            $rowNum++;
+        }
     }
 
     private function wordCount(string $value): int
@@ -836,6 +865,322 @@ class SubmissionsController extends BaseController
         }
 
         return $errors === [] ? null : $errors;
+    }
+
+    private function generateCertificateFiles(array $entry): ?array
+    {
+        if (!extension_loaded('gd') || !function_exists('imagecreatefrompng') || !function_exists('imagejpeg')) {
+            return ['Certificate generation requires the PHP GD extension with PNG and JPEG support.'];
+        }
+
+        $templatePath = $this->resolveCertificateTemplatePath();
+        if ($templatePath === null) {
+            return ['Certificate template not found. Expected /public_html/img/CertificateTemplate.png or /public/img/CertificateTemplate.png.'];
+        }
+
+        $entryId = (string)($entry['entry_id'] ?? '');
+        $photoId = trim((string)($entry['photo_id'] ?? ''));
+        if ($photoId === '') {
+            $photoId = preg_replace('/[^A-Za-z0-9_-]/', '', $entryId) ?: 'entry';
+        }
+
+        $year = (int)($entry['comp_year'] ?? date('Y'));
+        $typeName = strtolower(trim((string)($entry['comp_type_name'] ?? 'unknown')));
+        $typeDir = str_replace(['/', '\\'], '-', $typeName);
+        $baseDir = rtrim(FCPATH, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR . 'uploads'
+            . DIRECTORY_SEPARATOR . $year
+            . DIRECTORY_SEPARATOR . $typeDir;
+        if (!is_dir($baseDir)) {
+            @mkdir($baseDir, 0775, true);
+            @file_put_contents($baseDir . DIRECTORY_SEPARATOR . 'index.html', '');
+            @file_put_contents($baseDir . DIRECTORY_SEPARATOR . '.htaccess', "Options -Indexes\n<FilesMatch \"\\.(php|phtml|phar|cgi|pl|asp|aspx)$\">\nRequire all denied\n</FilesMatch>\n");
+        }
+        if (!is_dir($baseDir) || !is_writable($baseDir)) {
+            return ['Certificate upload folder could not be prepared.'];
+        }
+
+        $imageName = 'CertificateImage_' . $photoId . '.jpg';
+        $pdfName = 'CertificatePDF_' . $photoId . '.pdf';
+        $imageAbsolutePath = $baseDir . DIRECTORY_SEPARATOR . $imageName;
+        $pdfAbsolutePath = $baseDir . DIRECTORY_SEPARATOR . $pdfName;
+        $publicBase = '/uploads/' . $year . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $typeDir);
+        $imagePublicPath = $publicBase . '/' . $imageName;
+        $pdfPublicPath = $publicBase . '/' . $pdfName;
+
+        $certificateData = [
+            'year' => (string)$year,
+            'competition' => trim((string)($entry['comp_type_name'] ?? '')),
+            'award' => trim((string)($entry['selected_winner_level_name'] ?? '')),
+            'submission' => trim((string)($entry['design_name'] ?? '')),
+            'designers' => $this->formatCertificateDesigners($entry),
+        ];
+        if ($certificateData['award'] === '') {
+            return ['Winner award level is required before generating a certificate.'];
+        }
+        if ($certificateData['submission'] === '') {
+            return ['Submission name is required before generating a certificate.'];
+        }
+        if ($certificateData['designers'] === '') {
+            return ['Designer or team member names are required before generating a certificate.'];
+        }
+
+        $dimensions = $this->renderCertificateImage($templatePath, $imageAbsolutePath, $certificateData);
+        if ($dimensions === null) {
+            return ['Certificate image could not be generated.'];
+        }
+        if (!$this->renderCertificatePdf($imageAbsolutePath, $pdfAbsolutePath, $dimensions['width'], $dimensions['height'])) {
+            @unlink($imageAbsolutePath);
+            return ['Certificate PDF could not be generated.'];
+        }
+
+        $photoModel = new EntryPhotoModel();
+        $existing = $photoModel->asArray()->where('entry_id', $entryId)->where('entry_photo_res', 'PDF')->first();
+        $payload = [
+            'entry_id' => $entryId,
+            'entry_photo_res' => 'PDF',
+            'entry_photo_order' => 11,
+            'entry_photo_caption' => '',
+            'entry_photo' => $imagePublicPath,
+            'entry_certificate' => $pdfPublicPath,
+        ];
+
+        $persisted = false;
+        if ($existing) {
+            $persisted = (bool)$photoModel->skipValidation(true)->update((int)$existing['entry_photo_id'], $payload);
+        } else {
+            $persisted = $photoModel->skipValidation(true)->insert($payload, false) !== false;
+        }
+        if (!$persisted) {
+            @unlink($imageAbsolutePath);
+            @unlink($pdfAbsolutePath);
+            return ['Generated certificate could not be linked to this submission.'];
+        }
+
+        return null;
+    }
+
+    private function resolveCertificateTemplatePath(): ?string
+    {
+        $publicRoot = rtrim(FCPATH, DIRECTORY_SEPARATOR);
+        $projectRoot = dirname($publicRoot);
+        $candidates = [
+            $projectRoot . DIRECTORY_SEPARATOR . 'public_html' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'CertificateTemplate.png',
+            $publicRoot . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'CertificateTemplate.png',
+            $projectRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'CertificateTemplate.png',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private function renderCertificateImage(string $templatePath, string $targetPath, array $data): ?array
+    {
+        $image = @imagecreatefrompng($templatePath);
+        if (!$image) {
+            return null;
+        }
+
+        imagealphablending($image, true);
+        imagesavealpha($image, false);
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $scale = min($width / 1536, $height / 2048);
+        $black = imagecolorallocate($image, 0, 0, 0);
+        $fontRegular = $this->certificateFontPath(false);
+        $fontBold = $this->certificateFontPath(true) ?? $fontRegular;
+
+        $this->drawCertificateText($image, $data['year'], 115 * $scale, 1380 * $scale, 58 * $scale, $black, $fontBold, 470 * $scale, 1);
+        $this->drawCertificateText($image, $data['award'], 810 * $scale, 1350 * $scale, 34 * $scale, $black, $fontBold, 510 * $scale, 1);
+        $this->drawCertificateText($image, $data['submission'], 810 * $scale, 1415 * $scale, 32 * $scale, $black, $fontBold, 520 * $scale, 3);
+        $this->drawCertificateText($image, $data['designers'], 810 * $scale, 1605 * $scale, 30 * $scale, $black, $fontBold, 530 * $scale, 4);
+        $this->drawCertificateText($image, $data['competition'], 810 * $scale, 1825 * $scale, 30 * $scale, $black, $fontBold, 530 * $scale, 3);
+
+        $dir = dirname($targetPath);
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            imagedestroy($image);
+            return null;
+        }
+
+        $ok = imagejpeg($image, $targetPath, 94);
+        imagedestroy($image);
+
+        return $ok && is_file($targetPath) ? ['width' => $width, 'height' => $height] : null;
+    }
+
+    private function drawCertificateText($image, string $text, float $x, float $baselineY, float $fontSize, int $color, ?string $fontPath, float $maxWidth, int $maxLines): void
+    {
+        $text = trim(preg_replace('/\s+/', ' ', $text) ?? '');
+        if ($text === '') {
+            return;
+        }
+
+        if ($fontPath === null || !function_exists('imagettftext')) {
+            imagestring($image, 5, (int)$x, (int)$baselineY, $text, $color);
+            return;
+        }
+
+        $size = $fontSize;
+        do {
+            $lines = $this->wrapCertificateText($text, $fontPath, $size, $maxWidth);
+            if (count($lines) <= $maxLines || $size <= 16) {
+                break;
+            }
+            $size -= 2;
+        } while (true);
+
+        $lineHeight = $size * 1.62;
+        foreach (array_slice($lines, 0, $maxLines) as $idx => $line) {
+            imagettftext($image, (int)round($size), 0, (int)round($x), (int)round($baselineY + ($idx * $lineHeight)), $color, $fontPath, $line);
+        }
+    }
+
+    private function wrapCertificateText(string $text, string $fontPath, float $fontSize, float $maxWidth): array
+    {
+        $words = preg_split('/\s+/', $text) ?: [];
+        $lines = [];
+        $line = '';
+
+        foreach ($words as $word) {
+            $candidate = $line === '' ? $word : $line . ' ' . $word;
+            if ($this->certificateTextWidth($candidate, $fontPath, $fontSize) <= $maxWidth || $line === '') {
+                $line = $candidate;
+                continue;
+            }
+
+            $lines[] = $line;
+            $line = $word;
+        }
+
+        if ($line !== '') {
+            $lines[] = $line;
+        }
+
+        return $lines;
+    }
+
+    private function certificateTextWidth(string $text, string $fontPath, float $fontSize): int
+    {
+        $box = imagettfbbox((int)round($fontSize), 0, $fontPath, $text);
+        if (!is_array($box)) {
+            return 0;
+        }
+
+        return abs((int)$box[2] - (int)$box[0]);
+    }
+
+    private function renderCertificatePdf(string $imagePath, string $targetPath, int $imageWidth, int $imageHeight): bool
+    {
+        if (!is_file($imagePath)) {
+            return false;
+        }
+
+        try {
+            $options = new Options();
+            $options->set('isRemoteEnabled', false);
+            $dompdf = new Dompdf($options);
+            $pageWidth = $imageWidth * 0.75;
+            $pageHeight = $imageHeight * 0.75;
+            $imageData = base64_encode((string)file_get_contents($imagePath));
+            $html = '<!doctype html><html><head><meta charset="utf-8"><style>@page{margin:0;}html,body{margin:0;padding:0;width:100%;height:100%;}img{display:block;width:100%;height:100%;}</style></head><body><img src="data:image/jpeg;base64,' . $imageData . '" alt="Spark Award Certificate"></body></html>';
+            $dompdf->setPaper([0, 0, $pageWidth, $pageHeight]);
+            $dompdf->loadHtml($html);
+            $dompdf->render();
+
+            return @file_put_contents($targetPath, $dompdf->output()) !== false && is_file($targetPath);
+        } catch (\Throwable $e) {
+            log_message('error', 'Certificate PDF generation failed: {message}', [
+                'message' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    private function certificateFontPath(bool $bold): ?string
+    {
+        $candidates = $bold ? [
+            'C:\\Windows\\Fonts\\georgiab.ttf',
+            'C:\\Windows\\Fonts\\arialbd.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        ] : [
+            'C:\\Windows\\Fonts\\georgia.ttf',
+            'C:\\Windows\\Fonts\\arial.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private function formatCertificateDesigners(array $entry): string
+    {
+        $names = [];
+        $seen = [];
+        foreach ($this->splitCertificateNames((string)($entry['additional_team_members'] ?? '')) as $member) {
+            $key = $this->normalizeCertificateName($member);
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+            $names[] = $member;
+            $seen[$key] = true;
+        }
+
+        return $this->joinCertificateNames($names);
+    }
+
+    private function splitCertificateNames(string $rawNames): array
+    {
+        $rawNames = trim($rawNames);
+        if ($rawNames === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*(?:,|;|\r?\n|\s+&\s+|\s+and\s+)\s*/i', $rawNames) ?: [];
+        $names = [];
+        foreach ($parts as $part) {
+            $name = trim(preg_replace('/\s+/', ' ', $part) ?? '');
+            if ($name !== '') {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
+    }
+
+    private function normalizeCertificateName(string $name): string
+    {
+        $normalized = mb_strtolower(trim($name));
+        $normalized = preg_replace('/[^\p{L}\p{N}]+/u', '', $normalized) ?? '';
+        return $normalized;
+    }
+
+    private function joinCertificateNames(array $names): string
+    {
+        $names = array_values(array_filter(array_map('trim', $names), static fn(string $name): bool => $name !== ''));
+        $count = count($names);
+        if ($count === 0) {
+            return '';
+        }
+        if ($count === 1) {
+            return $names[0];
+        }
+        if ($count === 2) {
+            return $names[0] . ' & ' . $names[1];
+        }
+
+        return implode(', ', array_slice($names, 0, -1)) . ' & ' . $names[$count - 1];
     }
 
     private function processWinnerBadge(string $entryId, int $compId): ?array

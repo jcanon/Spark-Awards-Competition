@@ -324,6 +324,8 @@ class SubmissionsAdminService
             $out[] = [
                 'entry_id' => $entryId,
                 'design_name' => $row['design_name'],
+                'designer_name' => trim((string)($row['designer_first_name'] ?? '') . ' ' . (string)($row['designer_last_name'] ?? '')),
+                'team_members' => $row['additional_team_members'] ?? '',
                 'competition_year' => $row['comp_year'],
                 'competition_type' => $row['comp_type_name'],
                 'status' => $row['entry_status'],
@@ -338,6 +340,54 @@ class SubmissionsAdminService
                 'short_description' => $row['short_description'] ?? '',
                 'full_description' => $row['full_description'] ?? '',
                 'video_embed_url' => $this->submissions->normalizeVideoEmbedUrl((string)($row['youtube_url'] ?? '')),
+            ];
+        }
+
+        return $out;
+    }
+
+    public function exportJudging(array $filters): array
+    {
+        $rows = $this->list($filters);
+        if ($rows === []) {
+            return [];
+        }
+
+        $entryIds = array_values(array_unique(array_filter(array_map(
+            static fn (array $row): string => (string)($row['entry_id'] ?? ''),
+            $rows
+        ))));
+        if ($entryIds === []) {
+            return [];
+        }
+
+        $judgingRows = db_connect()->table('comp_judging j')
+            ->select('e.design_name, c.comp_year, t.comp_type_name, u.first_name, u.last_name, u.email_address, j.entry_score, j.entry_comments')
+            ->join('comp_entries e', 'e.entry_id = j.entry_id')
+            ->join('comp_competitions c', 'c.comp_id = e.comp_id')
+            ->join('comp_type t', 't.comp_type_id = c.comp_type_id')
+            ->join('comp_users u', 'u.user_id = j.user_id')
+            ->whereIn('j.entry_id', $entryIds)
+            ->orderBy('e.design_name', 'ASC')
+            ->orderBy('u.last_name', 'ASC')
+            ->orderBy('u.first_name', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $out = [];
+        foreach ($judgingRows as $row) {
+            $judgeName = trim((string)($row['first_name'] ?? '') . ' ' . (string)($row['last_name'] ?? ''));
+            if ($judgeName === '') {
+                $judgeName = (string)($row['email_address'] ?? '');
+            }
+
+            $out[] = [
+                'submission_name' => (string)($row['design_name'] ?? ''),
+                'competition_year' => (string)($row['comp_year'] ?? ''),
+                'competition_type' => (string)($row['comp_type_name'] ?? ''),
+                'judge' => $judgeName,
+                'score' => (string)($row['entry_score'] ?? ''),
+                'judge_notes' => (string)($row['entry_comments'] ?? ''),
             ];
         }
 

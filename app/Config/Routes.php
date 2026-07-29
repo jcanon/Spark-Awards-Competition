@@ -134,6 +134,7 @@ $routes->group('admin', ['filter' => 'auth:admin,editor,2fa'], static function (
     $routes->post('submissions/store', 'Admin\SubmissionsController::store');
     $routes->get('submissions/edit/(:segment)', 'Admin\SubmissionsController::edit/$1');
     $routes->post('submissions/update/(:segment)', 'Admin\SubmissionsController::update/$1');
+    $routes->post('submissions/certificate/generate/(:segment)', 'Admin\SubmissionsController::generateCertificate/$1');
     $routes->get('submissions/copy/(:segment)', 'Admin\SubmissionsController::copy/$1');
     $routes->post('submissions/copy/(:segment)', 'Admin\SubmissionsController::copyPost/$1');
     $routes->post('submissions/delete/(:segment)', 'Admin\SubmissionsController::delete/$1');

@@ -378,6 +378,16 @@
                         </div>
                         <input type="hidden" name="certificate_thumb_data" id="certificate_thumb_data" value="">
                         <div id="certificate-thumb-status" class="small text-muted mt-1"></div>
+                        <button
+                            type="submit"
+                            class="btn btn-sm btn-outline-primary mt-2"
+                            form="generate-certificate-form"
+                            formnovalidate
+                            onclick="return confirm('Generate and assign a certificate from the current saved submission data?');"
+                        >
+                            <i class="fas fa-certificate" aria-hidden="true"></i>
+                            Generate Certificate
+                        </button>
                         <?php if ($certificate && !empty($certificate['entry_certificate'])): ?>
                             <div class="small mt-2">
                                 <button
@@ -592,6 +602,10 @@
             <?= csrf_field() ?>
         </form>
     <?php endif; ?>
+
+    <form id="generate-certificate-form" action="<?= site_url('admin/submissions/certificate/generate/' . rawurlencode((string)$row['entry_id'])) ?>" method="post" class="d-none">
+        <?= csrf_field() ?>
+    </form>
 
     <div class="modal fade" id="photoPreviewModal" tabindex="-1" role="dialog" aria-labelledby="photoPreviewModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
