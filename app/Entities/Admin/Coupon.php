@@ -11,5 +11,7 @@ class Coupon extends Entity
     protected $casts = [
         'coupon_id' => 'integer',
         'coupon_comp' => 'integer',
+        'coupon_single_use' => 'integer',
+        'coupon_phase' => 'integer',
     ];
 }

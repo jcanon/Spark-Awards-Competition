@@ -49,3 +49,24 @@
     white-space: pre-wrap;
     word-break: break-word;
 }
+
+.spark-export-actions {
+    margin-bottom: -0.5rem;
+}
+
+.spark-export-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    white-space: nowrap;
+}
+
+.spark-export-actions > * {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.spark-export-actions > *:last-child {
+    margin-right: 0;
+}

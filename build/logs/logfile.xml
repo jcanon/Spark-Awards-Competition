@@ -1,9 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="AdminBulkEndpointsTest" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" tests="4" assertions="12" errors="0" failures="0" skipped="0" time="0.084333">
-    <testcase name="testSubmissionsBulkRequiresAction" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="91" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.067106"/>
-    <testcase name="testSubmissionsBulkUnknownActionReturnsUpdatedZero" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="102" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.006178"/>
-    <testcase name="testScoreResultsBulkRequiresSelection" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="113" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.006712"/>
-    <testcase name="testScoreResultsBulkUnknownActionReturnsUpdatedZero" file="D:\MAMP\Spark-Awards-Competition\tests\feature\AdminBulkEndpointsTest.php" line="123" class="AdminBulkEndpointsTest" classname="AdminBulkEndpointsTest" assertions="3" time="0.004338"/>
+  <testsuite name="EntryPhotoDeletionTest" file="D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php" tests="4" assertions="4" errors="2" failures="0" skipped="0" time="0.054075">
+    <testcase name="testMissingImageStillDeletesRecordWithoutFilesystemWarnings" file="D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php" line="35" class="EntryPhotoDeletionTest" classname="EntryPhotoDeletionTest" assertions="2" time="0.033654"/>
+    <testcase name="testExistingPublicImageMovesToTrashAndDeletesRecord" file="D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php" line="49" class="EntryPhotoDeletionTest" classname="EntryPhotoDeletionTest" assertions="0" time="0.015429">
+      <error type="ErrorException">EntryPhotoDeletionTest::testExistingPublicImageMovesToTrashAndDeletesRecord&#13;
+ErrorException: rename(D:\MAMP\Spark-Awards-Competition\public\photo-deletion-test-a19d906400e39886.jpg,D:\MAMP\Spark-Awards-Competition\public\trash\photo-deletion-test-a19d906400e39886.jpg): Access is denied (code: 5)
+&#13;
+D:\MAMP\Spark-Awards-Competition\app\Services\EntryPhotoService.php:84
+D:\MAMP\Spark-Awards-Competition\app\Services\EntryPhotoService.php:66
+D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php:66
+D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php:51</error>
+    </testcase>
+    <testcase name="testExistingWritableImageMovesToTrashAndDeletesRecord" file="D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php" line="54" class="EntryPhotoDeletionTest" classname="EntryPhotoDeletionTest" assertions="0" time="0.002699">
+      <error type="ErrorException">EntryPhotoDeletionTest::testExistingWritableImageMovesToTrashAndDeletesRecord&#13;
+ErrorException: rename(D:\MAMP\Spark-Awards-Competition\writable\photo-deletion-test-901114ff506a7872.jpg,D:\MAMP\Spark-Awards-Competition\public\trash\photo-deletion-test-901114ff506a7872.jpg): Access is denied (code: 5)
+&#13;
+D:\MAMP\Spark-Awards-Competition\app\Services\EntryPhotoService.php:84
+D:\MAMP\Spark-Awards-Competition\app\Services\EntryPhotoService.php:66
+D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php:66
+D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php:56</error>
+    </testcase>
+    <testcase name="testMissingRecordReturnsFalse" file="D:\MAMP\Spark-Awards-Competition\tests\database\EntryPhotoDeletionTest.php" line="76" class="EntryPhotoDeletionTest" classname="EntryPhotoDeletionTest" assertions="2" time="0.002294"/>
   </testsuite>
 </testsuites>

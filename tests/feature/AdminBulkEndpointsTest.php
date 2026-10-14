@@ -99,6 +99,18 @@ final class AdminBulkEndpointsTest extends CIUnitTestCase
         $result->assertSessionHas('error', 'Please choose a bulk update option.');
     }
 
+    public function testSubmissionsBulkTokenIsFreshAndNotCached(): void
+    {
+        $result = $this->withSession($this->adminSession())
+            ->get('/admin/submissions/bulk-token');
+
+        $result->assertOK();
+        $this->assertStringContainsString('no-store', $result->response()->getHeaderLine('Cache-Control'));
+        $token = json_decode($result->getJSON(), true);
+        $this->assertSame(csrf_token(), $token['name']);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $token['hash']);
+    }
+
     public function testSubmissionsBulkUnknownActionReturnsUpdatedZero(): void
     {
         $result = $this->postAsAdminWithCsrf('/admin/submissions/bulk', [

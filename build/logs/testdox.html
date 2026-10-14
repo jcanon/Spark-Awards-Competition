@@ -51,12 +51,12 @@
         </style>
     </head>
     <body>
-        <h2>Admin Bulk Endpoints</h2>
+        <h2>Entry Photo Deletion</h2>
         <ul>
-            <li class="success">Submissions bulk requires action</li>
-            <li class="success">Submissions bulk unknown action returns updated zero</li>
-            <li class="success">Score results bulk requires selection</li>
-            <li class="success">Score results bulk unknown action returns updated zero</li>
+            <li class="success">Missing image still deletes record without filesystem warnings</li>
+            <li class="defect">Existing public image moves to trash and deletes record</li>
+            <li class="defect">Existing writable image moves to trash and deletes record</li>
+            <li class="success">Missing record returns false</li>
         </ul>
     </body>
 </html>

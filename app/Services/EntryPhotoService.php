@@ -72,6 +72,11 @@ class EntryPhotoService
 
     private function moveToTrash(string $absPath): void
     {
+        // Missing image files must not prevent deletion of their database records.
+        if (!is_file($absPath)) {
+            return;
+        }
+
         $trash = rtrim(FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'trash';
         if (!is_dir($trash)) {
             @mkdir($trash, 0775, true);

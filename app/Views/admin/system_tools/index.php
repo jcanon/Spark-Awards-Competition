@@ -3,6 +3,7 @@
 
 <?php
 $tools = [
+    ['title' => 'Broken Image Scanner', 'icon' => 'search', 'desc' => 'Scan all years, recover misplaced images, and hide submissions with missing images from galleries.', 'url' => site_url('admin/system-tools/broken-image-scanner')],
     ['title' => 'Countries', 'icon' => 'globe-americas', 'desc' => 'Manage country reference records used across profiles and admin forms.', 'url' => site_url('admin/system-tools/countries')],
     ['title' => 'Diagnostics Bundle', 'icon' => 'file-archive', 'desc' => 'Generate a sanitized diagnostics zip for troubleshooting and support.', 'url' => site_url('admin/system-tools/diagnostics')],
     ['title' => 'Log Viewer', 'icon' => 'file-alt', 'desc' => 'Inspect recent application logs and purge old log files safely.', 'url' => site_url('admin/system-tools/logs')],

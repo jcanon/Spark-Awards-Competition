@@ -29,6 +29,10 @@ class PasswordExpiryController extends BaseController
         if ($userId === '') {
             return redirect()->to('/auth/login');
         }
+        if (!(bool)session('password_reset_required')) {
+            return redirect()->to('/home');
+        }
+
         $ip = (string)$this->request->getIPAddress();
         if (!service('authThrottle')->allowForcedPasswordUpdate($ip, $userId)) {
             return redirect()->back()->withInput()->with(

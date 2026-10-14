@@ -87,6 +87,33 @@
                         'attrs' => [],
                     ]) ?>
                 </div>
+                <div class="row">
+                    <?php $singleUse = (string)(old('coupon_single_use') ?? ($row?->coupon_single_use ?? '0')); ?>
+                    <?php $couponPhase = (string)(old('coupon_phase') ?? ($row?->coupon_phase ?? '0')); ?>
+                    <?= view('partials/forms/select', [
+                        'colClass' => 'col-md-4 form-group',
+                        'label' => 'Payment Phase',
+                        'name' => 'coupon_phase',
+                        'required' => true,
+                        'options' => [
+                            ['value' => '0', 'label' => 'All', 'selected' => $couponPhase === '0'],
+                            ['value' => '1', 'label' => 'Phase 1', 'selected' => $couponPhase === '1'],
+                            ['value' => '2', 'label' => 'Phase 2', 'selected' => $couponPhase === '2'],
+                        ],
+                    ]) ?>
+                    <?= view('partials/forms/select', [
+                        'colClass' => 'col-md-4 form-group',
+                        'label' => 'Usage',
+                        'name' => 'coupon_single_use',
+                        'required' => true,
+                        'attrs' => ['aria-describedby' => 'coupon-usage-help'],
+                        'options' => [
+                            ['value' => '0', 'label' => 'Multi-use', 'selected' => $singleUse === '0'],
+                            ['value' => '1', 'label' => 'One-time use', 'selected' => $singleUse === '1'],
+                        ],
+                    ]) ?>
+                </div>
+                <p id="coupon-usage-help" class="small text-muted">One-time codes are limited to one entry payment across all entrants. Starting checkout reserves the code for that payment, including payment retries.</p>
         <?= view('partials/ui/card-end') ?>
 
         <?= view('partials/forms/actions', [

@@ -191,6 +191,15 @@ class CompetitionService
         return (bool)(new CompetitionTypeModel())->update($compTypeId, ['archived' => 1]);
     }
 
+    public function unarchiveCompetitionType(int $compTypeId): bool
+    {
+        if ($compTypeId <= 0 || !$this->getCompetitionTypeByID($compTypeId)) {
+            return false;
+        }
+
+        return (bool)(new CompetitionTypeModel())->update($compTypeId, ['archived' => 0]);
+    }
+
     // ---------- reads (Entities) ----------
 
     public function getAllCompetitions(?int $year = null): array

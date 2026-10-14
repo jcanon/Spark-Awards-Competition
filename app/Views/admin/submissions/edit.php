@@ -57,15 +57,20 @@
             <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Entry Overview</h6></div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-3 form-group mb-2">
+                        <label class="form-label mb-1" for="design_name">Design Name <span class="text-danger">*</span></label>
+                        <input id="design_name" name="design_name" class="form-control" maxlength="100" required value="<?= esc((string)($row['design_name'] ?? '')) ?>">
+                        <div class="invalid-feedback">Design name is required.</div>
+                    </div>
+                    <div class="col-md-3 form-group mb-2">
                         <label class="form-label mb-1">Date Created</label>
                         <div class="form-control-plaintext"><?= esc($fmtDate((string)($row['date_created'] ?? ''))) ?></div>
                     </div>
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-3 form-group mb-2">
                         <label class="form-label mb-1">Last Updated</label>
                         <div class="form-control-plaintext"><?= esc($fmtDate((string)($row['last_updated'] ?? ''))) ?></div>
                     </div>
-                    <div class="col-md-4 form-group mb-2">
+                    <div class="col-md-3 form-group mb-2">
                         <label class="form-label mb-1">Submitted By</label>
                         <div class="form-control-plaintext">
                             <a href="<?= site_url('admin/users/edit/' . rawurlencode((string)$row['user_id'])) ?>">
@@ -209,11 +214,6 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6 form-group">
-                        <label class="form-label" for="design_name">Design Name <span class="text-danger">*</span></label>
-                        <input id="design_name" name="design_name" class="form-control" maxlength="100" required value="<?= esc((string)($row['design_name'] ?? '')) ?>">
-                        <div class="invalid-feedback">Design name is required.</div>
-                    </div>
-                    <div class="col-md-6 form-group">
                         <label class="form-label" for="company_name">Organization <span class="text-danger">*</span></label>
                         <input id="company_name" name="company_name" class="form-control" maxlength="100" required value="<?= esc((string)($row['company_name'] ?? '')) ?>">
                         <div class="invalid-feedback">Company / Organization is required.</div>
@@ -265,6 +265,15 @@
                 </div>
             </div>
         </div>
+
+        <?php if ($winnerBadge && $canDelete): ?>
+            <?php $deletePhotoIds[(int)$winnerBadge['entry_photo_id']] = true; ?>
+        <?php endif; ?>
+        <?= view('admin/submissions/_certificate_files', [
+            'certificate' => $certificate,
+            'winnerBadge' => $winnerBadge,
+            'canDelete' => $canDelete,
+        ]) ?>
 
         <div class="card mb-4">
             <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Design Photos</h6></div>
@@ -337,136 +346,6 @@
                         </div>
                     </div>
                 <?php endfor; ?>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-header"><h6 class="m-0 font-weight-bold text-primary">Certificate & Winner Badge Files</h6></div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-2 form-group">
-                        <label class="form-label">Certificate PDF Thumbnail</label>
-                        <div class="photo-thumb-wrap mb-2">
-                            <?php if ($certificate && !empty($certificate['entry_certificate'])): ?>
-                                <button
-                                    type="button"
-                                    class="btn p-0 border-0 bg-transparent w-100 h-100 js-photo-modal-link"
-                                    data-photo-url="<?= esc((string)$certificate['entry_certificate']) ?>"
-                                    data-photo-title="Certificate PDF"
-                                    data-photo-type="pdf"
-                                    aria-label="Certificate PDF"
-                                >
-                                    <?php if (!empty($certificate['entry_photo'])): ?>
-                                        <img src="<?= esc((string)$certificate['entry_photo']) ?>" alt="Certificate PDF Thumbnail">
-                                    <?php else: ?>
-                                        <div class="photo-thumb-empty">PDF preview</div>
-                                    <?php endif; ?>
-                                </button>
-                            <?php else: ?>
-                                <div class="photo-thumb-empty">No PDF</div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="small text-muted">Thumbnail is auto-generated from the uploaded PDF.</div>
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label class="form-label">Certificate PDF</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text"><i class="fas fa-file-pdf" aria-hidden="true"></i></span>
-                            </div>
-                            <input type="file" name="certificate_pdf" class="form-control" accept=".pdf,application/pdf">
-                        </div>
-                        <input type="hidden" name="certificate_thumb_data" id="certificate_thumb_data" value="">
-                        <div id="certificate-thumb-status" class="small text-muted mt-1"></div>
-                        <button
-                            type="submit"
-                            class="btn btn-sm btn-outline-primary mt-2"
-                            form="generate-certificate-form"
-                            formnovalidate
-                            onclick="return confirm('Generate and assign a certificate from the current saved submission data?');"
-                        >
-                            <i class="fas fa-certificate" aria-hidden="true"></i>
-                            Generate Certificate
-                        </button>
-                        <?php if ($certificate && !empty($certificate['entry_certificate'])): ?>
-                            <div class="small mt-2">
-                                <button
-                                    type="button"
-                                    class="btn btn-link p-0 align-baseline js-photo-modal-link"
-                                    data-photo-url="<?= esc((string)$certificate['entry_certificate']) ?>"
-                                    data-photo-title="Certificate PDF"
-                                    data-photo-type="pdf"
-                                >View</button>
-                                <?php if ($canDelete): ?>
-                                    <button
-                                        type="submit"
-                                        class="btn btn-link text-danger p-0 ml-2"
-                                        form="delete-certificate-<?= (int)$certificate['entry_photo_id'] ?>"
-                                        formnovalidate
-                                        onclick="return confirm('Delete this certificate PDF reference? This cannot be undone.');"
-                                    >
-                                        Delete
-                                    </button>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="col-md-2 form-group"></div>
-                    <div class="col-md-2 form-group">
-                        <label class="form-label">Winner Badge Preview</label>
-                        <div class="photo-thumb-wrap mb-2">
-                            <?php if ($winnerBadge && !empty($winnerBadge['entry_photo'])): ?>
-                                <button
-                                    type="button"
-                                    class="btn p-0 border-0 bg-transparent w-100 h-100 js-photo-modal-link"
-                                    data-photo-url="<?= site_url('media/photo/' . (int)$winnerBadge['entry_photo_id']) ?>"
-                                    data-photo-title="Winner Badge"
-                                    aria-label="Winner Badge"
-                                >
-                                    <img src="<?= site_url('media/photo/' . (int)$winnerBadge['entry_photo_id']) ?>" alt="Winner Badge">
-                                </button>
-                            <?php else: ?>
-                                <div class="photo-thumb-empty">No Badge</div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label class="form-label">Winner Badge</label>
-                        <?php if ((string)session('role') === 'admin'): ?>
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"><i class="fas fa-image" aria-hidden="true"></i></span>
-                                </div>
-                                <input type="file" name="winner_badge" class="form-control" accept="image/*,.jpg,.jpeg,.png,.tif,.tiff">
-                            </div>
-                        <?php else: ?>
-                            <div class="small text-muted mt-2">Only admins can upload a Winner Badge.</div>
-                        <?php endif; ?>
-                        <?php if ($winnerBadge): ?>
-                            <div class="small mt-2">
-                                <button
-                                    type="button"
-                                    class="btn btn-link p-0 align-baseline js-photo-modal-link"
-                                    data-photo-url="<?= site_url('media/photo/' . (int)$winnerBadge['entry_photo_id']) ?>"
-                                    data-photo-title="Winner Badge"
-                                >View</button>
-                                <?php if ($canDelete): ?>
-                                    <?php $badgePhotoId = (int)$winnerBadge['entry_photo_id']; ?>
-                                    <?php $deletePhotoIds[$badgePhotoId] = true; ?>
-                                    <button
-                                        type="submit"
-                                        class="btn btn-link text-danger p-0 ml-2"
-                                        form="delete-photo-<?= $badgePhotoId ?>"
-                                        formnovalidate
-                                        onclick="return confirm('Delete this winner badge? This cannot be undone.');"
-                                    >
-                                        Delete
-                                    </button>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
             </div>
         </div>
 

@@ -88,7 +88,7 @@ class AuthService
             'is_judge' => $isJudge,
             '2fa_pass' => !$requires2fa,
             'name' => $name,
-            'password_reset_required' => $this->policy->enforcePasswordExpiry
+            'password_reset_required' => !$isAdmin && $this->policy->enforcePasswordExpiry
                 && $this->isPasswordExpired((string)($user['password_changed_at'] ?? '')),
         ]);
 

@@ -44,9 +44,10 @@ class PaymentsController extends BaseController
 
         $entry = db_connect()->table('comp_entries')->select('comp_id')->where('entry_id', $entryId)->get()->getRowArray();
         $compId = (int)($entry['comp_id'] ?? 0);
-        $check = service('payments')->getCoupon($coupon, $compId);
+        $payment = service('payments')->getPaymentDetails($entryId, (string)$phase);
+        $check = service('payments')->getCoupon($coupon, $compId, $payment ? (int)$payment->payment_id : null, $phase);
         if ($check === []) {
-            return redirect()->back()->with('error', 'Invalid or expired coupon code.');
+            return redirect()->back()->with('error', 'This coupon is invalid, expired, already used, or not valid for this payment phase.');
         }
 
         service('payments')->updateCoupon($entryId, (string)$phase, $coupon);
@@ -88,7 +89,11 @@ class PaymentsController extends BaseController
         }
 
         $phase = $this->normalizePhase($phase);
-        $cart = service('payments')->calculateTotalsForEntry($entryId, $phase);
+        try {
+            $cart = service('payments')->calculateTotalsForEntry($entryId, $phase, true);
+        } catch (\RuntimeException $e) {
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}")->with('error', $e->getMessage());
+        }
         $total = (float)($cart['total'] ?? 0);
 
         if ($total <= 0) {
@@ -123,7 +128,11 @@ class PaymentsController extends BaseController
 
         $phase = $this->normalizePhase($phase);
         service('payments')->ensurePaymentRow($entryId, $phase);
-        $cart = service('payments')->calculateTotalsForEntry($entryId, $phase);
+        try {
+            $cart = service('payments')->calculateTotalsForEntry($entryId, $phase, true);
+        } catch (\RuntimeException $e) {
+            return redirect()->to("/payments/entry/{$entryId}/phase/{$phase}")->with('error', $e->getMessage());
+        }
         $total = (float)($cart['total'] ?? 0);
 
         if ($total <= 0) {

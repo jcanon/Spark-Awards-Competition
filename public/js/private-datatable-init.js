@@ -19,8 +19,13 @@
             }
         }
 
+        var pageLength = parseInt($table.attr('data-page-length') || '100', 10);
+        if (!pageLength || pageLength < 1) {
+            pageLength = 100;
+        }
+
         $table.DataTable({
-            pageLength: 100,
+            pageLength: pageLength,
             lengthMenu: [[25, 50, 100, 500, 1000], [25, 50, 100, 500, 1000]],
             order: order,
             responsive: false

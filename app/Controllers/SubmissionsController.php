@@ -506,12 +506,37 @@ class SubmissionsController extends BaseController
                     'entry_photo_order'   => $i,
                 ];
 
-                if ($existing) {
-                    $photoModel->update((int) $existing->entry_photo_id, $data);
-                } else {
-                    $photoModel->insert($data, false);
+                $persisted = $existing
+                    ? $photoModel->update((int) $existing->entry_photo_id, $data)
+                    : $photoModel->insert($data, false);
+
+                if (! $persisted) {
+                    // Do not leave a new file in uploads when its photo row could not be saved.
+                    // An existing photo uses this same deterministic filename, so retain it and
+                    // report the failed update instead.
+                    if (! $existing && is_file($target)) {
+                        @unlink($target);
+                    }
+
+                    $dbErrors = $photoModel->errors();
+                    log_message(
+                        'error',
+                        'Could not persist submission photo for entry {entryId}, slot {slot}: {errors}',
+                        [
+                            'entryId' => $entryId,
+                            'slot' => $i,
+                            'errors' => json_encode($dbErrors, JSON_UNESCAPED_SLASHES),
+                        ]
+                    );
+
+                    return ['low_photo_' . $i => 'Photo ' . $i . ' was processed but could not be saved. Please try again.'];
                 }
             } catch (\Throwable $e) {
+                log_message(
+                    'error',
+                    'Could not process submission photo for entry {entryId}, slot {slot}: {message}',
+                    ['entryId' => $entryId, 'slot' => $i, 'message' => $e->getMessage()]
+                );
                 return ['photo' . $i => 'Image processing failed.'];
             }
         }

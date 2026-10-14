@@ -157,6 +157,7 @@ class CompetitionsController extends BaseController
     {
         return view('admin/competitions/types', [
             'rows' => service('competitions')->getAllCompetitionTypes(),
+            'showArchived' => $this->request->getGet('show_archived') === '1',
         ]);
     }
 
@@ -205,6 +206,16 @@ class CompetitionsController extends BaseController
         }
 
         return redirect()->to('/admin/competition-types')->with('success', 'Competition category archived.');
+    }
+
+    public function unarchiveType(int $compTypeId)
+    {
+        $redirect = redirect()->to('/admin/competition-types?show_archived=1');
+        if (!service('competitions')->unarchiveCompetitionType($compTypeId)) {
+            return $redirect->with('error', 'Competition category could not be unarchived.');
+        }
+
+        return $redirect->with('success', 'Competition category unarchived.');
     }
 
     public function editType(int $compTypeId)

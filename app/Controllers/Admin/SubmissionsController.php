@@ -318,6 +318,13 @@ class SubmissionsController extends BaseController
         return redirect()->to('/admin/submissions')->with('success', 'Submission deleted.');
     }
 
+    public function bulkToken()
+    {
+        return $this->response
+            ->setHeader('Cache-Control', 'no-store')
+            ->setJSON(['name' => csrf_token(), 'hash' => csrf_hash()]);
+    }
+
     public function bulk()
     {
         $action = (string)$this->request->getPost('action');
@@ -349,11 +356,12 @@ class SubmissionsController extends BaseController
 
     public function export()
     {
+        $allProSubmissions = $this->request->getGet('scope') === 'all';
         $filters = $this->getFilters();
-        $rows = $this->adminSubs->export($filters);
-        $judgingRows = $this->adminSubs->exportJudging($filters);
+        $rows = $this->adminSubs->export($filters, $allProSubmissions);
+        $judgingRows = $allProSubmissions ? null : $this->adminSubs->exportJudging($filters);
         $binary = $this->toXlsx($rows, $judgingRows);
-        $filename = 'submissions-export-' . date('Ymd_His') . '.xlsx';
+        $filename = ($allProSubmissions ? 'all-pro-submissions-export-' : 'submissions-export-') . date('Ymd_His') . '.xlsx';
 
         return $this->response
             ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -583,7 +591,7 @@ class SubmissionsController extends BaseController
             ->getRowArray() ?? [];
     }
 
-    private function toXlsx(array $rows, array $judgingRows): string
+    private function toXlsx(array $rows, ?array $judgingRows): string
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -591,9 +599,11 @@ class SubmissionsController extends BaseController
 
         $this->writeRowsToSheet($sheet, $rows);
 
-        $judgingSheet = $spreadsheet->createSheet();
-        $judgingSheet->setTitle('Judging');
-        $this->writeRowsToSheet($judgingSheet, $judgingRows);
+        if ($judgingRows !== null) {
+            $judgingSheet = $spreadsheet->createSheet();
+            $judgingSheet->setTitle('Judging');
+            $this->writeRowsToSheet($judgingSheet, $judgingRows);
+        }
 
         $spreadsheet->setActiveSheetIndex(0);
 
@@ -877,6 +887,9 @@ class SubmissionsController extends BaseController
         if ($templatePath === null) {
             return ['Certificate template not found. Expected /public_html/img/CertificateTemplate.png or /public/img/CertificateTemplate.png.'];
         }
+        if (!function_exists('imagettftext') || $this->certificateFontPath(true) === null) {
+            return ['Certificate generation requires GD FreeType support and the bundled Dompdf DejaVu fonts.'];
+        }
 
         $entryId = (string)($entry['entry_id'] ?? '');
         $photoId = trim((string)($entry['photo_id'] ?? ''));
@@ -911,7 +924,7 @@ class SubmissionsController extends BaseController
         $certificateData = [
             'year' => (string)$year,
             'competition' => trim((string)($entry['comp_type_name'] ?? '')),
-            'award' => trim((string)($entry['selected_winner_level_name'] ?? '')),
+            'award' => $this->formatCertificateAwardLevel((string)($entry['selected_winner_level_name'] ?? '')),
             'submission' => trim((string)($entry['design_name'] ?? '')),
             'designers' => $this->formatCertificateDesigners($entry),
         ];
@@ -990,16 +1003,20 @@ class SubmissionsController extends BaseController
         imagesavealpha($image, false);
         $width = imagesx($image);
         $height = imagesy($image);
-        $scale = min($width / 1536, $height / 2048);
+        $scale = min($width / 2550, $height / 3300);
         $black = imagecolorallocate($image, 0, 0, 0);
-        $fontRegular = $this->certificateFontPath(false);
-        $fontBold = $this->certificateFontPath(true) ?? $fontRegular;
+        $fontBold = $this->certificateFontPath(true);
 
-        $this->drawCertificateText($image, $data['year'], 115 * $scale, 1380 * $scale, 58 * $scale, $black, $fontBold, 470 * $scale, 1);
-        $this->drawCertificateText($image, $data['award'], 810 * $scale, 1350 * $scale, 34 * $scale, $black, $fontBold, 510 * $scale, 1);
-        $this->drawCertificateText($image, $data['submission'], 810 * $scale, 1415 * $scale, 32 * $scale, $black, $fontBold, 520 * $scale, 3);
-        $this->drawCertificateText($image, $data['designers'], 810 * $scale, 1605 * $scale, 30 * $scale, $black, $fontBold, 530 * $scale, 4);
-        $this->drawCertificateText($image, $data['competition'], 810 * $scale, 1825 * $scale, 30 * $scale, $black, $fontBold, 530 * $scale, 3);
+        if ($fontBold === null) {
+            imagedestroy($image);
+            return null;
+        }
+
+        $this->drawCertificateText($image, $data['year'], 190 * $scale, 2295 * $scale, 76 * $scale, $black, $fontBold, 470 * $scale, 1);
+        $this->drawCertificateText($image, $data['award'], 1435 * $scale, 2250 * $scale, 45 * $scale, $black, $fontBold, 850 * $scale, 1);
+        $this->drawCertificateText($image, $data['submission'], 1435 * $scale, 2345 * $scale, 43 * $scale, $black, $fontBold, 900 * $scale, 3);
+        $this->drawCertificateText($image, $data['designers'], 1435 * $scale, 2675 * $scale, 39 * $scale, $black, $fontBold, 760 * $scale, 4);
+        $this->drawCertificateText($image, $data['competition'], 1435 * $scale, 3035 * $scale, 39 * $scale, $black, $fontBold, 900 * $scale, 3, 3.2);
 
         $dir = dirname($targetPath);
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
@@ -1013,28 +1030,36 @@ class SubmissionsController extends BaseController
         return $ok && is_file($targetPath) ? ['width' => $width, 'height' => $height] : null;
     }
 
-    private function drawCertificateText($image, string $text, float $x, float $baselineY, float $fontSize, int $color, ?string $fontPath, float $maxWidth, int $maxLines): void
+    private function drawCertificateText($image, string $text, float $x, float $baselineY, float $fontSize, int $color, ?string $fontPath, float $maxWidth, int $maxLines, float $lineHeightMultiplier = 1.62): void
     {
-        $text = trim(preg_replace('/\s+/', ' ', $text) ?? '');
+        $text = trim(str_replace(["\r\n", "\r"], "\n", $text));
         if ($text === '') {
             return;
         }
 
         if ($fontPath === null || !function_exists('imagettftext')) {
-            imagestring($image, 5, (int)$x, (int)$baselineY, $text, $color);
             return;
         }
 
         $size = $fontSize;
         do {
-            $lines = $this->wrapCertificateText($text, $fontPath, $size, $maxWidth);
+            $lines = [];
+            foreach (explode("\n", $text) as $part) {
+                $part = trim(preg_replace('/\s+/', ' ', $part) ?? '');
+                if ($part === '') {
+                    continue;
+                }
+                foreach ($this->wrapCertificateText($part, $fontPath, $size, $maxWidth) as $line) {
+                    $lines[] = $line;
+                }
+            }
             if (count($lines) <= $maxLines || $size <= 16) {
                 break;
             }
             $size -= 2;
         } while (true);
 
-        $lineHeight = $size * 1.62;
+        $lineHeight = $size * $lineHeightMultiplier;
         foreach (array_slice($lines, 0, $maxLines) as $idx => $line) {
             imagettftext($image, (int)round($size), 0, (int)round($x), (int)round($baselineY + ($idx * $lineHeight)), $color, $fontPath, $line);
         }
@@ -1104,11 +1129,13 @@ class SubmissionsController extends BaseController
     private function certificateFontPath(bool $bold): ?string
     {
         $candidates = $bold ? [
+            rtrim(ROOTPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'dompdf' . DIRECTORY_SEPARATOR . 'dompdf' . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'fonts' . DIRECTORY_SEPARATOR . 'DejaVuSans-Bold.ttf',
             'C:\\Windows\\Fonts\\georgiab.ttf',
             'C:\\Windows\\Fonts\\arialbd.ttf',
             '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
             '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
         ] : [
+            rtrim(ROOTPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'dompdf' . DIRECTORY_SEPARATOR . 'dompdf' . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'fonts' . DIRECTORY_SEPARATOR . 'DejaVuSans.ttf',
             'C:\\Windows\\Fonts\\georgia.ttf',
             'C:\\Windows\\Fonts\\arial.ttf',
             '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
@@ -1122,6 +1149,20 @@ class SubmissionsController extends BaseController
         }
 
         return null;
+    }
+
+    private function formatCertificateAwardLevel(string $awardLevel): string
+    {
+        $awardLevel = trim(preg_replace('/\s+/', ' ', $awardLevel) ?? '');
+        if ($awardLevel === '') {
+            return '';
+        }
+
+        if (preg_match('/\baward\b/i', $awardLevel) || !preg_match('/\b(?:gold|silver|bronze)\b/i', $awardLevel)) {
+            return $awardLevel;
+        }
+
+        return $awardLevel . ' Award';
     }
 
     private function formatCertificateDesigners(array $entry): string
@@ -1180,7 +1221,22 @@ class SubmissionsController extends BaseController
             return $names[0] . ' & ' . $names[1];
         }
 
-        return implode(', ', array_slice($names, 0, -1)) . ' & ' . $names[$count - 1];
+        $lines = [];
+        for ($i = 0; $i < $count; $i += 2) {
+            if ($i === $count - 1) {
+                $lines[] = '& ' . $names[$i];
+                continue;
+            }
+
+            if ($i === $count - 2) {
+                $lines[] = $names[$i] . ' & ' . $names[$i + 1];
+                continue;
+            }
+
+            $lines[] = $names[$i] . ', ' . $names[$i + 1] . ',';
+        }
+
+        return implode("\n", $lines);
     }
 
     private function processWinnerBadge(string $entryId, int $compId): ?array

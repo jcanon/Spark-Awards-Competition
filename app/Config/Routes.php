@@ -104,6 +104,7 @@ $routes->group('admin', ['filter' => 'auth:admin,editor,2fa'], static function (
     $routes->get('competition-types/edit/(:num)', 'Admin\CompetitionsController::editType/$1');
     $routes->post('competition-types/update/(:num)', 'Admin\CompetitionsController::updateType/$1');
     $routes->post('competition-types/archive/(:num)', 'Admin\CompetitionsController::archiveType/$1');
+    $routes->post('competition-types/unarchive/(:num)', 'Admin\CompetitionsController::unarchiveType/$1');
     $routes->get('design-types', 'Admin\DesignTypesController::index');
     $routes->post('design-types/store', 'Admin\DesignTypesController::store');
     $routes->get('design-types/edit/(:num)', 'Admin\DesignTypesController::edit/$1');
@@ -141,12 +142,14 @@ $routes->group('admin', ['filter' => 'auth:admin,editor,2fa'], static function (
     $routes->post('submissions/photo/delete/(:num)', 'Admin\SubmissionsController::deletePhoto/$1');
     $routes->post('submissions/certificate/delete/(:num)', 'Admin\SubmissionsController::deleteCertificate/$1');
     $routes->post('submissions/bulk', 'Admin\SubmissionsController::bulk');
+    $routes->get('submissions/bulk-token', 'Admin\SubmissionsController::bulkToken');
     $routes->get('submissions/export', 'Admin\SubmissionsController::export');
     $routes->get('submissions/judging-cards', 'Admin\SubmissionsController::judgingCards');
     $routes->get('submissions/receipt/(:num)/(:segment)', 'Admin\SubmissionsController::receipt/$1/$2');
     $routes->get('submissions/receipt-content/(:num)/(:segment)', 'Admin\SubmissionsController::receiptContent/$1/$2');
     $routes->get('submissions/receipt-pdf/(:num)/(:segment)', 'Admin\SubmissionsController::receiptPdf/$1/$2');
     $routes->get('certificate-requests', 'Admin\CertificateRequestsController::index');
+    $routes->get('certificate-requests/export', 'Admin\CertificateRequestsController::export');
     $routes->get('certificate-requests/edit/(:num)', 'Admin\CertificateRequestsController::edit/$1');
     $routes->post('certificate-requests/status/(:num)', 'Admin\CertificateRequestsController::updateStatus/$1');
     $routes->post('certificate-requests/update/(:num)', 'Admin\CertificateRequestsController::update/$1');
@@ -182,6 +185,8 @@ $routes->group('admin', ['filter' => 'auth:admin,editor,2fa'], static function (
     $routes->get('settings', 'Admin\SettingsController::index', ['filter' => 'auth:admin,2fa']);
     $routes->post('settings/update', 'Admin\SettingsController::update', ['filter' => 'auth:admin,2fa']);
     $routes->get('system-tools', 'Admin\SystemToolsController::index', ['filter' => 'auth:admin,2fa']);
+    $routes->get('system-tools/broken-image-scanner', 'Admin\BrokenImageScannerController::index', ['filter' => 'auth:admin,2fa']);
+    $routes->post('system-tools/broken-image-scanner/step', 'Admin\BrokenImageScannerController::step', ['filter' => 'auth:admin,2fa']);
     $routes->get('system-tools/upload-health', 'Admin\SystemToolsController::uploadHealth', ['filter' => 'auth:admin,2fa']);
     $routes->post('system-tools/upload-health/repair', 'Admin\SystemToolsController::uploadHealthRepair', ['filter' => 'auth:admin,2fa']);
     $routes->get('system-tools/media-cleaner', 'Admin\SystemToolsController::mediaCleaner', ['filter' => 'auth:admin,2fa']);

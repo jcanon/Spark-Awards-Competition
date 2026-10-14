@@ -4,6 +4,10 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Certificate Requests</h1>
+        <a class="btn btn-sm btn-success spark-export-button" href="<?= site_url('admin/certificate-requests/export') ?>">
+            <i class="fas fa-file-export mr-1" aria-hidden="true"></i>
+            Export Certificate Requests
+        </a>
     </div>
 
     <?= view('partials/flash') ?>

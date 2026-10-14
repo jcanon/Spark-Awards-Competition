@@ -33,6 +33,12 @@
     </div>
 
     <div class="card">
+        <div class="card-header">
+            <a class="btn btn-sm btn-secondary" href="<?= site_url('admin/competition-types') . (empty($showArchived) ? '?show_archived=1' : '') ?>">
+                <?= empty($showArchived) ? 'Show archived' : 'Hide archived' ?>
+            </a>
+            <span class="ml-2 text-white"><?= empty($showArchived) ? 'Showing active categories.' : 'Showing all categories, including archived.' ?></span>
+        </div>
         <div class="card-body table-responsive">
             <table class="table table-bordered table-hover datatable">
                 <thead><tr><th>Competition Category Name</th><th>Competition Type</th><th>Actions</th></tr></thead>
@@ -44,20 +50,30 @@
                         $archived = is_object($row) ? (int)($row->archived ?? 0) : (int)($row['archived'] ?? 0);
                         $id = is_object($row) ? (int)$row->comp_type_id : (int)($row['comp_type_id'] ?? 0);
                     ?>
-                    <?php if ($archived === 1) continue; ?>
+                    <?php if ($archived === 1 && empty($showArchived)) continue; ?>
                     <tr>
                         <td>
                             <a href="<?= site_url('admin/competition-types/edit/' . $id) ?>">
                                 <?= esc($name) ?>
                             </a>
+                            <?php if ($archived === 1): ?>
+                                <span class="badge badge-secondary">Archived</span>
+                            <?php endif; ?>
                         </td>
                         <td><?= $student === 1 ? 'Student' : 'Professional' ?></td>
                         <td>
                             <a href="<?= site_url('admin/competition-types/edit/' . $id) ?>" class="btn btn-sm btn-primary">Edit</a>
+                            <?php if ($archived === 1): ?>
+                            <form method="post" action="<?= site_url('admin/competition-types/unarchive/' . $id) ?>" class="d-inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm btn-success" aria-label="<?= esc('Unarchive ' . $name, 'attr') ?>">Unarchive</button>
+                            </form>
+                            <?php else: ?>
                             <form method="post" action="<?= site_url('admin/competition-types/archive/' . $id) ?>" class="d-inline" onsubmit="return confirm('Archive this competition category? This action can affect where this category appears.');">
                                 <?= csrf_field() ?>
                                 <button type="submit" class="btn btn-sm btn-secondary">Archive</button>
                             </form>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>

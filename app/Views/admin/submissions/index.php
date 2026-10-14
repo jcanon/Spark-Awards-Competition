@@ -3,11 +3,18 @@
 
 <div class="container-fluid">
     <?php $statusBulkActions = entry_status_bulk_actions(); ?>
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Submissions</h1>
-        <div>
+        <div class="d-flex flex-wrap spark-export-actions">
             <a class="btn btn-sm btn-primary" href="<?= site_url('admin/submissions/create?compYear=' . (int)$filters['compYear']) ?>">Add Submission</a>
-            <a class="btn btn-sm btn-secondary" href="<?= site_url('admin/submissions/export?' . http_build_query($filters)) ?>">Export Submissions</a>
+            <a class="btn btn-sm btn-success spark-export-button" href="<?= site_url('admin/submissions/export?' . http_build_query($filters)) ?>">
+                <i class="fas fa-file-export mr-1" aria-hidden="true"></i>
+                Export Filtered Submissions
+            </a>
+            <a class="btn btn-sm btn-success spark-export-button" href="<?= site_url('admin/submissions/export?scope=all') ?>" title="Export all professional submissions across all years and competitions, regardless of filters">
+                <i class="fas fa-file-export mr-1" aria-hidden="true"></i>
+                Export All Pro Submissions
+            </a>
         </div>
     </div>
 
@@ -28,6 +35,7 @@
           action="<?= site_url('admin/submissions/bulk') ?>"
           method="post"
           data-bulk-actions="1"
+          data-csrf-refresh-url="<?= esc(site_url('admin/submissions/bulk-token'), 'attr') ?>"
           data-item-selector="input[name='entry_ids[]']"
           data-select-all-selector="#select_all"
           data-action-selector="#bulk_action"
@@ -57,7 +65,7 @@
 
         <div class="card">
             <div class="card-body table-responsive">
-                <table class="table table-bordered table-hover datatable">
+                <table class="table table-bordered table-hover datatable" data-page-length="500">
                     <thead><tr><th><input type="checkbox" id="select_all"></th><th>Design Name</th><th>Designer</th><th>Competition</th><th>Entry Status</th><th>In Gallery</th><th>Actions</th></tr></thead>
                     <tbody>
                     <?php foreach ($rows as $row): ?>

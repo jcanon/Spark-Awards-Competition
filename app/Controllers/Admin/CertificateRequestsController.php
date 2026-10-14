@@ -6,6 +6,11 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\Entries\CertificateRequestModel;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Throwable;
 
 class CertificateRequestsController extends BaseController
@@ -139,6 +144,20 @@ class CertificateRequestsController extends BaseController
         }
 
         return redirect()->to($this->buildListUrlFromInput())->with('success', 'Request status updated.');
+    }
+
+    public function export()
+    {
+        $rows = $this->buildExportRows();
+        $binary = $this->toXlsx($rows);
+        $filename = 'certificate-requests-' . date('Ymd_His') . '.xlsx';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setHeader('Cache-Control', 'max-age=0')
+            ->setHeader('X-Content-Type-Options', 'nosniff')
+            ->setBody($binary);
     }
 
     public function edit(int $certificateRequestId)
@@ -289,6 +308,210 @@ class CertificateRequestsController extends BaseController
             ->getRowArray();
 
         return $row ?: null;
+    }
+
+    private function buildExportRows(): array
+    {
+        $rows = db_connect()->table('comp_entry_certificate_requests r')
+            ->select([
+                'r.*',
+                'e.entry_id',
+                'e.design_name',
+                'e.entry_status',
+                'e.winner_level',
+                'e.company_name AS entry_company_name',
+                'c.comp_id',
+                'c.comp_year',
+                't.comp_type_name',
+                'w.winner_level_name',
+                'u.first_name',
+                'u.last_name',
+                'u.email_address',
+                'u.phone',
+                'u.mobile',
+                'u.company_name AS account_company_name',
+                'u.address1 AS account_address1',
+                'u.address2 AS account_address2',
+                'u.city AS account_city',
+                'u.state AS account_state',
+                'st.state AS account_state_name',
+                'u.zipcode AS account_zipcode',
+                'u.country AS account_country',
+                'co.country AS account_country_name',
+                'rst.state AS shipping_state_name',
+                'rco.country AS shipping_country_name',
+            ])
+            ->join('comp_entries e', 'e.entry_id = r.entry_id')
+            ->join('comp_competitions c', 'c.comp_id = e.comp_id')
+            ->join('comp_type t', 't.comp_type_id = c.comp_type_id')
+            ->join('comp_winner_levels w', 'w.winner_level_id = e.winner_level', 'left')
+            ->join('comp_users u', 'u.user_id = e.user_id')
+            ->join('states st', 'st.scode = u.state', 'left')
+            ->join('countries co', 'co.ccode = u.country', 'left')
+            ->join('states rst', 'rst.scode = r.shipping_state', 'left')
+            ->join('countries rco', 'rco.ccode = r.shipping_country', 'left')
+            ->orderBy("CASE WHEN r.request_status = 'Pending' THEN 0 ELSE 1 END", '', false)
+            ->orderBy('r.request_status', 'ASC')
+            ->orderBy('e.design_name', 'ASC')
+            ->orderBy('r.certificate_request_id', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $exportRows = [];
+        foreach ($rows as $row) {
+            [$entryStatus] = entry_status_pill($row);
+            $shippingState = $this->preferFullName((string)($row['shipping_state'] ?? ''), (string)($row['shipping_state_name'] ?? ''));
+            $shippingCountry = $this->preferFullName((string)($row['shipping_country'] ?? ''), (string)($row['shipping_country_name'] ?? ''));
+            $accountState = $this->preferFullName((string)($row['account_state'] ?? ''), (string)($row['account_state_name'] ?? ''));
+            $accountCountry = $this->preferFullName((string)($row['account_country'] ?? ''), (string)($row['account_country_name'] ?? ''));
+
+            $exportRows[] = [
+                'Status' => (string)($row['request_status'] ?? ''),
+                'SubmissionName' => (string)($row['design_name'] ?? ''),
+                'SubmissionCompany' => (string)($row['entry_company_name'] ?? ''),
+                'CertificateRequestId' => (string)($row['certificate_request_id'] ?? ''),
+                'EntryId' => (string)($row['entry_id'] ?? ''),
+                'Competition' => trim((string)($row['comp_type_name'] ?? '') . ' ' . (string)($row['comp_year'] ?? '')),
+                'CompetitionId' => (string)($row['comp_id'] ?? ''),
+                'EntryStatus' => $entryStatus,
+                'WinnerLevel' => (string)($row['winner_level_name'] ?? ''),
+                'EntrantFirstName' => (string)($row['first_name'] ?? ''),
+                'EntrantLastName' => (string)($row['last_name'] ?? ''),
+                'EntrantEmail' => (string)($row['email_address'] ?? ''),
+                'EntrantPhone' => (string)($row['phone'] ?? ''),
+                'EntrantMobile' => (string)($row['mobile'] ?? ''),
+                'RequestedAt' => (string)($row['requested_at'] ?? ''),
+                'UpdatedAt' => (string)($row['updated_at'] ?? ''),
+                'ReviewedAt' => (string)($row['reviewed_at'] ?? ''),
+                'ReviewedBy' => (string)($row['reviewed_by'] ?? ''),
+                'CertificateQuantity' => (string)($row['certificate_quantity'] ?? ''),
+                'DesignerNames' => (string)($row['designer_names'] ?? ''),
+                'AdditionalPersons' => (string)($row['additional_persons'] ?? ''),
+                'PrintedOrganization' => (string)($row['printed_organization'] ?? ''),
+                'OfficialLevel' => (string)($row['official_level'] ?? ''),
+                'AwardCategory' => (string)($row['award_category'] ?? ''),
+                'LaminationRequested' => ((string)($row['lamination_requested'] ?? '0') === '1') ? 'Yes' : 'No',
+                'LaminationQuantity' => (string)($row['lamination_quantity'] ?? ''),
+                'ShippingMethod' => (string)($row['shipping_method'] ?? ''),
+                'ContactPerson' => (string)($row['contact_person'] ?? ''),
+                'ContactEmail' => (string)($row['contact_email'] ?? ''),
+                'ContactPhone' => (string)($row['contact_phone'] ?? ''),
+                'ShippingCompany' => (string)($row['shipping_company'] ?? ''),
+                'ShippingAddress1' => (string)($row['shipping_address1'] ?? ''),
+                'ShippingAddress2' => (string)($row['shipping_address2'] ?? ''),
+                'ShippingCity' => (string)($row['shipping_city'] ?? ''),
+                'ShippingStateProvince' => $shippingState,
+                'ShippingStateProvinceCode' => (string)($row['shipping_state'] ?? ''),
+                'ShippingPostalCode' => (string)($row['shipping_postal_code'] ?? ''),
+                'ShippingCountry' => $shippingCountry,
+                'ShippingCountryCode' => (string)($row['shipping_country'] ?? ''),
+                'ShippingFullAddress' => $this->formatAddress([
+                    (string)($row['shipping_company'] ?? ''),
+                    (string)($row['shipping_address1'] ?? ''),
+                    (string)($row['shipping_address2'] ?? ''),
+                    trim((string)($row['shipping_city'] ?? '') . ', ' . $shippingState . ' ' . (string)($row['shipping_postal_code'] ?? ''), " ,"),
+                    $shippingCountry,
+                ]),
+                'AccountCompany' => (string)($row['account_company_name'] ?? ''),
+                'AccountAddress1' => (string)($row['account_address1'] ?? ''),
+                'AccountAddress2' => (string)($row['account_address2'] ?? ''),
+                'AccountCity' => (string)($row['account_city'] ?? ''),
+                'AccountStateProvince' => $accountState,
+                'AccountStateProvinceCode' => (string)($row['account_state'] ?? ''),
+                'AccountPostalCode' => (string)($row['account_zipcode'] ?? ''),
+                'AccountCountry' => $accountCountry,
+                'AccountCountryCode' => (string)($row['account_country'] ?? ''),
+                'AccountFullAddress' => $this->formatAddress([
+                    (string)($row['account_company_name'] ?? ''),
+                    (string)($row['account_address1'] ?? ''),
+                    (string)($row['account_address2'] ?? ''),
+                    trim((string)($row['account_city'] ?? '') . ', ' . $accountState . ' ' . (string)($row['account_zipcode'] ?? ''), " ,"),
+                    $accountCountry,
+                ]),
+                'SpecialInstructions' => (string)($row['special_instructions'] ?? ''),
+                'AdminNotes' => (string)($row['admin_notes'] ?? ''),
+                'AdminEditUrl' => site_url('admin/certificate-requests/edit/' . (int)($row['certificate_request_id'] ?? 0)),
+            ];
+        }
+
+        return $exportRows;
+    }
+
+    private function toXlsx(array $rows): string
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Certificate Requests');
+
+        $this->writeRowsToSheet($sheet, $rows);
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(false);
+        ob_start();
+        $writer->save('php://output');
+
+        return (string)ob_get_clean();
+    }
+
+    private function writeRowsToSheet($sheet, array $rows): void
+    {
+        if ($rows === []) {
+            $sheet->setCellValueExplicit('A1', 'No data', DataType::TYPE_STRING);
+            return;
+        }
+
+        $headers = array_keys($rows[0]);
+        $lastHeaderCol = Coordinate::stringFromColumnIndex(count($headers));
+
+        foreach ($headers as $index => $header) {
+            $cell = Coordinate::stringFromColumnIndex($index + 1) . '1';
+            $sheet->setCellValueExplicit($cell, (string)$header, DataType::TYPE_STRING);
+        }
+
+        $sheet->getStyle('A1:' . $lastHeaderCol . '1')->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF'],
+            ],
+        ]);
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter('A1:' . $lastHeaderCol . '1');
+
+        $rowNum = 2;
+        foreach ($rows as $row) {
+            foreach ($headers as $index => $header) {
+                $val = $row[$header] ?? '';
+                $cell = Coordinate::stringFromColumnIndex($index + 1) . (string)$rowNum;
+                $sheet->setCellValueExplicit(
+                    $cell,
+                    is_scalar($val) ? (string)$val : (string)json_encode($val, JSON_UNESCAPED_UNICODE),
+                    DataType::TYPE_STRING
+                );
+            }
+            $rowNum++;
+        }
+    }
+
+    private function preferFullName(string $codeOrName, string $fullName): string
+    {
+        $codeOrName = trim($codeOrName);
+        $fullName = trim($fullName);
+
+        return $fullName !== '' ? $fullName : $codeOrName;
+    }
+
+    private function formatAddress(array $parts): string
+    {
+        $lines = [];
+        foreach ($parts as $part) {
+            $line = trim((string)$part);
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+
+        return implode("\n", $lines);
     }
 
     private function buildListUrlFromInput(): string

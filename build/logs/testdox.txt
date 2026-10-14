@@ -1,6 +1,6 @@
-Admin Bulk Endpoints
- [x] Submissions bulk requires action
- [x] Submissions bulk unknown action returns updated zero
- [x] Score results bulk requires selection
- [x] Score results bulk unknown action returns updated zero
+Entry Photo Deletion
+ [x] Missing image still deletes record without filesystem warnings
+ [ ] Existing public image moves to trash and deletes record
+ [ ] Existing writable image moves to trash and deletes record
+ [x] Missing record returns false
 

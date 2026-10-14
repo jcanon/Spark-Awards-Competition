@@ -8,10 +8,13 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Competition Score Results</h1>
         <a
-            class="btn btn-sm btn-primary"
+            class="btn btn-sm btn-success spark-export-button"
             href="<?= site_url('admin/score-results/export?' . http_build_query($filters)) ?>"
             rel="noopener"
-        >Export Score Results</a>
+        >
+            <i class="fas fa-file-export mr-1" aria-hidden="true"></i>
+            Export Filtered Score Results
+        </a>
     </div>
     <p>This tool will allow you to tally the scores of each competition during the judging process.</p>
 

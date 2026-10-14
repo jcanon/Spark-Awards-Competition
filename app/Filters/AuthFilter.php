@@ -23,6 +23,11 @@ class AuthFilter implements FilterInterface
             return redirect()->to('/auth/login')->with('error', 'Your session has expired. Please log in again.');
         }
 
+        // Clear expiration flags left in admin sessions created before the exemption.
+        if (session('role') === 'admin') {
+            session()->set('password_reset_required', false);
+        }
+
         if ((bool)session('password_reset_required')) {
             $allowed = [
                 'auth/password-expired',

@@ -21,10 +21,19 @@
     ?>
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Users</h1>
-        <div class="d-flex">
-            <a class="btn btn-sm btn-primary mr-2" href="<?= esc($exportAllUrl) ?>">Export All</a>
-            <a class="btn btn-sm btn-outline-primary mr-2" href="<?= esc($exportProsUrl) ?>">Export Professionals</a>
-            <a class="btn btn-sm btn-outline-primary" href="<?= esc($exportStudentsUrl) ?>">Export Students</a>
+        <div class="d-flex flex-wrap spark-export-actions">
+            <a class="btn btn-sm btn-success spark-export-button" href="<?= esc($exportAllUrl) ?>">
+                <i class="fas fa-file-export mr-1" aria-hidden="true"></i>
+                Export All Users
+            </a>
+            <a class="btn btn-sm btn-success spark-export-button" href="<?= esc($exportProsUrl) ?>">
+                <i class="fas fa-file-export mr-1" aria-hidden="true"></i>
+                Export Professional Users
+            </a>
+            <a class="btn btn-sm btn-success spark-export-button" href="<?= esc($exportStudentsUrl) ?>">
+                <i class="fas fa-file-export mr-1" aria-hidden="true"></i>
+                Export Student Users
+            </a>
         </div>
     </div>
 

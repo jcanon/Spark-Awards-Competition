@@ -49,8 +49,11 @@ class SubmissionsAdminService
         )->getResultArray();
     }
 
-    public function list(array $filters): array
+    public function list(array $filters, bool $allProSubmissions = false): array
     {
+        if ($allProSubmissions) {
+            $filters = [];
+        }
         $filterBy = trim((string)($filters['filterBy'] ?? ''));
         $compYear = (int)($filters['compYear'] ?? date('Y'));
         $compType = (string)($filters['compType'] ?? 'ALL');
@@ -59,13 +62,19 @@ class SubmissionsAdminService
         $db = db_connect();
         $builder = $db->table('comp_entries a')
             ->select('a.*, b.comp_year, b.comp_type_id, c.comp_type_name, d.first_name, d.last_name, d.email_address, d.company_name, f.winner_level_name, p1.payment_status AS phase_1_payment_status, p2.payment_status AS phase_2_payment_status')
-            ->join('comp_competitions b', 'a.comp_id = b.comp_id')
-            ->join('comp_type c', 'b.comp_type_id = c.comp_type_id')
-            ->join('comp_users d', 'a.user_id = d.user_id')
+            ->join('comp_competitions b', 'a.comp_id = b.comp_id', $allProSubmissions ? 'left' : 'inner')
+            ->join('comp_type c', 'b.comp_type_id = c.comp_type_id', $allProSubmissions ? 'left' : 'inner')
+            ->join('comp_users d', 'a.user_id = d.user_id', $allProSubmissions ? 'left' : 'inner')
             ->join('comp_winner_levels f', 'a.winner_level = f.winner_level_id', 'left')
             ->join('comp_entry_payments p1', 'p1.entry_id = a.entry_id AND p1.payment_phase = 1', 'left')
-            ->join('comp_entry_payments p2', 'p2.entry_id = a.entry_id AND p2.payment_phase = 2', 'left')
-            ->where('b.comp_year', $compYear);
+            ->join('comp_entry_payments p2', 'p2.entry_id = a.entry_id AND p2.payment_phase = 2', 'left');
+
+        if (!$allProSubmissions) {
+            $builder->where('b.comp_year', $compYear);
+        } else {
+            $builder->join('comp_user_type ut', 'ut.user_type_id = d.user_type_id')
+                ->where('ut.user_type_pricing', 'Pro');
+        }
 
         if ($compType !== 'ALL') {
             $builder->where('b.comp_type_id', (int)$compType);
@@ -273,9 +282,9 @@ class SubmissionsAdminService
         return EntryBulkActions::submissionPayload($action);
     }
 
-    public function export(array $filters): array
+    public function export(array $filters, bool $allProSubmissions = false): array
     {
-        $rows = $this->list($filters);
+        $rows = $this->list($filters, $allProSubmissions);
         if ($rows === []) {
             return [];
         }
@@ -321,7 +330,7 @@ class SubmissionsAdminService
             $entryId = (string)$row['entry_id'];
             $p1Date = (string)($paymentDates[$entryId][1] ?? '');
             $p2Date = (string)($paymentDates[$entryId][2] ?? '');
-            $out[] = [
+            $exportRow = [
                 'entry_id' => $entryId,
                 'design_name' => $row['design_name'],
                 'designer_name' => trim((string)($row['designer_first_name'] ?? '') . ' ' . (string)($row['designer_last_name'] ?? '')),
@@ -341,14 +350,18 @@ class SubmissionsAdminService
                 'full_description' => $row['full_description'] ?? '',
                 'video_embed_url' => $this->submissions->normalizeVideoEmbedUrl((string)($row['youtube_url'] ?? '')),
             ];
+            if ($allProSubmissions) {
+                unset($exportRow['short_description'], $exportRow['full_description']);
+            }
+            $out[] = $exportRow;
         }
 
         return $out;
     }
 
-    public function exportJudging(array $filters): array
+    public function exportJudging(array $filters, bool $allProSubmissions = false): array
     {
-        $rows = $this->list($filters);
+        $rows = $this->list($filters, $allProSubmissions);
         if ($rows === []) {
             return [];
         }

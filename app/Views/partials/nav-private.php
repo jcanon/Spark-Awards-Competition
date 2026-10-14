@@ -109,6 +109,7 @@ try {
                         </a>
                         <div class="menu-sub <?= $systemToolsOpen ? 'show' : '' ?>">
                             <div class="py-1">
+                                <a class="collapse-item pl-4 <?= $is('admin/system-tools/broken-image-scanner') ? 'active' : '' ?>" href="<?= site_url('admin/system-tools/broken-image-scanner') ?>">- Broken Image Scanner</a>
                                 <a class="collapse-item pl-4 <?= $is('admin/system-tools/countries') ? 'active' : '' ?>" href="<?= site_url('admin/system-tools/countries') ?>">- Countries</a>
                                 <a class="collapse-item pl-4 <?= $is('admin/system-tools/diagnostics') ? 'active' : '' ?>" href="<?= site_url('admin/system-tools/diagnostics') ?>">- Diagnostics Bundle</a>
                                 <a class="collapse-item pl-4 <?= $is('admin/system-tools/logs') ? 'active' : '' ?>" href="<?= site_url('admin/system-tools/logs') ?>">- Log Viewer</a>

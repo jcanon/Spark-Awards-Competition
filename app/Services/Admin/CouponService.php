@@ -24,6 +24,8 @@ class CouponService
             'coupon_start_date' => $start,
             'coupon_end_date' => $end,
             'coupon_amount' => (string)($form['coupon_amount'] ?? ''),
+            'coupon_single_use' => (string)($form['coupon_single_use'] ?? '0'),
+            'coupon_phase' => (string)($form['coupon_phase'] ?? '0'),
         ];
 
         $model = new CouponModel();
@@ -45,6 +47,8 @@ class CouponService
             'coupon_start_date' => $start,
             'coupon_end_date' => $end,
             'coupon_amount' => (string)($form['coupon_amount'] ?? ''),
+            'coupon_single_use' => (string)($form['coupon_single_use'] ?? '0'),
+            'coupon_phase' => (string)($form['coupon_phase'] ?? '0'),
         ];
 
         return (new CouponModel())->update($couponId, $data);

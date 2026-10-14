@@ -107,27 +107,59 @@ class PaymentService
         return $row ?: null;
     }
 
-    public function getCoupon(string $couponCode, ?int $compId = null): array
+    public function getCoupon(string $couponCode, ?int $compId = null, ?int $paymentId = null, ?int $phase = null): array
     {
         $code = strtoupper(trim($couponCode));
         if ($code === '') {
             return [];
         }
 
-        $db = db_connect();
-        $params = [$code];
-        $sql = "SELECT coupon_id, coupon_code, coupon_type, coupon_amount
-                  FROM comp_coupons
-                 WHERE coupon_code = ?
-                   AND coupon_start_date <= NOW()
-                   AND coupon_end_date > NOW()";
-
+        $query = db_connect()->table('comp_coupons')
+            ->where('coupon_code', $code)
+            ->where('coupon_start_date <=', date('Y-m-d H:i:s'))
+            ->where('coupon_end_date >', date('Y-m-d H:i:s'))
+            ->groupStart()
+                ->where('coupon_single_use', 0)
+                ->orWhere('coupon_payment_id', null);
+        if ($paymentId !== null) {
+            $query->orWhere('coupon_payment_id', $paymentId);
+        }
+        $query->groupEnd();
         if ($compId !== null) {
-            $sql .= " AND (coupon_comp = 0 OR coupon_comp = ?)";
-            $params[] = $compId;
+            $query->groupStart()->where('coupon_comp', 0)->orWhere('coupon_comp', $compId)->groupEnd();
         }
 
-        return $db->query($sql, $params)->getResultArray();
+        // Without a payment phase, only unrestricted coupons are eligible.
+        $query->groupStart()->where('coupon_phase', 0);
+        if (in_array($phase, [1, 2], true)) {
+            $query->orWhere('coupon_phase', $phase);
+        }
+        $query->groupEnd();
+
+        return $query->orderBy('coupon_id', 'ASC')->get()->getResultArray();
+    }
+
+    /** Reserve before any charge, atomically, so concurrent checkouts cannot share a code. */
+    public function reserveCoupon(int $couponId, int $paymentId): bool
+    {
+        if ($paymentId <= 0) {
+            return false;
+        }
+
+        $db = db_connect();
+        $ok = $db->table('comp_coupons')
+            ->where('coupon_id', $couponId)
+            ->where('coupon_single_use', 1)
+            ->where('coupon_payment_id', null)
+            ->update(['coupon_payment_id' => $paymentId]);
+        if (!$ok) {
+            return false;
+        }
+
+        // Reading ownership also handles retries where MySQL reports no changed rows.
+        $coupon = $db->table('comp_coupons')->where('coupon_id', $couponId)->get()->getRowArray();
+        return $coupon !== null && ((int)$coupon['coupon_single_use'] === 0
+            || (int)$coupon['coupon_payment_id'] === $paymentId);
     }
 
     public function updateCoupon(string $entryId, string $phase, string $couponCode): bool
@@ -160,7 +192,7 @@ class PaymentService
         return $model->update((int)$existing->payment_id, ['payment_total' => $amount]);
     }
 
-    public function calculateTotalsForEntry(string $entryId, int $phase): array
+    public function calculateTotalsForEntry(string $entryId, int $phase, bool $forCheckout = false): array
     {
         $entry = (new UserEntriesModel())
             ->select('comp_entries.*, comp_users.user_type_id')
@@ -222,7 +254,10 @@ class PaymentService
         $couponCode = strtoupper(trim((string)($payment?->coupon_code ?? '')));
         $coupon = [];
         if ($couponCode !== '') {
-            $coupon = $this->getCoupon($couponCode, $compId);
+            $coupon = $this->getCoupon($couponCode, $compId, $payment ? (int)$payment->payment_id : null, $phase);
+            if ($forCheckout && ($coupon === [] || !$this->reserveCoupon((int)$coupon[0]['coupon_id'], (int)$payment->payment_id))) {
+                throw new RuntimeException('This coupon is expired, unavailable, or not valid for this payment phase. Please review your total and choose another code.');
+            }
             if ($coupon === []) {
                 $couponCode = '';
                 if ($payment) {

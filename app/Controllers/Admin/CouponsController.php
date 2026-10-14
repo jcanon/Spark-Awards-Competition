@@ -40,6 +40,8 @@ class CouponsController extends BaseController
     {
         $rules = [
             'coupon_code' => 'required|max_length[25]',
+            'coupon_single_use' => 'permit_empty|in_list[0,1]',
+            'coupon_phase' => 'permit_empty|in_list[0,1,2]',
             'coupon_type' => 'required|in_list[Dollar,Percentage]',
             'coupon_amount' => 'required|regex_match[/^[0-9]+$/]|greater_than[0]',
             'coupon_start_date' => 'required',
@@ -71,6 +73,8 @@ class CouponsController extends BaseController
     {
         $rules = [
             'coupon_code' => 'required|max_length[25]',
+            'coupon_single_use' => 'permit_empty|in_list[0,1]',
+            'coupon_phase' => 'permit_empty|in_list[0,1,2]',
             'coupon_type' => 'required|in_list[Dollar,Percentage]',
             'coupon_amount' => 'required|regex_match[/^[0-9]+$/]|greater_than[0]',
             'coupon_start_date' => 'required',

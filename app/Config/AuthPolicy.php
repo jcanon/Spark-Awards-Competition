@@ -7,7 +7,7 @@ use CodeIgniter\Config\BaseConfig;
 class AuthPolicy extends BaseConfig
 {
     /**
-     * Enforce periodic password expiry.
+     * Enforce periodic password expiry for non-admin accounts. Admins are exempt.
      * Set via env: AUTH_ENFORCE_PASSWORD_EXPIRY=true|false
      */
     public bool $enforcePasswordExpiry = true;
@@ -41,4 +41,3 @@ class AuthPolicy extends BaseConfig
         $this->passwordHistoryLimit = max(1, min(100, $history));
     }
 }
-

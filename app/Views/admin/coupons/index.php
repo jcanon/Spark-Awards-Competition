@@ -12,13 +12,15 @@
     <div class="card">
         <div class="card-body table-responsive">
             <table class="table table-bordered table-hover datatable">
-                <thead><tr><th>Code</th><th>Type</th><th>Amount</th><th>Competition</th><th>Start</th><th>End</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Code</th><th>Type</th><th>Usage</th><th>Phase</th><th>Amount</th><th>Competition</th><th>Start</th><th>End</th><th>Actions</th></tr></thead>
                 <tbody>
                 <?php foreach ($rows as $row): ?>
                     <tr>
                         <?php $couponCompId = (int)($row->coupon_comp ?? 0); ?>
                         <td><a href="<?= site_url('admin/coupons/edit/' . (int)$row->coupon_id) ?>"><?= esc((string)$row->coupon_code) ?></a></td>
                         <td><?= esc((string)$row->coupon_type) ?></td>
+                        <td><?= (int)($row->coupon_single_use ?? 0) === 1 ? 'One-time use' : 'Multi-use' ?></td>
+                        <td><?= esc([0 => 'All', 1 => 'Phase 1', 2 => 'Phase 2'][(int)($row->coupon_phase ?? 0)] ?? 'All') ?></td>
                         <td><?= esc((string)$row->coupon_amount) ?></td>
                         <td><?= esc((string)($competitionLabels[$couponCompId] ?? 'Unknown Competition')) ?></td>
                         <td><?= esc(format_datetime_ui((string)$row->coupon_start_date)) ?></td>
